@@ -1,7 +1,7 @@
 # FROM alpine:3.7
 # --no-capture-output supported only since anaconda 4.9, miniconda doesnt work yet
 FROM continuumio/miniconda3
-WORKDIR /timerbot_container
+WORKDIR /bot_container
 
 # WORKDIR /home/$SETUSER
 # Create the environment:
