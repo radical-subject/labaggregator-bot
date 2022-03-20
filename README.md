@@ -46,7 +46,7 @@ _make help_
 
 ## Project Structure
 there are 5 docker images in development.
-- bot_container
+- vendorbot_container
 - mongodb_api
 - nginx
 - indigo_service
@@ -55,7 +55,7 @@ there are 5 docker images in development.
 Ketcher is microcervice to draw structures for structure based queries. It depends on indigo and nginx.
 Also nginx will be needed for ssl/tls in future development.
 
-bot_container is place where all chemoinformatics (except draw-input by ketcher) is done. For now it is done by mongo-rdkit chemoinformatics data cartridge. 
+vendorbot_container is place where all chemoinformatics (except draw-input by ketcher) is done. For now it is done by mongo-rdkit chemoinformatics data cartridge. 
 
 We look forward to migrate to postgresql catridge published by Timur Madzhidov in nearest future: it is because our web application is based on Express+React+Postgresql.
 ## Further Info

@@ -31,7 +31,7 @@ attention:
 __token lies in token.secret file which is included in .gitignore with *.secret__
 
 ## DOCKER STARTUP
-The docker container with bot source named _bot_container_ is configured by Dockerfile.
+The docker container with bot source named _vendorbot_container_ is configured by Dockerfile.
 The docker container with database named _mongodb_api_ is created from docker image: _mongo:latest_
 
 Docker-compose.yml is the file which binds two containers in one app. The bot is run by single command:
@@ -43,9 +43,9 @@ the latter will rebuild the project if any changes were made, but the database d
 ### for development we create docker-compose.development.yml with some fields that shoul be overriden for dev start: 
 _docker-compose -f docker-compose.yml -f docker-compose.development.yml up --build_ 
 
-restarting of the whole project inside docker container is acheved by nodemon, which is triggered by save of any file inside watched folder (bot_container)
+restarting of the whole project inside docker container is acheved by nodemon, which is triggered by save of any file inside watched folder (vendorbot_container)
 
-also we share volumes with data between mongodb_api and bot_container by following example declaration in docker-compose.yml:
+also we share volumes with data between mongodb_api and vendorbot_container by following example declaration in docker-compose.yml:
 
 .....
     volumes:

@@ -113,7 +113,7 @@ logs:
 
 #  lists application for bot container
 logs_api:
-	-$(DOCKER_COMPOSE_CMD) logs --tail=100 -f bot_container
+	-$(DOCKER_COMPOSE_CMD) logs --tail=100 -f vendorbot_container
 
 #  lists containers in docker-compose
 ps:
@@ -125,7 +125,7 @@ mongodb_shell:
 
 #  gives shell to bot container
 bot_shell:
-	$(DOCKER_COMPOSE_CMD) exec bot_container /bin/bash
+	$(DOCKER_COMPOSE_CMD) exec vendorbot_container /bin/bash
 
 #  Do update if needed
 update_if_needed:

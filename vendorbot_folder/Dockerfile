@@ -1,7 +1,7 @@
 # FROM alpine:3.7
 # --no-capture-output supported only since anaconda 4.9, miniconda doesnt work yet
 FROM continuumio/miniconda3
-WORKDIR /bot_container
+WORKDIR /vendorbot_container
 
 # WORKDIR /home/$SETUSER
 # Create the environment:
@@ -30,7 +30,7 @@ RUN apt-get install -y zip unzip
 
 # #clone and local install mongo-rdkit repository
 # RUN git clone https://github.com/rdkit/mongo-rdkit /mongo-rdkit \
-#   &&  chmod -R 777 /mongo-rdkit && cd /mongo-rdkit && conda run -n timerbot_env pip install -e .
+#   &&  chmod -R 777 /mongo-rdkit && cd /mongo-rdkit && conda run -n vendorbot_env pip install -e .
 
 
 # Make RUN commands use the new environment: -- activate env doesnt work in miniconda!!!
@@ -42,4 +42,4 @@ RUN apt-get install -y zip unzip
 # copy all other files for bot
 COPY . .
 
-SHELL ["conda", "run", "-n", "timerbot_env", "/bin/bash", "-c"] 
+SHELL ["conda", "run", "-n", "vendorbot_env", "/bin/bash", "-c"] 

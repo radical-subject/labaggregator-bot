@@ -29,7 +29,7 @@ class GoogleDriver:
                 setattr(self, key, value)
 
     def connect(self):
-        path = pathlib.Path(os.path.abspath(__file__)).parent.parent # /bot_container/ directory
+        path = pathlib.Path(os.path.abspath(__file__)).parent.parent # /vendorbot_container/ directory
         GoogleAuth.DEFAULT_SETTINGS['client_config_file'] = os.path.join(path, "secrets", "client_secrets.json") 
         self.gauth = GoogleAuth()
         

@@ -2,13 +2,13 @@ version: '3.7'
 
 services:
   timerbot_service:
-    build: ./bot_folder # относительный путь до папки  файлами. откуда compose будет брать их чтобы сбилдить
-    container_name: bot_container
+    build: ./vendorbot_folder # относительный путь до папки  файлами. откуда compose будет брать их чтобы сбилдить
+    container_name: vendorbot_container
     tty: true # this fucker is a must for container to run - why?
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
-      - MONGO_URL=mongodb://mongodb_api:27017/bot_container # mongodb://mongodb_api:27017/timerbot # doesnt matter which is outer port of mongodb_api container, this accesses directtly to internal port?
+      - MONGO_URL=mongodb://mongodb_api:27017/vendorbot_container # mongodb://mongodb_api:27017/timerbot # doesnt matter which is outer port of mongodb_api container, this accesses directtly to internal port?
       - MONGO_INITDB_ROOT_USERNAME=root # 
       - MONGO_INITDB_ROOT_PASSWORD=dr5[gnhn # 
       - MONGO_INITDB_DATABASE=admin  # timerbotdb
@@ -18,8 +18,8 @@ services:
     depends_on:
       - mongodb_api
     volumes:
-      - mongo_dumps:/bot_container/mongodumps
-    command:  conda run -n timerbot_env --no-capture-output python -u main.py #chmod -R 777 /opt/conda/envs/ &&
+      - mongo_dumps:/vendorbot_container/mongodumps
+    command:  conda run -n vendorbot_env --no-capture-output python -u main.py #chmod -R 777 /opt/conda/envs/ &&
 
   mongodb_api:
     image: mongo:latest
