@@ -1,0 +1,14 @@
+version: '3.7'
+
+services:
+  timerbot_service:
+    volumes:
+      - ./timerbot_folder:/timerbot_container # симлинкнули папку с файлами чтобы они обновлялись при любых изменениях в деве
+      - /timerbot_container/node_modules # это чтобы не ругался на отсутствие папки node modules
+    environment:
+      - BOT_TOKEN=${DEVELOPMENT_BOT_TOKEN}
+    command: npm run dev
+    
+  mongodb_api:
+    # shorten logs
+    command: mongod --quiet --logpath /dev/null # логи монго выключены на полшишечки

@@ -1,0 +1,42 @@
+version: '3.7'
+
+services:
+  timerbot_service:
+    build: ./timerbot_folder # относительный путь до папки  файлами. откуда compose будет брать их чтобы сбилдить
+    container_name: timerbot_container
+    tty: true # this fucker is a must for container to run - why?
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MONGO_URL=mongodb://mongodb_api:27017/timerbot_container # mongodb://mongodb_api:27017/timerbot # doesnt matter which is outer port of mongodb_api container, this accesses directtly to internal port?
+      - MONGO_INITDB_ROOT_USERNAME=root # 
+      - MONGO_INITDB_ROOT_PASSWORD=dr5[gnhn # 
+      - MONGO_INITDB_DATABASE=admin  # timerbotdb
+      - MONGO_BOT_USERNAME=bot
+      - MONGO_BOT_PASSWORD=botpsswd
+      - BOT_TOKEN=${PRODUCTION_BOT_TOKEN}
+    depends_on:
+      - mongodb_api
+    volumes:
+      - mongo_dumps:/timerbot_container/mongodumps
+    command:  conda run -n timerbot_env --no-capture-output python -u main.py #chmod -R 777 /opt/conda/envs/ &&
+
+  mongodb_api:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: dr5[gnhn
+      MONGO_INITDB_DATABASE: admin
+    ports:
+      - 27017:27017 # binds to docker internal service to localhost:27017
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro # basic initialization of docker user and db with .js config file       # - mongodb_api:/data/db # this is the psrt that messed with db configuration. avoid
+      - mongo_dumps:/mongodumps
+    # shorten logs
+    command: mongod --quiet --logpath /dev/null # логи монго выключены насовсем
+
+volumes:
+    mongodb_api:
+    mongo_dumps:
