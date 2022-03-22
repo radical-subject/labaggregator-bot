@@ -6,123 +6,6 @@ os.environ['TZ'] = 'Europe/Moscow'
 from modules.ourbot.service.decorators import log_errors
 logger = logging.getLogger(__name__)
 
-time.tzset()
-
-# time.strftime("%d.%m.%Y %H:%M:%S")
-# time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
-
-#
-# {
-#     _id: "980159954",
-#     categories:
-#     [
-#         {
-#             category_name: "chemistry"
-#             archived_status: "Active"|"Archived"
-#             timer_data:
-#             [
-#                 {
-#                     date: "20200617",
-#                     amount_of_time_in_minutes: 126
-#                     comment: "book reading 300 pages"
-#                 },
-#                 {
-#                     date: "20200617",
-#                     amount_of_time_in_minutes: 126
-#                     comment: "book reading 300 pages"
-#                 }
-#             ]
-#         },
-#         {
-#             category_name: "deutsch"
-#             archived_status: "Active"|"Archived"
-#             timer_data:
-#             [
-#                 {
-#                     date: "20200617",
-#                     amount_of_time_in_minutes: 126
-#                     comment: "book reading 300 pages"
-#                 },
-#                 {
-#                     date: "20200617",
-#                     amount_of_time_in_minutes: 126
-#                     comment: "book reading 300 pages"
-#                 }
-#             ]
-#         }
-#     ]
-# }
-
-"""
-
-timer_data_structure = {
-    _id: "980159954",
-    categories: ["deutsch", "chemistry"],
-    timer_data:
-        [
-            {
-                date: "20200617",
-                amount_of_time_in_minutes: 126, 
-                comment: "book reading 300 pages",
-                category_name: "deutsch",
-                archived_status: "active"
-            },
-            {
-                date: "20200617",
-                amount_of_time_in_minutes: 126
-                comment: "book reading 300 pages"
-                category_name: None,
-                archived_status: "archived"
-            }
-        ]
-}
-
-userdata_dict = {
-    _id: "980159954",
-    user_id: "980159954",
-    username: "@None",
-    firstname: "Alex",
-    lastname: "Fedorov"
-}
-
-
-
-"""
-
-## DATABASE INITIALIZATION ##
-"""
-
-{
-    _id: "980159954",
-    user_id: "980159954",
-    username: "@None",
-    firstname: "Alex",
-    lastname: "Fedorov"
-    reagent_requests: [
-        {
-            requested_CAS: "50-00-0"
-        }
-    ],
-    user_reagents: [
-        {
-            CAS: "50-00-0",
-            reagent_name: "something 4-something"
-        }
-    ]
-}
-
-test INPUT_DATA
-username = "oikura"
-firstname = "Asya"
-lastname = "Vlasova"
-country = "Russia"
-city = "Moscow"
-institution = "ZIOC RAS"
-user_id = "336091411"
-reagents_list = [{ "CAS": "123-45-67", "IUPAC": "estradiol valerate", "SMILES": "CCCCCC", "synonyms": ["synonym1", "synonym2", "synonym3"] }, { "requested_CAS": "123-23-45", "IUPAC": "some reagent", "SMILES": "CCCCCC", "synonyms": ["synonym1", "synonym2", "synonym3"] }]
-userdata_dict = { "_id": user_id, "user_id": user_id, "username": "@{}".format(username), "user_firstname": firstname, "user_lastname": lastname, "user_location": [{ "country": country, "city": city, "institution": institution }] }
-
-"""
 
 class UserReagents:
     """
@@ -135,12 +18,12 @@ class UserReagents:
         username: "@None",
         firstname: "Alex",
         lastname: "Fedorov"
-        institution: [
+        laboratory: [
             {
-                institution_object
+                laboratory_object
             },
             {
-                institution_object
+                laboratory_object
             }
         ]
         reagent_requests: [
@@ -193,17 +76,20 @@ class UserReagents:
 
     def export(self):
         """
-        wallet_export = {
-            "name": self.name
-            "wallet_id": self.wallet_id,
-            "money": self.money,  
+        UserReagents_export = {
+            "_id": self._id
+            "user_id": self.user_id,
+            "username": self.username,  
             "time": self.time,
-            "ownership": self.ownership,
-            "history_of_changes": self.history_of_changes
+            "firstname": self.firstname,
+            "lastname": self.lastname,
+            "laboratory": self.laboratory,
+            "reagent_requests": self.reagent_requests,
+            "user_reagents": self.user_reagents
         }
         """      
-        user_reagents_export = {**{"_id": self.wallet_id}, **dict(self)}
-        return json.dumps(wallet_export) # exports json string (to use it as python object you should convert it by json.loads())
+        UserReagents_export = {**{"_id": self._id}, **dict(self)}
+        return json.dumps(UserReagents_export) # exports json string (to use it as python object you should convert it by json.loads())
 
 
 class wallet:
