@@ -86,7 +86,124 @@ userdata_dict = {
 }
 
 
+
 """
+
+## DATABASE INITIALIZATION ##
+"""
+
+{
+    _id: "980159954",
+    user_id: "980159954",
+    username: "@None",
+    firstname: "Alex",
+    lastname: "Fedorov"
+    reagent_requests: [
+        {
+            requested_CAS: "50-00-0"
+        }
+    ],
+    user_reagents: [
+        {
+            CAS: "50-00-0",
+            reagent_name: "something 4-something"
+        }
+    ]
+}
+
+test INPUT_DATA
+username = "oikura"
+firstname = "Asya"
+lastname = "Vlasova"
+country = "Russia"
+city = "Moscow"
+institution = "ZIOC RAS"
+user_id = "336091411"
+reagents_list = [{ "CAS": "123-45-67", "IUPAC": "estradiol valerate", "SMILES": "CCCCCC", "synonyms": ["synonym1", "synonym2", "synonym3"] }, { "requested_CAS": "123-23-45", "IUPAC": "some reagent", "SMILES": "CCCCCC", "synonyms": ["synonym1", "synonym2", "synonym3"] }]
+userdata_dict = { "_id": user_id, "user_id": user_id, "username": "@{}".format(username), "user_firstname": firstname, "user_lastname": lastname, "user_location": [{ "country": country, "city": city, "institution": institution }] }
+
+"""
+
+class UserReagents:
+    """
+    This is object for manipulating easily with user 
+    attributes before sending updated data to database. 
+
+    test_record = {
+        _id: "980159954",
+        user_id: "980159954",
+        username: "@None",
+        firstname: "Alex",
+        lastname: "Fedorov"
+        institution: [
+            {
+                institution_object
+            },
+            {
+                institution_object
+            }
+        ]
+        reagent_requests: [
+            {
+                requested_CAS: "50-00-0"
+            }
+        ],
+        user_reagents: [
+            {
+                CAS: "50-00-0",
+                reagent_name: "something 4-something"
+                sharing_status: "shared"
+            }
+        ]
+    }
+
+    """
+    def __init__(self, *args, **kwargs):
+        if args: # If args is not empty.
+            self.args = args
+        if kwargs:
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+        # присвоить id если его не было 
+        if "_id" not in kwargs.keys():
+            self._id = uuid.uuid4().hex
+    
+    def __iter__(self):
+      for attr, value in self.__dict__.items():
+          yield attr, value
+
+    def add_list_of_reagents(self, user_id, CAS_list=dict):
+        timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
+        current_time = timestamp
+        try:
+            for i in CAS_list:
+                self.user_reagents.append({"CAS" : i})
+        except AttributeError:
+            setattr(self, "user_reagents", [{}])
+            for i in CAS_list:
+                self.user_reagents.append({
+                                            "CAS" : i,
+                                            "sharing_status": "shared"
+                                            })
+           
+
+    def get_user_shared_reagents(self):
+        return self.user_reagents
+
+    def export(self):
+        """
+        wallet_export = {
+            "name": self.name
+            "wallet_id": self.wallet_id,
+            "money": self.money,  
+            "time": self.time,
+            "ownership": self.ownership,
+            "history_of_changes": self.history_of_changes
+        }
+        """      
+        user_reagents_export = {**{"_id": self.wallet_id}, **dict(self)}
+        return json.dumps(wallet_export) # exports json string (to use it as python object you should convert it by json.loads())
 
 
 class wallet:
