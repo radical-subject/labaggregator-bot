@@ -13,6 +13,7 @@ def log_errors(f):
             return f(*args, **kwargs)
         except Exception as e:
             logger.error(f'{e}')
+            logger.error(f'Caller Function {f.__name__}')
             e_traceback = traceback.format_exception(e.__class__, e, e.__traceback__)
             traceback_lines = []
             for line in [line.rstrip('\n') for line in e_traceback]:

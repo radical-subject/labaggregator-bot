@@ -1,3 +1,4 @@
+import re
 from typing import Text
 import uuid, json 
 import os, time, logging
@@ -56,19 +57,48 @@ class UserReagents:
       for attr, value in self.__dict__.items():
           yield attr, value
 
-    def add_list_of_reagents(self, user_id, CAS_list=dict):
+    def is_CAS_number(self, CAS_number=str):
+        # Chemical Abstract Service Registry Number regular expression pattern
+        regExprCasRegNbr = "^[1-9][0-9]{1,6}\\-[0-9]{2}\\-[0-9]$"
+        pattern = re.compile(regExprCasRegNbr)
+        if not pattern.match(CAS_number):
+            return False
+
+        only_digits = CAS_number.replace('-', '')
+        control_digit = only_digits[-1]
+        only_digits = only_digits[::-1]
+        list_digits = list(only_digits[1:])
+
+        sum_digits = 0
+        index = 1
+        for digit in list_digits:
+            sum_digits += int(digit) * index
+            index += 1
+
+        return sum_digits % 10 == int(control_digit)
+
+
+    def create_new_list_reagents(self, CAS_list=list):
+        return [
+            {
+                "CAS": CAS_number,
+                "sharing_status": "shared"
+            }
+            for CAS_number in CAS_list
+            if self.is_CAS_number(CAS_number)
+        ]
+
+
+    def add_list_of_reagents(self, user_id, CAS_list=list):
+        if not CAS_list:
+            return
         timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
         current_time = timestamp
         try:
-            for i in CAS_list:
-                self.user_reagents.append({"CAS" : i})
+            self.user_reagents += self.create_new_list_reagents(CAS_list)
         except AttributeError:
-            setattr(self, "user_reagents", [{}])
-            for i in CAS_list:
-                self.user_reagents.append({
-                                            "CAS" : i,
-                                            "sharing_status": "shared"
-                                            })
+            setattr(self, "user_reagents", self.create_new_list_reagents(CAS_list))
+
            
 
     def get_user_shared_reagents(self):
