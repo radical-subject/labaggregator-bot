@@ -80,37 +80,90 @@ from mongordkit import Search
 from mongordkit.Database import create, write
 
 
-@log_errors    
-def update_rdkit_db_blacklist ():
-    # echo $PYTHONPATH
-    # home_path = "/home/oikura/github/reagent_checker_bot"
-    # os.chdir(home_path)
-    # sys.path.append(home_path)
-    # os.system('cd ./mongo-rdkit && export PYTHONPATH="$PWD\n')
+@log_errors
+
+def update_rdkit_with_sialdrich (client, db_instance):
     # Disable rdkit warnings
     rdkit.RDLogger.DisableLog('rdApp.*')
 
-    # clean previous version of rdkit_db
-    connection.drop_database('rdkit_db')     
+    db_name = db_instance.DATABASE_NAME
+    molecules_collection = client[db_name].molecules
+
+    # clean previous version of DB_rdkit_connection
+    # DB_rdkit_connection.connection.db.command("dropDatabase")
+	# or like this
+
+    client.drop_database("rdkit_db")
+    parts=os.listdir("./jupyter-scripts/sdf_sial/")
+    
+    for i in parts:
+        result = write.WriteFromSDF(DB_rdkit_connection.molecules, f'./jupyter-scripts/sdf_sial/{i}')
+    # result = write.WriteFromSDF(vendors_DB_rdkit_connection.molecules, f'./jupyter-scripts/sdf_sial/output0rename.sdf')
+    # Search.PrepareForSearch(DB_rdkit_connection, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, DB_rdkit_connection.permutations)
+
+    substructure.AddPatternFingerprints(DB_rdkit_connection.molecules)
+    similarity.AddMorganFingerprints(DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts)
+
+    # Generate 100 different permutations of length 2048 and save them in demo_db.permutations as separate documents.
+    similarity.AddRandPermutations(DB_rdkit_connection.permutations)
+
+    # Add locality-sensitive hash values to each documents in demo_db.molecules by splitting the 100 different permutations
+    # in demo_db.permutations into 25 different buckets. 
+    similarity.AddLocalityHashes(DB_rdkit_connection.molecules, DB_rdkit_connection.permutations, 25)
+
+    # Create 25 different collections in db_demo each store a subset of hash values for molecules in demo_db.molecules.
+    similarity.AddHashCollections(DB_rdkit_connection.db, DB_rdkit_connection.molecules)
+
+    return result
+
+def similarity_search(DB_rdkit_connection, SMILES_input):
+
+    mol_input = Chem.MolFromSmiles(SMILES_input)
+   # results_similarity = similarity.SimSearch(mol_input, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, 0.1)
+    results_similarity = similarity.SimSearchAggregate(mol_input, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, 0.1)
+    # results_substructure = substructure.SubSearch(mol_input, DB_rdkit_connection.molecules, chirality=False)
+    from operator import itemgetter
+    results_similarity = sorted(results_similarity, key=itemgetter(0), reverse=True)
+    # print(results_similarity)
+    return results_similarity
+
+
+# ----------------------------------------------------------
+# ----------------------------------------------------------
+# ----------------------------------------------------------
+# ----------------------------------------------------------
+# ----------------------------------------------------------
+
+def update_rdkit_db_blacklist (client, db_instance):
+    # Disable rdkit warnings
+    db_name = db_instance.DATABASE_NAME # blacklist_rdkit_db
+    molecules_collection = client[db_name].molecules
+    mfp_counts_collection = client[db_name].mfp_counts
+    permutations_collection = client[db_name].permutations
+
+    rdkit.RDLogger.DisableLog('rdApp.*')
+
+    # clean previous version of blacklist_rdkit_db
+    client.drop_database(db_name) # blacklist_rdkit_db
     # mfp_counts.drop()
     # permutations.drop()
     # molecules.drop()
 
-    result = write.WriteFromSDF(rdkit_db.molecules, './srs/Narkotiki_test.sdf')
+    result = write.WriteFromSDF(molecules_collection, './srs/Narkotiki_test.sdf')
     # Search.PrepareForSearch(rdkit_db, rdkit_db.molecules, rdkit_db.mfp_counts, rdkit_db.permutations)
 
-    substructure.AddPatternFingerprints(rdkit_db.molecules)
-    similarity.AddMorganFingerprints(rdkit_db.molecules, rdkit_db.mfp_counts)
+    substructure.AddPatternFingerprints(molecules_collection)
+    similarity.AddMorganFingerprints(molecules_collection, mfp_counts_collection)
 
     # Generate 100 different permutations of length 2048 and save them in demo_db.permutations as separate documents.
-    similarity.AddRandPermutations(rdkit_db.permutations)
+    similarity.AddRandPermutations(permutations_collection)
 
     # Add locality-sensitive hash values to each documents in demo_db.molecules by splitting the 100 different permutations
     # in demo_db.permutations into 25 different buckets. 
-    similarity.AddLocalityHashes(rdkit_db.molecules, rdkit_db.permutations, 25)
+    similarity.AddLocalityHashes(molecules_collection, permutations_collection, 25)
 
     # Create 25 different collections in db_demo each store a subset of hash values for molecules in demo_db.molecules.
-    similarity.AddHashCollections(rdkit_db, rdkit_db.molecules)
+    similarity.AddHashCollections(client[db_name], molecules_collection)
 
     return result
 

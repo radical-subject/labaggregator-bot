@@ -24,6 +24,15 @@ rdkit_credentials = dict(
 
 rdkit_collections = ("molecules", "mfp_counts", "permutations")
 
+blacklist_rdkit_credentials = dict(
+    DATABASE_NAME = "blacklist_rdkit_db",
+    DATABASE_HOST = MONGO_URL,
+    DATABASE_ADMIN_USERNAME = MONGO_INITDB_ROOT_USERNAME,
+    DATABASE_ADMIN_PASSWORD = MONGO_INITDB_ROOT_PASSWORD
+)
+
+blacklist_rdkit_collections = ("molecules", "mfp_counts", "permutations")
+
 timerbot_credentials = dict(
     DATABASE_NAME = "timerbot_db",
     DATABASE_HOST = MONGO_URL,

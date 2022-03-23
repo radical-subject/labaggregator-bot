@@ -75,6 +75,8 @@ class Inital(Handlers):
         user_data = context.user_data
         user_data.clear()
 
+        dbmodel.update_rdkit_db_blacklist(self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"],)
+
         return self.INITIAL
 
     def exit_command(self, update: Update, context: CallbackContext):
