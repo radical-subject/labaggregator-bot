@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 def main():
 
     db_instances = dict(root=MongoDriver(root_credentials), timerbot_db=MongoDriver(timerbot_credentials))
-
     bot = BotObject(token, **db_instances)
     bot.start()
 

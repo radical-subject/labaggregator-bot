@@ -17,6 +17,5 @@ class Handlers:
                 self.db_clients[f'{key}_client']=value.client
             for key, value in self.db_clients.items():
                 setattr(self, key, value)
-        logger.info(f"{self.db_clients}")
         self.collection = None
         
