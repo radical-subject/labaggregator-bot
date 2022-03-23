@@ -6,8 +6,7 @@ from telegram.ext import CallbackContext, CommandHandler
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.decorators import log_errors, restricted
 from modules.ourbot.service import mongoDumpModule
-from modules.db import dbconfig
-
+from modules.db import dbconfig, dbmodel
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +33,19 @@ class Admin(Handlers):
             reply_markup=reply_markup
         )
         return
+    
+    @log_errors
+    @restricted
+    def update_rdkit_db_blacklist_handler(self, update: Update, context: CallbackContext):
+        """
+        updates blacklist with srs/Narkotiki_test.sdf
+        """
+        reply = dbmodel.update_rdkit_db_blacklist(self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
+        update.message.reply_text(f"{reply} molecules successfully imported. nice!")
+        dbmodel.update_blacklist_with_pandas (self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
+        return
+
+        
 
     @log_errors
     def dump(self, update: Update, context: CallbackContext):
@@ -58,3 +70,4 @@ class Admin(Handlers):
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
         dispatcher.add_handler(CommandHandler('dump', self.dump))
+        dispatcher.add_handler(CommandHandler('blacklist_update', self.update_rdkit_db_blacklist_handler))

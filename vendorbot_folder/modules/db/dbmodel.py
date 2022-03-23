@@ -1,4 +1,4 @@
-import logging
+import os, logging
 from modules.db import dbschema
 from modules.ourbot.service.decorators import log_errors
 logger = logging.getLogger(__name__)
@@ -62,11 +62,13 @@ def get_timerdata_object(client, db_instance, collection_name: str, query: dict,
 
 
 
-    # --------------------------------------------------
-    # BLACKLIST REBORN
-    # ---------------------------------------------------
+# ----------------------------------------------------------
+# ----------------------------------------------------------
+# VENDOR CATALOGS RDKIT FUNCTIONS
+# ----------------------------------------------------------
+# ----------------------------------------------------------
 
-#RDKIT
+#RDKIT IMPORTS
 import rdkit
 from rdkit import Chem
 from rdkit.Chem import PandasTools
@@ -86,61 +88,70 @@ def update_rdkit_with_sialdrich (client, db_instance):
     # Disable rdkit warnings
     rdkit.RDLogger.DisableLog('rdApp.*')
 
-    db_name = db_instance.DATABASE_NAME
+    db_name = db_instance.DATABASE_NAME # sialdrich_rdkit_db
     molecules_collection = client[db_name].molecules
+    mfp_counts_collection = client[db_name].mfp_counts
+    permutations_collection = client[db_name].permutations
 
-    # clean previous version of DB_rdkit_connection
+    # clean previous version 
     # DB_rdkit_connection.connection.db.command("dropDatabase")
 	# or like this
+    # clean previous version of sialdrich_rdkit_db
+    client.drop_database(db_name) # sialdrich_rdkit_db
 
-    client.drop_database("rdkit_db")
+    # смотрим на разбитые на 10000 молекул куски SDF базы данных sialdrich
     parts=os.listdir("./jupyter-scripts/sdf_sial/")
     
     for i in parts:
-        result = write.WriteFromSDF(DB_rdkit_connection.molecules, f'./jupyter-scripts/sdf_sial/{i}')
+        result = write.WriteFromSDF(molecules_collection, f'./jupyter-scripts/sdf_sial/{i}')
     # result = write.WriteFromSDF(vendors_DB_rdkit_connection.molecules, f'./jupyter-scripts/sdf_sial/output0rename.sdf')
     # Search.PrepareForSearch(DB_rdkit_connection, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, DB_rdkit_connection.permutations)
 
-    substructure.AddPatternFingerprints(DB_rdkit_connection.molecules)
-    similarity.AddMorganFingerprints(DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts)
+    substructure.AddPatternFingerprints(molecules_collection)
+    similarity.AddMorganFingerprints(molecules_collection, mfp_counts_collection)
 
     # Generate 100 different permutations of length 2048 and save them in demo_db.permutations as separate documents.
-    similarity.AddRandPermutations(DB_rdkit_connection.permutations)
+    similarity.AddRandPermutations(permutations_collection)
 
     # Add locality-sensitive hash values to each documents in demo_db.molecules by splitting the 100 different permutations
     # in demo_db.permutations into 25 different buckets. 
-    similarity.AddLocalityHashes(DB_rdkit_connection.molecules, DB_rdkit_connection.permutations, 25)
+    similarity.AddLocalityHashes(molecules_collection, permutations_collection, 25)
 
     # Create 25 different collections in db_demo each store a subset of hash values for molecules in demo_db.molecules.
-    similarity.AddHashCollections(DB_rdkit_connection.db, DB_rdkit_connection.molecules)
+    similarity.AddHashCollections(client[db_name], molecules_collection)
 
     return result
 
 def similarity_search(DB_rdkit_connection, SMILES_input):
 
     mol_input = Chem.MolFromSmiles(SMILES_input)
-   # results_similarity = similarity.SimSearch(mol_input, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, 0.1)
-    results_similarity = similarity.SimSearchAggregate(mol_input, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, 0.1)
+   # similarity_results = similarity.SimSearch(mol_input, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, 0.1)
+    similarity_results = similarity.SimSearchAggregate(mol_input, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, 0.1)
     # results_substructure = substructure.SubSearch(mol_input, DB_rdkit_connection.molecules, chirality=False)
     from operator import itemgetter
-    results_similarity = sorted(results_similarity, key=itemgetter(0), reverse=True)
-    # print(results_similarity)
-    return results_similarity
+    similarity_results = sorted(similarity_results, key=itemgetter(0), reverse=True)
+    # print(similarity_results)
+    return similarity_results
 
 
 # ----------------------------------------------------------
 # ----------------------------------------------------------
-# ----------------------------------------------------------
+# BLACKLIST RDKIT FUNCTIONS
 # ----------------------------------------------------------
 # ----------------------------------------------------------
 
 def update_rdkit_db_blacklist (client, db_instance):
-    # Disable rdkit warnings
+    """
+    This function drops blacklist db, then reads provided .sdf file, and writes anew 
+    molecules and additional data for searching into the database.
+    """
+    
     db_name = db_instance.DATABASE_NAME # blacklist_rdkit_db
     molecules_collection = client[db_name].molecules
     mfp_counts_collection = client[db_name].mfp_counts
     permutations_collection = client[db_name].permutations
 
+    # Disable rdkit warnings
     rdkit.RDLogger.DisableLog('rdApp.*')
 
     # clean previous version of blacklist_rdkit_db
@@ -167,26 +178,14 @@ def update_rdkit_db_blacklist (client, db_instance):
 
     return result
 
+def update_blacklist_with_pandas (client, db_instance):
+    """
+    
+    """
 
-def similarity_search(SMILES_input):
-    # echo $PYTHONPATH
+    db_name = db_instance.DATABASE_NAME # blacklist_rdkit_db
+    blacklist_pandas_collection = client[db_name].blacklist_pandas
 
-    # home_path = "/home/oikura/github/reagent_checker_bot"
-    # os.chdir(home_path)
-    # sys.path.append(home_path)
-    # os.system('cd ./mongo-rdkit && export PYTHONPATH="$PWD')
-    mol_input = Chem.MolFromSmiles(SMILES_input)
-   # results_similarity = similarity.SimSearch(mol_input, rdkit_db.molecules, rdkit_db.mfp_counts, 0.1)
-    results_similarity = similarity.SimSearchAggregate(mol_input, rdkit_db.molecules, rdkit_db.mfp_counts, 0.1)
-    # results_substructure = substructure.SubSearch(mol_input, rdkit_db.molecules, chirality=False)
-    from operator import itemgetter
-    results_similarity = sorted(results_similarity, key=itemgetter(0), reverse=True)
-
-    return results_similarity
-
-
-
-def update_blacklist_with_pandas ():
     SDFFile = "./srs/Narkotiki_test.sdf"
     molecules = PandasTools.LoadSDF(SDFFile)
     molecules_dict = molecules.to_dict()
@@ -210,24 +209,79 @@ def update_blacklist_with_pandas ():
                                 "SMILES" : Chem.rdmolfiles.MolToSmiles(molecules_dict["ROMol"][ID])
                               }) 
 
-    blacklist_pandas.insert_many(blacklist_data)
+    blacklist_pandas_collection.insert_many(blacklist_data)
+
     return True
 
-def convert_to_smiles_and_get_additional_data(results_similarity):
-    myquery = { "index": "{}".format(results_similarity[0][1]) }
-    print (myquery)
-    search_result = molecules.find(myquery)
+
+def similarity_search (client, db_instance, SMILES_input):
+    """
+    эта функция выдает результат структурного поиска в виде листа листов, 
+    причем первый элемент каждого листа это число, отражающее степень похожести.
+    """
+    # стандартное вытаскивание имени бд и обозначение коллекций 
+    db_name = db_instance.DATABASE_NAME # blacklist_rdkit_db
+    molecules_collection = client[db_name].molecules
+    mfp_counts_collection = client[db_name].mfp_counts
+
+    # на вход функции поиска подается SMILES
+    mol_input = Chem.MolFromSmiles(SMILES_input)
+
+    # similarity_results = similarity.SimSearch(mol_input, rdkit_db.molecules, rdkit_db.mfp_counts, 0.1)
+    similarity_results = similarity.SimSearchAggregate(mol_input, molecules_collection, mfp_counts_collection, 0.1)
+    # поиск по подструктуре:
+    # results_substructure = substructure.SubSearch(mol_input, rdkit_db.molecules, chirality=False)
+    from operator import itemgetter
+    similarity_results = sorted(similarity_results, key=itemgetter(0), reverse=True)
+
+    return similarity_results
+
+
+def convert_to_smiles (client, db_instance, similarity_results):
+    """
+    Конвертирует результат поиска (хеш) вытаскивая структурную информацию о результате в виде SMILES
+    """
+    db_name = db_instance.DATABASE_NAME # blacklist_rdkit_db
+    molecules_collection = client[db_name].molecules
+
+    similarity_search_compound_dict = []
+
+    for i in range(len(similarity_results)):
+        if similarity_results[i][0] > 0.70:
+            myquery = { "index": "{}".format(similarity_results[i][1]) }
+            search_result = molecules_collection.find(myquery)
+            for x in search_result:
+                SMILES = x["smiles"]
+            similarity_search_compound_dict.append({ "SMILES": SMILES })
+        else: 
+            continue
+
+    return similarity_search_compound_dict
+
+
+def convert_to_smiles_and_get_additional_data(client, db_instance, similarity_results):
+    """
+    
+    """
+    db_name = db_instance.DATABASE_NAME # blacklist_rdkit_db
+    molecules_collection = client[db_name].molecules
+    blacklist_pandas_collection = client[db_name].blacklist_pandas
+
+    myquery = { "index": "{}".format(similarity_results[0][1]) }
+    search_result = molecules_collection.find(myquery)
     try:
         for x in search_result:
             SMILES = x["smiles"]
-            print (SMILES)
+            # print(SMILES)
     except:
         return False
+
     myquery = { "SMILES": SMILES }
-    print(myquery)
-    search_result = blacklist_pandas.find(myquery)
+
+    search_result = blacklist_pandas_collection.find(myquery)
     try:
         for x in search_result:
-            return x
+            # print(f"pandas_blacklist results: {x}")
+            return SMILES, x
     except:
-        return False
+        return SMILES

@@ -89,14 +89,14 @@ class Buttons(Handlers):
             pass
 
     @log_errors
-    def register_handler(self, dispatcher):
-        dispatcher.add_handler(CallbackQueryHandler(self.button_handler))
-        pass
-
-    @log_errors
     def purge(self):
         """
         timerbot_client is not authorized on db to drop it.
         only root can. so, root_client and root instance is transferred as arguments to dbmodel.
         """
         dbmodel.purge(self.root_client, self.db_instances["root"])
+
+    @log_errors
+    def register_handler(self, dispatcher):
+        dispatcher.add_handler(CallbackQueryHandler(self.button_handler))
+        pass
