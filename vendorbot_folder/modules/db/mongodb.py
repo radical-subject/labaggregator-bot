@@ -22,7 +22,7 @@ class MongoDriver:
             # self.client = self.client_base(username=self.DATABASE_ADMIN_USERNAME, password=self.DATABASE_ADMIN_PASSWORD)
 
             self.DATABASE_NAME = db_dict.get('DATABASE_NAME')
-            logging.info("[+] Database connected!")
+            logging.info(f"[+] {self.DATABASE_NAME} database connected!")
         except Exception as e:
             logging.info("[-] Database connection error!")
             raise e

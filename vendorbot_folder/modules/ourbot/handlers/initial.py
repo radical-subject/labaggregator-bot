@@ -65,6 +65,7 @@ class Inital(Handlers):
             "lastname": user_info.last_name
         }
         try:
+            # logger.info(f"{self.timerbot_db_client}, {self.db_instances['timerbot_db']}, {self.collection}, {userdata_dict}")
             dbmodel.add_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, userdata_dict)
             logger.info('user initialized by /start command.')
         except pymongo.errors.DuplicateKeyError:

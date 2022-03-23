@@ -14,7 +14,7 @@ def purge(client, db_instance):
 # @log_errors
 def add_records(client, db_instance, collection_name: str, data: dict):
     db_name = db_instance.DATABASE_NAME
-    logger.info(f"{db_name}, {collection_name}, {data}")
+    # logger.info(f"{client}, {db_instance}, {collection_name}, {data}")
     collection = client[db_name][collection_name]
     result = collection.insert_one(data)
     logger.info(f"data inserted into {db_name}, {collection_name}")
