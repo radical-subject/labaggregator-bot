@@ -14,9 +14,7 @@ class MongoDriver:
             # deprecated:
             # self.client = pymongo.MongoClient(self.DATABASE_HOST)
             
-            self.client = pymongo.MongoClient(self.DATABASE_HOST, username=self.DATABASE_ADMIN_USERNAME, password=self.DATABASE_ADMIN_PASSWORD, authSource="admin")
-            
-            # authSource="admin"
+            self.client = pymongo.MongoClient(self.DATABASE_HOST, username=self.DATABASE_ADMIN_USERNAME, password=self.DATABASE_ADMIN_PASSWORD, authSource="admin") #  authSource="admin"
             # deprecated
             # self.client_base = pymongo.MongoClient(self.DATABASE_HOST)
             # self.client.admin.authenticate(self.DATABASE_ADMIN_USERNAME, self.DATABASE_ADMIN_PASSWORD)

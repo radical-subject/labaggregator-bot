@@ -57,8 +57,8 @@ class UserReagents:
           yield attr, value
 
     def add_list_of_reagents(self, user_id, CAS_list=dict):
-        timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
-        current_time = timestamp
+        # timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
+        # current_time = timestamp
         try:
             for i in CAS_list:
                 self.user_reagents.append({"CAS" : i})
