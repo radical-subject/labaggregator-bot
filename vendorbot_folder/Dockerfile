@@ -28,9 +28,23 @@ RUN ln -T /bin/true /usr/bin/systemctl && apt-get update && apt-get install -y m
 
 RUN apt-get install -y zip unzip
 
-# #clone and local install mongo-rdkit repository
-# RUN git clone https://github.com/rdkit/mongo-rdkit /mongo-rdkit \
-#   &&  chmod -R 777 /mongo-rdkit && cd /mongo-rdkit && conda run -n vendorbot_env pip install -e .
+RUN conda update -n base -c defaults conda
+RUN conda install -c anaconda capturer
+
+#clone and local install mongo-rdkit repository
+RUN git clone https://github.com/rdkit/mongo-rdkit /mongo-rdkit \
+  &&  chmod -R 777 /mongo-rdkit && cd /mongo-rdkit && conda run -n vendorbot_env pip install -e .
+
+# copy all other files for bot
+COPY . .
+
+ENV PATH /opt/conda/envs/vendorbot_env/bin:$PATH
+RUN /bin/bash -c "source activate vendorbot_env"
+
+# Make RUN commands use the new environment: -- activate env doesnt work in miniconda!!!
+# The SHELL instruction allows the default shell used for the shell form of commands to be overridden. The default shell on Linux is ["/bin/sh", "-c"], and on Windows is ["cmd", "/S", "/C"]. The SHELL instruction must be written in JSON form in a Dockerfile.
+# RUN chown -R user /opt/conda/envs
+# RUN chmod -R 777 /opt/conda/envs
 
 
 # Make RUN commands use the new environment: -- activate env doesnt work in miniconda!!!
@@ -38,8 +52,5 @@ RUN apt-get install -y zip unzip
 # RUN chown -R user /opt/conda/envs
 # RUN chmod -R 777 /opt/conda/envs
 #RUN chown -R $USER:$USER /opt/conda/envs
-
-# copy all other files for bot
-COPY . .
 
 SHELL ["conda", "run", "-n", "vendorbot_env", "/bin/bash", "-c"] 
