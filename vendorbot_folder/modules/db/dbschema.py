@@ -6,7 +6,7 @@ os.environ['TZ'] = 'Europe/Moscow'
 
 from telegram.ext.dispatcher import run_async
 
-from modules.db.dbmodel import similarity_search, convert_to_smiles_and_get_additional_data
+from modules.db.rdkitdb import similarity_search, convert_to_smiles_and_get_additional_data
 from modules.ourbot.service.resolver import get_SMILES
 from modules.ourbot.service.decorators import log_errors
 logger = logging.getLogger(__name__)
