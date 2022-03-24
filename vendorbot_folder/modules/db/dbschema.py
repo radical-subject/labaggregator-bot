@@ -4,6 +4,9 @@ import uuid, json
 import os, time, logging
 os.environ['TZ'] = 'Europe/Moscow'
 
+from telegram.ext.dispatcher import run_async
+
+from modules.db.dbmodel import similarity_search, convert_to_smiles_and_get_additional_data
 from modules.ourbot.service.resolver import get_SMILES
 from modules.ourbot.service.decorators import log_errors
 logger = logging.getLogger(__name__)
@@ -80,7 +83,9 @@ class UserReagents:
 
 
     def create_new_list_reagents(self, contact_username, CAS_list=list):
-        
+        """
+        вспомогательная функция, набивающая лист правильно форматированными реагентами для запии в объект
+        """
         return [
             {
                 "CAS": CAS_number,
@@ -91,25 +96,46 @@ class UserReagents:
             if self.is_CAS_number(CAS_number)
         ]
 
+    def add_list_of_reagents(self, user_id, contact_username, client, db_instance, CAS_list=list):
+        """
+        эта функция создает список реагентов в объекте из листа, дополняя его SMILES и потом отсеивая наркотики
+        """
+        if not CAS_list:
+            return
+        # timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
+        # current_time = timestamp
+        try:
+            self.user_reagents += self.create_new_list_reagents(contact_username, CAS_list)
+        except AttributeError:
+            setattr(self, "user_reagents", self.create_new_list_reagents(contact_username, CAS_list))
+
+        self.resolve_CAS_to_SMILES() # дополнение CAS
+        self.blacklist_filter(client, db_instance) # фильтрация структур
+
+
     def resolve_CAS_to_SMILES(self):
+        """
+        эта функция читает список реагентов, берет CAS номера и по ним вытаскивает из удаленного API - SMILES строку
+        """
         for entry in self.user_reagents:
             try:
-                entry["SMILES"] = get_SMILES(entry.CAS)
+                entry["SMILES"] = get_SMILES(entry["CAS"])
             except:
                 entry["SMILES"] = "resolver_NAN"
         return
 
-    def add_list_of_reagents(self, user_id, contact_username, CAS_list=list):
-        if not CAS_list:
-            return
-        timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
-        current_time = timestamp
-        try:
-            self.user_reagents += self.create_new_list_reagents(CAS_list, contact_username)
-        except AttributeError:
-            setattr(self, "user_reagents", self.create_new_list_reagents(CAS_list))
-
-           
+    def blacklist_filter(self, client, db_instance):
+        """
+        эта функция удаляет записи из импорта, которые похожи на наркотики
+        """
+        for entry in self.user_reagents:
+            SMILES_input = entry["SMILES"]
+            result = similarity_search (client, db_instance, SMILES_input)
+            if result[0][0] > 0.75:
+                # print(f"{convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']} найден в импорте и вычеркнут")
+                logger.info(f"{convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']} найден в импорте и вычеркнут")
+                self.user_reagents.remove(entry)
+        return    
 
     def get_user_shared_reagents(self):
         return self.user_reagents

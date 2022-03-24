@@ -1,7 +1,8 @@
 import cirpy, pubchempy
 import re
+# from telegram.ext.dispatcher import run_async
 
-
+# @run_async
 def get_SMILES(request_query):
     try:
         pubchem_response = pubchempy.get_compounds(request_query, "name")
