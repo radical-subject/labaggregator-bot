@@ -4,6 +4,7 @@ import uuid, json
 import os, time, logging
 os.environ['TZ'] = 'Europe/Moscow'
 
+from modules.ourbot.service.resolver import get_SMILES
 from modules.ourbot.service.decorators import log_errors
 logger = logging.getLogger(__name__)
 
@@ -78,24 +79,33 @@ class UserReagents:
         return sum_digits % 10 == int(control_digit)
 
 
-    def create_new_list_reagents(self, CAS_list=list):
+    def create_new_list_reagents(self, contact_username, CAS_list=list):
+        
         return [
             {
                 "CAS": CAS_number,
-                "sharing_status": "shared"
+                "sharing_status": "shared",
+                "contact": contact_username
             }
             for CAS_number in CAS_list
             if self.is_CAS_number(CAS_number)
         ]
 
+    def resolve_CAS_to_SMILES(self):
+        for entry in self.user_reagents:
+            try:
+                entry["SMILES"] = get_SMILES(entry.CAS)
+            except:
+                entry["SMILES"] = "resolver_NAN"
+        return
 
-    def add_list_of_reagents(self, user_id, CAS_list=list):
+    def add_list_of_reagents(self, user_id, contact_username, CAS_list=list):
         if not CAS_list:
             return
         timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
         current_time = timestamp
         try:
-            self.user_reagents += self.create_new_list_reagents(CAS_list)
+            self.user_reagents += self.create_new_list_reagents(CAS_list, contact_username)
         except AttributeError:
             setattr(self, "user_reagents", self.create_new_list_reagents(CAS_list))
 
