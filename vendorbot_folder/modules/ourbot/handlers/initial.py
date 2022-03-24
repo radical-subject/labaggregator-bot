@@ -65,8 +65,8 @@ class Inital(Handlers):
             "lastname": user_info.last_name
         }
         try:
-            # logger.info(f"{self.timerbot_db_client}, {self.db_instances['timerbot_db']}, {self.collection}, {userdata_dict}")
-            dbmodel.add_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, userdata_dict)
+            # logger.info(f"{self.vendorbot_db_client}, {self.db_instances['vendorbot_db']}, {self.collection}, {userdata_dict}")
+            dbmodel.add_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, userdata_dict)
             logger.info('user initialized by /start command.')
         except pymongo.errors.DuplicateKeyError:
             logger.info("User already exists: skipping insertion of userdata in DB")
@@ -133,7 +133,7 @@ class Inital(Handlers):
         user_id = user_info.id
         # ищем запись относящуюся к пользователю
         mongo_query = {"user_id": user_id}
-        previous_records=dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection_2, mongo_query)
+        previous_records=dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection_2, mongo_query)
         # logger.info(previous_records[0])
         timer_object = dbschema.TimerData(
             **previous_records[0]

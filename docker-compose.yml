@@ -11,7 +11,8 @@ services:
       - MONGO_URL=mongodb://mongodb_api:27017/vendorbot_container # mongodb://mongodb_api:27017/timerbot # doesnt matter which is outer port of mongodb_api container, this accesses directtly to internal port?
       - MONGO_INITDB_ROOT_USERNAME=root # 
       - MONGO_INITDB_ROOT_PASSWORD=dr5[gnhn # 
-      - MONGO_INITDB_DATABASE=admin  # timerbotdb
+      - MONGO_INITDB_DATABASE=admin
+      - MONGO_VENDORBOT_DATABASE=vendorbot_db  
       - MONGO_BOT_USERNAME=bot
       - MONGO_BOT_PASSWORD=botpsswd
       - BOT_TOKEN=${PRODUCTION_BOT_TOKEN}
