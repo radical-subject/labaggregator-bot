@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  timerbot_service:
+  vendorbot_service:
     volumes:
       - ./vendorbot_folder:/vendorbot_container # симлинкнули папку с файлами чтобы они обновлялись при любых изменениях в деве
       - /vendorbot_container/node_modules # это чтобы не ругался на отсутствие папки node modules

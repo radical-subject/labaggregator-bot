@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  timerbot_service:
+  vendorbot_service:
     build: ./vendorbot_folder # относительный путь до папки  файлами. откуда compose будет брать их чтобы сбилдить
     container_name: vendorbot_container
     tty: true # this fucker is a must for container to run - why?

@@ -158,6 +158,62 @@ class UserReagents:
         return json.dumps(UserReagents_export) # exports json string (to use it as python object you should convert it by json.loads())
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class wallet:
     """
     This is object for manipulating easily with wallet 
