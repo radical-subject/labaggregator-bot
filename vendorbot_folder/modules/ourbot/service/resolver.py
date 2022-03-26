@@ -1,14 +1,53 @@
+from multiprocessing import Pool
+import pandas as pd
 import cirpy, pubchempy
 import re
-# from telegram.ext.dispatcher import run_async
+from modules.ourbot.service.timer import Timer
 
-# @run_async
+
 def get_SMILES(request_query):
     try:
         pubchem_response = pubchempy.get_compounds(request_query, "name")
         return pubchem_response[0].isomeric_smiles
     except:
         return cirpy.resolve("{}".format(request_query), 'smiles')
+
+
+def CIRPY_resolve(str_input):
+    try:
+        res = cirpy.resolve(str_input, 'smiles')
+        (smiles, failed_CAS) = (res, "NaN")
+        if res == None:
+            try:
+                pubchem_response = pubchempy.get_compounds(str_input, "name")
+                (smiles, failed_CAS) = (pubchem_response[0].isomeric_smiles, "NaN")
+            except:
+                (smiles, failed_CAS) = ("resolver_error", str_input)
+    except:
+        try:
+            pubchem_response = pubchempy.get_compounds(str_input, "name")
+            res = pubchem_response[0].isomeric_smiles
+            (smiles, failed_CAS) = (res, "NaN")
+        except:
+            print(str_input)
+            (smiles, failed_CAS) = ("resolver_error", str_input)
+
+    return (smiles, failed_CAS)
+
+def batch_SMILES_resolve(input_txt_file_path):
+    import_CAS_df = pd.read_csv(input_txt_file_path, header = None)
+    CAS_list = import_CAS_df[0].tolist()
+    
+    timer = Timer()
+    timer.start()
+    n = 50
+    with Pool(processes=n) as pool:
+        result = pool.map(CIRPY_resolve, CAS_list)
+    timer.stop()
+
+    return result
+
+
 
 def get_IUPAC(request_query):
 

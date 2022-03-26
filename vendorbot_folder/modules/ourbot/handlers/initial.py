@@ -159,6 +159,15 @@ class Inital(Handlers):
         
         return self.INITIAL
 
+    @log_errors
+    def resolve_tests(self, update: Update, context: CallbackContext):
+        import sys,os
+        sys.path.append("..")
+        from modules.ourbot.service.resolver import batch_SMILES_resolve
+
+        smiles_list = batch_SMILES_resolve('./srs/user_reagent_lists_import/Chusov_1.txt')
+        logger.info(smiles_list)
+        update.message.reply_text(f"{len(smiles_list)}, {smiles_list.count('resolver_error')}")
 
     @log_errors
     def set_tag(self, update: Update, context: CallbackContext):
@@ -172,3 +181,4 @@ class Inital(Handlers):
         dispatcher.add_handler(CommandHandler('end', self.exit_command))
         dispatcher.add_handler(CommandHandler('help', self.help_command))
         dispatcher.add_handler(CommandHandler('today', self.today_stats))
+        dispatcher.add_handler(CommandHandler('resolve_tests', self.resolve_tests))
