@@ -2,6 +2,7 @@ import logging
 import pymongo
 from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler
+from telegram.ext.dispatcher import run_async
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.decorators import log_errors
@@ -160,14 +161,42 @@ class Inital(Handlers):
         return self.INITIAL
 
     @log_errors
+    @run_async
     def resolve_tests(self, update: Update, context: CallbackContext):
         import sys,os
+        import pandas as pd
         sys.path.append("..")
-        from modules.ourbot.service.resolver import batch_SMILES_resolve
+        from modules.db.dbschema import UserReagents
+        
+        # retrieving data from user message
+        # ищем запись относящуюся к пользователю
+        user_id = update.message.from_user.id
+        mongo_query = {"user_id": user_id}
+        user_info = update.message.from_user
+        chat_id = update.message.chat.id
 
-        smiles_list = batch_SMILES_resolve('./srs/user_reagent_lists_import/Chusov_1.txt')
-        logger.info(smiles_list)
-        update.message.reply_text(f"{len(smiles_list)}, {smiles_list.count('resolver_error')}")
+        input_txt_file_path = "./srs/user_reagent_lists_import/Chusov_1.txt"
+        import_CAS_df = pd.read_csv(input_txt_file_path, header = None)
+        CAS_list = import_CAS_df[0].tolist()
+
+        initial_record = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
+        # test_record2 = {
+        #     "reagent_requests": [
+        #                 {
+        #                     "requested_CAS": "50-00-0"
+        #                 }
+        #             ]
+        #         }
+        
+        user_reagents_object = UserReagents(**initial_record[0])
+
+        # импорт листа реагентов с фильтрациями
+        user_reagents_object.add_list_of_reagents(user_info.id, user_info.username, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
+        # экспорт JSON
+        data = user_reagents_object.export()
+        # записываем в базу объект 
+        dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
+        update.message.reply_text(f"{user_reagents_object.get_user_shared_reagents()[0]}")
 
     @log_errors
     def set_tag(self, update: Update, context: CallbackContext):

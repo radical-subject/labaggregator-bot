@@ -7,7 +7,7 @@ os.environ['TZ'] = 'Europe/Moscow'
 from telegram.ext.dispatcher import run_async
 
 from modules.db.rdkitdb import similarity_search, convert_to_smiles_and_get_additional_data
-from modules.ourbot.service.resolver import get_SMILES
+from modules.ourbot.service.resolver import get_SMILES, batch_SMILES_resolve, CIRPY_resolve
 from modules.ourbot.service.decorators import log_errors
 logger = logging.getLogger(__name__)
 
@@ -82,15 +82,13 @@ class UserReagents:
         return sum_digits % 10 == int(control_digit)
 
 
-    def create_new_list_reagents(self, contact_username, CAS_list=list):
+    def create_new_list_reagents(self, CAS_list=list):
         """
         вспомогательная функция, набивающая лист правильно форматированными реагентами для записи в объект
         """
         return [
             {
-                "CAS": CAS_number,
-                "sharing_status": "shared",
-                "contact": contact_username
+                "CAS": CAS_number
             }
             for CAS_number in CAS_list
             if self.is_CAS_number(CAS_number)
@@ -105,23 +103,35 @@ class UserReagents:
         # timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
         # current_time = timestamp
         try:
-            self.user_reagents += self.create_new_list_reagents(contact_username, CAS_list)
+            self.user_reagents += self.create_new_list_reagents(CAS_list)
         except AttributeError:
-            setattr(self, "user_reagents", self.create_new_list_reagents(contact_username, CAS_list))
+            setattr(self, "user_reagents", self.create_new_list_reagents(CAS_list))
 
-        self.resolve_CAS_to_SMILES() # дополнение CAS
+        # timer = Timer()
+        # timer.start()
+        # n = 50
+        # with Pool(processes=n) as pool:
+        #     result = pool.map(self.resolve_CAS_to_SMILES, self.user_reagents)
+        # timer.stop()
+
+        self.resolve_CAS_to_SMILES(contact_username) # дополнение списка SMILES-ами
         self.blacklist_filter(client, db_instance) # фильтрация структур
 
 
-    def resolve_CAS_to_SMILES(self):
+    def resolve_CAS_to_SMILES(self, contact_username):
         """
-        эта функция читает список реагентов, берет CAS номера и по ним вытаскивает из удаленного API - SMILES строку
+        эта функция читает список реагентов, берет CAS номера, пихает их в лист.
+        кормит этим листом batch_SMILES_resolve
+        полученный лист объектов с CAS и SMILES дополняет контактными данными и ставит заглушку 
+        sharing_status
         """
+        CAS_list = [entry["CAS"] for entry in self.user_reagents]
+        resolved_SMILES = batch_SMILES_resolve(CAS_list)[0]
+
+        self.user_reagents = resolved_SMILES
         for entry in self.user_reagents:
-            try:
-                entry["SMILES"] = get_SMILES(entry["CAS"])
-            except:
-                entry["SMILES"] = "resolver_NAN"
+            entry["contact"] = contact_username
+            entry["sharing_status"] = "shared"
         return
 
     def blacklist_filter(self, client, db_instance):
@@ -130,11 +140,21 @@ class UserReagents:
         """
         for entry in self.user_reagents:
             SMILES_input = entry["SMILES"]
-            result = similarity_search (client, db_instance, SMILES_input)
-            if result[0][0] > 0.75:
-                # print(f"{convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']} найден в импорте и вычеркнут")
-                logger.info(f"{convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']} найден в импорте и вычеркнут")
-                self.user_reagents.remove(entry)
+            SMILES_input = SMILES_input.replace("|", "")
+            if SMILES_input != 'resolver_error':
+                try:
+                    result = similarity_search (client, db_instance, SMILES_input)
+                    if result[0][0] > 0.75:
+                        # print(f"{convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']} найден в импорте и вычеркнут")
+                        logger.info(f"{entry['CAS']}, SIMILARITY RESULT = {result[0][0]}, {convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']} найден в импорте и вычеркнут")
+                        self.user_reagents.remove(entry)
+                except Exception as e:
+                    """
+                    вертикальная черта в SMILES - непонятно что несёт, и RDKIT ее не понимает, убираем ее
+                    """
+                    logger.info(e)
+                    pass
+
         return    
 
     def get_user_shared_reagents(self):
