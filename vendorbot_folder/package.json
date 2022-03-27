@@ -1,5 +1,5 @@
 {
-  "name": "timerbot",
+  "name": "vendorbot",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "dev": "nodemon"
+    "dev": "nodemon -L"
   },
   "author": "",
   "license": "ISC"

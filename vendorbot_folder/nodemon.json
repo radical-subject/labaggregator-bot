@@ -2,5 +2,5 @@
     "verbose": true,
     "watch": ["./"],
     "ignore": ["./mongodumps"],
-    "exec": "nodemon --exec 'conda run -n vendorbot_env --no-capture-output python -u' main.py"
+    "exec": "nodemon -L --exec 'conda run -n vendorbot_env --no-capture-output python -u' main.py"
 }

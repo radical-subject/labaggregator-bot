@@ -7,7 +7,7 @@ from telegram.ext.dispatcher import run_async
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.decorators import log_errors, restricted
 from modules.ourbot.service import mongoDumpModule
-from modules.db import dbconfig, dbmodel
+from modules.db import dbconfig, dbmodel, rdkitdb
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ class Admin(Handlers):
     
     @log_errors
     @restricted
+    @run_async # deprecated way of async running # sometimes this may break! not now but configuration is dangerous overall
     def purge_handler(self, update: Update, context: CallbackContext):
         button_list = [
             [
@@ -37,14 +38,13 @@ class Admin(Handlers):
     
     @log_errors
     @restricted
-    @run_async
     def update_rdkit_db_blacklist_handler(self, update: Update, context: CallbackContext):
         """
         updates blacklist with srs/Narkotiki_test.sdf
         """
-        reply = dbmodel.update_rdkit_db_blacklist(self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
+        reply = rdkitdb.update_rdkit_db_blacklist(self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
         update.message.reply_text(f"{reply} molecules successfully imported. nice!")
-        reply = dbmodel.update_blacklist_with_pandas (self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
+        reply = rdkitdb.update_blacklist_with_pandas (self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
         logging.info(f"{reply} molecules successfully imported with metadata in separate collection. nice!")
         return
 

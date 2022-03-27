@@ -14,8 +14,8 @@ logging.basicConfig(
 logging.info('logger started')
 logger = logging.getLogger(__name__)
 
-def main():
 
+def main():
     db_instances = dict(
         root=MongoDriver(root_credentials), 
         timerbot_db=MongoDriver(timerbot_credentials), 
