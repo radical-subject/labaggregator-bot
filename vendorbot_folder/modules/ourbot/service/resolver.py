@@ -14,6 +14,7 @@ def get_SMILES(request_query):
 
 
 def CIRPY_resolve(str_input):
+    
     try:
         res = cirpy.resolve(str_input, 'smiles')
         (smiles, CAS) = (res, str_input)
@@ -29,7 +30,6 @@ def CIRPY_resolve(str_input):
             res = pubchem_response[0].isomeric_smiles
             (smiles, CAS) = (res, str_input)
         except:
-            # print(str_input)
             (smiles, CAS) = ("resolver_error", str_input)
 
     return (smiles, CAS)

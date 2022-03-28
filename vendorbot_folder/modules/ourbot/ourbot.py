@@ -32,7 +32,7 @@ class BotObject:
         self.db_instances=db_instances
         
 
-        self.initial = Inital(self.db_instances)
+        self.initial = Inital(self.bot, self.db_instances)
         self.admin = Admin(self.bot, self.db_instances)
         self.buttons = Buttons(self.db_instances)
         self.labs = Labs(self.db_instances)

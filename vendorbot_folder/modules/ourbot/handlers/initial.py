@@ -1,8 +1,20 @@
 import logging
 import pymongo
+
+from telegram import (Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton)
+from telegram.ext import (Updater, CommandHandler, CallbackContext, ConversationHandler, InlineQueryHandler,
+                          CallbackQueryHandler)
+
 from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler
 from telegram.ext.dispatcher import run_async
+
+
+import sys,os
+import pandas as pd
+sys.path.append("..")
+from modules.db.dbschema import UserReagents
+        
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.decorators import log_errors
@@ -27,8 +39,9 @@ class Inital(Handlers):
     содержащего в себе список подключений к базе данных.
     """
 
-    def __init__(self, db_instances):
+    def __init__(self, bot, db_instances):
         super().__init__(db_instances)
+        self.bot=bot
         self.collection = "users_collection"
         self.collection_2 = "timer_data_collection"
 
@@ -161,13 +174,9 @@ class Inital(Handlers):
         return self.INITIAL
 
     @log_errors
-    @run_async
+    # @run_async
     def resolve_tests(self, update: Update, context: CallbackContext):
-        import sys,os
-        import pandas as pd
-        sys.path.append("..")
-        from modules.db.dbschema import UserReagents
-        
+
         # retrieving data from user message
         # ищем запись относящуюся к пользователю
         user_id = update.message.from_user.id
@@ -192,11 +201,20 @@ class Inital(Handlers):
 
         # импорт листа реагентов с фильтрациями
         user_reagents_object.add_list_of_reagents(user_info.id, user_info.username, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
-        # экспорт JSON
+        # экспорт JSON - не работает с pymongo! нужен dict
         data = user_reagents_object.export()
         # записываем в базу объект 
         dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
         update.message.reply_text(f"{user_reagents_object.get_user_shared_reagents()[0]}")
+
+    @log_errors
+    def capture_contact(self, update: Update, context: CallbackContext):
+        # retrieving data from user message
+        user_info = update.message.from_user
+        chat_id = update.message.chat.id
+
+        reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]])
+        self.bot.sendMessage(chat_id, 'Example', reply_markup=reply_markup)
 
     @log_errors
     def set_tag(self, update: Update, context: CallbackContext):
@@ -211,3 +229,4 @@ class Inital(Handlers):
         dispatcher.add_handler(CommandHandler('help', self.help_command))
         dispatcher.add_handler(CommandHandler('today', self.today_stats))
         dispatcher.add_handler(CommandHandler('resolve_tests', self.resolve_tests))
+        dispatcher.add_handler(CommandHandler('capture_contact', self.capture_contact))

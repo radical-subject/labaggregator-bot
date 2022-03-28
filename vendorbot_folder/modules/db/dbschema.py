@@ -113,9 +113,11 @@ class UserReagents:
         # with Pool(processes=n) as pool:
         #     result = pool.map(self.resolve_CAS_to_SMILES, self.user_reagents)
         # timer.stop()
-
         self.resolve_CAS_to_SMILES(contact_username) # дополнение списка SMILES-ами
+        print("after smiles")
         self.blacklist_filter(client, db_instance) # фильтрация структур
+
+
 
 
     def resolve_CAS_to_SMILES(self, contact_username):
@@ -175,8 +177,8 @@ class UserReagents:
         }
         """      
         UserReagents_export = {**{"_id": self._id}, **dict(self)}
-        return json.dumps(UserReagents_export) # exports json string (to use it as python object you should convert it by json.loads())
-
+        # json.dumps(UserReagents_export) # exports json string (to use it as python object you should convert it by json.loads())
+        return UserReagents_export
 
 
 
