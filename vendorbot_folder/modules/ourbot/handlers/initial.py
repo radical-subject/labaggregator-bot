@@ -177,28 +177,22 @@ class Inital(Handlers):
     # @run_async
     def resolve_tests(self, update: Update, context: CallbackContext):
 
-        # retrieving data from user message
-        # ищем запись относящуюся к пользователю
-        user_id = update.message.from_user.id
-        mongo_query = {"user_id": user_id}
-        user_info = update.message.from_user
-        chat_id = update.message.chat.id
-
         input_txt_file_path = "./srs/user_reagent_lists_import/Chusov_1.txt"
         import_CAS_df = pd.read_csv(input_txt_file_path, header = None)
         CAS_list = import_CAS_df[0].tolist()
 
-        initial_record = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
-        # test_record2 = {
-        #     "reagent_requests": [
-        #                 {
-        #                     "requested_CAS": "50-00-0"
-        #                 }
-        #             ]
-        #         }
-        
-        user_reagents_object = UserReagents(**initial_record[0])
+        # retrieving data from user message
+        # ищем запись относящуюся к пользователю
+        user_id = update.message.from_user.id
+        mongo_query = {"user_id": user_id}
+        logger.info(f"mongo_query: {mongo_query}")
+        user_info = update.message.from_user
+        chat_id = update.message.chat.id
 
+        initial_record = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
+        logger.info(f"initial_record: {initial_record}")
+        user_reagents_object = UserReagents(**initial_record[0])
+        
         # импорт листа реагентов с фильтрациями
         user_reagents_object.add_list_of_reagents(user_info.id, user_info.username, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
         # экспорт JSON - не работает с pymongo! нужен dict

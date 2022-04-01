@@ -114,7 +114,6 @@ class UserReagents:
         #     result = pool.map(self.resolve_CAS_to_SMILES, self.user_reagents)
         # timer.stop()
         self.resolve_CAS_to_SMILES(contact_username) # дополнение списка SMILES-ами
-        print("after smiles")
         self.blacklist_filter(client, db_instance) # фильтрация структур
 
 

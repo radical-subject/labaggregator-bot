@@ -2,6 +2,7 @@ import logging
 from telegram import (Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton)
 from telegram.ext import (Updater, CommandHandler, CallbackContext, ConversationHandler, InlineQueryHandler,
                           CallbackQueryHandler)
+from telegram.utils.request import Request
 
 from modules.ourbot.handlers.lab_dialog import LabDialog
 from modules.ourbot.handlers.initial import Inital
@@ -12,6 +13,7 @@ from modules.ourbot.handlers.categories_dialog import CategoriesDialog
 from modules.ourbot.handlers.edit_categories_dialog import EditCategoriesDialog
 from modules.ourbot.handlers.search import Search
 from modules.ourbot.handlers.wishlist import Wishlist
+from modules.ourbot.handlers.manage_dialog import Manage
 
 from modules.ourbot.handlers.timer_dialog import TimerDialog
 from modules.ourbot.handlers.edit_entry_dialog import EditEntriesDialog
@@ -26,8 +28,14 @@ class BotObject:
     def __init__(self, token: str, **db_instances):
         logger.info('Bot initialization... __init__ in BotObject...')
         self.token = token
-        self.bot = Bot(self.token)
-        self.updater = Updater(self.token)
+
+        num_threads = 10
+        request = Request(con_pool_size=num_threads + 4)
+        self.bot = Bot(self.token, request=request)
+        self.updater = Updater(bot=self.bot, workers=num_threads)
+
+        # self.bot = Bot(self.token)
+        # self.updater = Updater(self.token)
         self.dispatcher = self.updater.dispatcher
         self.db_instances=db_instances
         
@@ -43,6 +51,8 @@ class BotObject:
         self.search = Search(self.db_instances)
         self.timer_dialog = TimerDialog(self.bot, self.db_instances)
         self.edit_entries_dialog = EditEntriesDialog(self.bot, self.db_instances)
+
+        self.manage_dialog = Manage(self.bot, self.db_instances)
         
 
 
@@ -54,6 +64,7 @@ class BotObject:
         self.update_dispatcher()
         self.updater.start_polling()
         self.updater.idle()
+
 
 
     @log_errors
@@ -69,6 +80,10 @@ class BotObject:
         self.buttons.register_handler(self.dispatcher)
         self.timer_dialog.register_handler(self.dispatcher)
         self.edit_entries_dialog.register_handler(self.dispatcher)
+
+        self.manage_dialog.register_handler(self.dispatcher)
+ 
+
 
 
         pass

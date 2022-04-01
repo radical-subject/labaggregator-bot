@@ -94,7 +94,7 @@ class Buttons(Handlers):
         timerbot_client is not authorized on db to drop it.
         only root can. so, root_client and root instance is transferred as arguments to dbmodel.
         """
-        dbmodel.purge(self.root_client, self.db_instances["root"])
+        dbmodel.purge(self.root_client, self.db_instances["vendorbot_db"])
 
     @log_errors
     def register_handler(self, dispatcher):

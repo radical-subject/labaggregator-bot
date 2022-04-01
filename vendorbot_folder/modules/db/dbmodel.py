@@ -11,7 +11,7 @@ def purge(client, db_instance):
     db.command("dropDatabase")
     logger.info(f"database {db_name} dropped.")
 
-# @log_errors
+@log_errors
 def add_records(client, db_instance, collection_name: str, data: dict):
     db_name = db_instance.DATABASE_NAME
     # logger.info(f"{client}, {db_instance}, {collection_name}, {data}")

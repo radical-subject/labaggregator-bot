@@ -41,6 +41,7 @@ def batch_SMILES_resolve(CAS_list):
     
     timer = Timer()
     timer.start()
+    # result = [CIRPY_resolve(item) for item in CAS_list]
     n = 50
     with Pool(processes=n) as pool:
         result = pool.map(CIRPY_resolve, CAS_list)
