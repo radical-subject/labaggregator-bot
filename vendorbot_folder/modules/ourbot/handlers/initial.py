@@ -80,7 +80,8 @@ class Inital(Handlers):
             # logger.info(f"{self.vendorbot_db_client}, {self.db_instances['vendorbot_db']}, {self.collection}, {userdata_dict}")
             dbmodel.add_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, userdata_dict)
             logger.info('user initialized by /start command.')
-        except pymongo.errors.DuplicateKeyError:
+        except pymongo.errors.DuplicateKeyError as e:
+            logger.info(e)
             logger.info("User already exists: skipping insertion of userdata in DB")
         # associated with user chat and context stored data should be cleaned up to prevent mess
         context.chat_data.clear()

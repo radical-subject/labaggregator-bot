@@ -1,6 +1,6 @@
 {
     "verbose": true,
     "watch": ["./"],
-    "ignore": ["./mongodumps"],
+    "ignore": ["./mongodumps", "*pycache__"],
     "exec": "nodemon -L --exec 'conda run -n vendorbot_env --no-capture-output python -u' main.py"
 }
