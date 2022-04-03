@@ -20,7 +20,6 @@ def CIRPY_resolve(reagent_without_SMILES):
         "CAS": CAS_number
     }
     """
-    print(reagent_without_SMILES)
     try:
         res = cirpy.resolve(reagent_without_SMILES['CAS'], 'smiles')
         reagent_without_SMILES["SMILES"] = res

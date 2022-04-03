@@ -73,4 +73,4 @@ class Admin(Handlers):
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
         dispatcher.add_handler(CommandHandler('dump', self.dump))
-        dispatcher.add_handler(CommandHandler('blacklist_update', self.update_rdkit_db_blacklist_handler))
+        dispatcher.add_handler(CommandHandler('blacklist_update', self.update_rdkit_db_blacklist_handler, run_async=True))

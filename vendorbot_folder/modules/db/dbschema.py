@@ -62,10 +62,14 @@ class UserReagents:
           yield attr, value
 
     def is_CAS_number(self, CAS_number=str):
+        """
+        Функция работает грамотно, проверено кровью, ее, сука, не трогать! 
+        """
         # Chemical Abstract Service Registry Number regular expression pattern
         regExprCasRegNbr = "^[1-9][0-9]{1,6}\\-[0-9]{2}\\-[0-9]$"
         pattern = re.compile(regExprCasRegNbr)
         if not pattern.match(CAS_number):
+            logger.info(f"{CAS_number} is not CAS")
             return False
 
         only_digits = CAS_number.replace('-', '')
@@ -101,8 +105,7 @@ class UserReagents:
         """
         if not CAS_list:
             return
-        # timestamp = time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())
-        # current_time = timestamp
+
         try:
             self.user_reagents += self.create_new_list_reagents(CAS_list)
         except AttributeError:
@@ -116,30 +119,31 @@ class UserReagents:
 
     def resolve_CAS_to_SMILES(self, contact_username):
         """
-        эта функция читает список реагентов, берет CAS номера, пихает их в лист.
-        кормит этим листом batch_SMILES_resolve
-        полученный лист объектов с CAS и SMILES дополняет контактными данными и ставит заглушку 
-        sharing_status
+        эта функция читает список реагентов, записи из листа которым не приписаны SMILES, пихает их в отдельный лист.
+        кормит этим листом реагентов batch_SMILES_resolve
+        полученный лист объектов теперь содержит key "SMILES".
+        его дальше дополняет контактными данными и ставит заглушку sharing_status
         """
         
-
+        # забираем в отдельный лист реагенты без CAS
         reagents_without_SMILES_list = [entry for entry in self.user_reagents if not ("SMILES" in entry.keys())]
+        # удаляем забранные для парсинга записи
+        self.user_reagents = [entry for entry in self.user_reagents if ("SMILES" in entry.keys())]
+        # парсим записи, добавляя им SMILES
+        resolved_SMILES = batch_SMILES_resolve(reagents_without_SMILES_list)
 
-        for entry in self.user_reagents:
-            if not ("SMILES" in entry.keys()):
-                self.user_reagents.remove(entry)
+        # чтобы была возможность в будущем удалить батчем добавленные в одну операцию записи ставим временную метку
+        timestamp = time.strftime("%d.%m.%Y %H:%M", time.localtime())
+        current_time = timestamp
 
-        CAS_list = [entry['CAS'] for entry in reagents_without_SMILES_list]
-
-        logger.info(f"reagents_without_SMILES_list: {reagents_without_SMILES_list}")
-
-        resolved_SMILES = batch_SMILES_resolve(CAS_list)[0]
-
-        for entry in resolved_SMILES:
+        # дополняем инфой о контакте, штамп времени и статус шеринга
+        for entry in resolved_SMILES[0]:
             entry["contact"] = contact_username
             entry["sharing_status"] = "shared"
+            entry["timestamp"] = current_time
 
-        self.user_reagents.append(resolved_SMILES)
+        # прибавляем к концу листа реагентов юзера лист с новыми, резолвнутыми реагентами
+        self.user_reagents += resolved_SMILES[0]
 
         return
 
