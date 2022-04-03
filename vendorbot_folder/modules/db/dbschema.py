@@ -88,6 +88,7 @@ class UserReagents:
         """
         return [
             {
+                "reagent_internal_id": uuid.uuid4().hex, 
                 "CAS": CAS_number
             }
             for CAS_number in CAS_list
@@ -107,12 +108,6 @@ class UserReagents:
         except AttributeError:
             setattr(self, "user_reagents", self.create_new_list_reagents(CAS_list))
 
-        # timer = Timer()
-        # timer.start()
-        # n = 50
-        # with Pool(processes=n) as pool:
-        #     result = pool.map(self.resolve_CAS_to_SMILES, self.user_reagents)
-        # timer.stop()
         self.resolve_CAS_to_SMILES(contact_username) # дополнение списка SMILES-ами
         self.blacklist_filter(client, db_instance) # фильтрация структур
 
@@ -126,13 +121,26 @@ class UserReagents:
         полученный лист объектов с CAS и SMILES дополняет контактными данными и ставит заглушку 
         sharing_status
         """
-        CAS_list = [entry["CAS"] for entry in self.user_reagents]
+        
+
+        reagents_without_SMILES_list = [entry for entry in self.user_reagents if not ("SMILES" in entry.keys())]
+
+        for entry in self.user_reagents:
+            if not ("SMILES" in entry.keys()):
+                self.user_reagents.remove(entry)
+
+        CAS_list = [entry['CAS'] for entry in reagents_without_SMILES_list]
+
+        logger.info(f"reagents_without_SMILES_list: {reagents_without_SMILES_list}")
+
         resolved_SMILES = batch_SMILES_resolve(CAS_list)[0]
 
-        self.user_reagents = resolved_SMILES
-        for entry in self.user_reagents:
+        for entry in resolved_SMILES:
             entry["contact"] = contact_username
             entry["sharing_status"] = "shared"
+
+        self.user_reagents.append(resolved_SMILES)
+
         return
 
     def blacklist_filter(self, client, db_instance):

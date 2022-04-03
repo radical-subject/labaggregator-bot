@@ -15,16 +15,23 @@ logger = logging.getLogger(__name__)
 
 class Manage(Handlers):
     """
+    В этом диалоговом хендлере пользователь добавляет свой список реагентов. 
+    Присылается текстовый файл с CAS номерами.
+    В качестве контакта обратной связи устанавливается контакт, который указан в шапке файла.
+    Eсли не указан в шапке файла - то в качестве контакта используется username.
+
+    Если у пользователя нет username - тогда все плохо. надо обработать этот момент. 
     """
     def __init__(self, bot, db_instances):
         """
+        передаем коллекции, с которыми по умолчанию работает этот хендлер
         """
         super().__init__(db_instances)
         self.bot=bot
         self.collection = "users_collection"
 
     @log_errors
-    def manage_entrypoint(self, update: Update, context: CallbackContext) -> None:
+    def manage_entrypoint(self, update: Update, context: CallbackContext):
         """
         
         """
@@ -33,37 +40,39 @@ class Manage(Handlers):
         return 1
 
     @log_errors
-    def getting_file(self, update: Update, context: CallbackContext) -> None:
+    def getting_file(self, update: Update, context: CallbackContext):
 
         # retrieving data from user message
         # ищем запись относящуюся к пользователю
         user_id = update.message.from_user.id
         mongo_query = {"user_id": user_id}
-        logger.info(f"mongo_query: {mongo_query}")
         user_info = update.message.from_user
         chat_id = update.message.chat.id
 
-        initial_record = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
-        logger.info(f"initial_record: {initial_record}")
-        user_reagents_object = UserReagents(**initial_record[0])
-        
+        # Достаем из базы весь объект пользователя с реагентами
+        # Если такого пользователя нет - функция на лету его создает и не плюется ошибками
+        user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
+
         current_state = context.user_data.get('state')
         
         out = io.BytesIO()
         context.bot.get_file(update.message.document).download(out=out)
         out.seek(0)
         content = out.read().decode('utf-8')
-        CAS_list = content.split("\n")
-        CAS_list = [item.strip() for item in CAS_list]
-        logger.info(CAS_list)
+        CAS_list = [item.strip() for item in content.split("\n")]
         
-        # from multiprocessing import Pool
-        from modules.ourbot.service.cas_to_smiles import parse_lines
-        # out = parse_lines(lines)
-        # logger.info(f"{type(content)}, {lines}")
+        # оставляю возможность хардкодить вручную контакт, прописывая первую строку импортируемого файла руками:
+        # в формате reagents_contact:+79265776746
+        if CAS_list[0].startswith("reagents_contact:"):
+            contact = CAS_list[0].split(":")[1]
+        else:
+            if user_info.username == None:
+                raise Exception("у пользователя нет username!")
+            else:
+                contact = "@{}".format(user_info.username)
 
         # импорт листа реагентов с фильтрациями
-        user_reagents_object.add_list_of_reagents(user_info.id, user_info.username, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
+        user_reagents_object.add_list_of_reagents(user_info.id, contact, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
         # экспорт JSON - не работает с pymongo! нужен dict
         data = user_reagents_object.export()
         # записываем в базу объект 
@@ -75,119 +84,6 @@ class Manage(Handlers):
         
         return 2
 
-    @log_errors
-    def timer_continue(self, update: Update, context: CallbackContext) -> None:
-        current_state = context.user_data.get('state')
-        query = update.callback_query
-        query.answer()
-        if query.data.startswith('TIMER'):
-            command = query.data.split(':')[1]
-            assert(command == "RESUME", "wrong callback query data in timer_pause()")
-
-        sent_message = update.callback_query.message
-        t = context.user_data["timer_object"]
-
-        t.start()
-        button_list = [
-            [
-                InlineKeyboardButton("||", callback_data=str('TIMER:PAUSE')),
-                InlineKeyboardButton("|X|", callback_data=str('TIMER:STOP'))
-            ]
-        ]
-        reply_markup = InlineKeyboardMarkup(button_list)
-        self.bot.edit_message_text(
-            text='Timer ON',
-            chat_id=sent_message.chat_id,
-            message_id=sent_message.message_id,
-            reply_markup=reply_markup
-        )
-        context.user_data["timer_object"] = t
-
-        return 1
-
-    @log_errors
-    def timer_stop(self, update: Update, context: CallbackContext) -> None:
-        
-        user_id = update.callback_query.from_user.id
-        chat_id = update.callback_query.message.chat_id
-        context.chat_data["user_id"] = user_id
-        context.chat_data["chat_id"] = chat_id
-
-        current_state = context.user_data.get('state')
-        query = update.callback_query
-        query.answer()
-        if query.data.startswith('TIMER'):
-            command = query.data.split(':')[1]
-            assert(command == "STOP", "wrong callback query data in timer_pause()")
-
-        sent_message = update.callback_query.message
-        t = context.user_data["timer_object"]
-        try:
-            seconds = t.stop()
-            try:
-                context.user_data["total_elapsed_seconds"] += seconds
-            except:
-                context.user_data["total_elapsed_seconds"] = seconds            
-        except TimerError:
-            logger.info("Timer was already stopped.")
-
-        context.user_data["total_elapsed_minutes"] = context.user_data["total_elapsed_seconds"]/60
-        
-        logger.info(context.user_data["total_elapsed_seconds"])
-        self.bot.edit_message_text(
-            text=f'Timer STOPPED.\ntime elapsed: {context.user_data["total_elapsed_minutes"]:.2f} min.\n\n*Write down a comment:*',
-            chat_id=sent_message.chat_id,
-            message_id=sent_message.message_id,
-            reply_markup=None,
-            parse_mode='Markdown'
-        )
-
-        return 3
-    
-    @log_errors
-    def send_data(self, update: Update, context: CallbackContext):
-        input_text = update.message.text
-        chat_id = update.message.chat_id
-        comment = input_text
-        user_id = update.message.from_user.id
-
-        # self.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
-        # self.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id-1)
-
-        # write in DB context.user_data["total_elapsed_seconds"]
-        current_category = str(context.user_data.get('current_category'))
-        total_elapsed_minutes = context.user_data["total_elapsed_minutes"]
-
-        # вызываем функцию для записи в бд
-        self.write_to_db(update, context, comment)
-
-        # ищем запись относящуюся к пользователю
-        mongo_query = {"user_id": user_id}
-        previous_records=dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query)
-        timer_object = dbschema.TimerData(
-            **previous_records[0]
-        )
-
-        try:
-            time_netto_today = timer_object.get_netto_today()
-            logger.info(f"time netto today = {timer_object.get_netto_today()} minutes")
-        except:
-            time_netto_today = 0
-            
-        # завершающее диалог сообщение пользователю об итогах таймера
-        if current_category:
-            logger.info(f"current_category = {current_category}")
-            update.message.reply_text(f'Timer entry added successfully to database.\nCategory: {current_category}\nDone: *{comment}*\nTime spent: *{context.user_data["total_elapsed_minutes"]:.2f}* minutes. \n\ntime netto today = *{time_netto_today:.2f} minutes.*', parse_mode='Markdown')
-        else:
-            logger.info(f"current_category = {current_category}")
-            update.message.reply_text(f'Timer entry added successfully to database.\nCategory was not chosen.\nDone: *{comment}*\nTime spent: *{context.user_data["total_elapsed_minutes"]:.2f}* minutes. \n\ntime netto today = *{time_netto_today:.2f} minutes.*', parse_mode='Markdown')
-
-        # now clear all cached data
-        # clear assosiated with user data and custom context variables
-        context.chat_data.clear()
-        context.user_data.clear()
-
-        return -1
 
 
     @log_errors
@@ -201,9 +97,9 @@ class Manage(Handlers):
                 reply_markup = InlineKeyboardMarkup([])
                 update.message.reply_text("Таймер абортирован другой командой.\nВсе переменные состояний очищены, и вы в этом виноваты сами.\nВыход из диалога таймера.\nДа поможет тебе святой Януарий!", reply_markup=reply_markup)
             else:
-                update.message.reply_text(f"""Выход из диалога.\nДа поможет тебе святой Антоний.""")
+                update.message.reply_text(f"""Выход из диалога /manage.\nДа поможет тебе святой Антоний.""")
         except:
-            update.message.reply_text(f"""Выход из диалога.\nДа поможет тебе святой Франциск.""")
+            update.message.reply_text(f"""Выход из диалога /manage.\nДа поможет тебе святой Франциск.""")
             pass
         # now clear all cached data
         # clear assosiated with user data and custom context variables
@@ -267,34 +163,20 @@ class Manage(Handlers):
             # записываем экспортированный в словарь объект в базу
             dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
 
-    # @log_errors
-    # def set_hashtag(self, update: Update, context: CallbackContext):
-    #     """
-    #     """
-    #     context.user_data['hashtag'] = update.message.text
-    #     logger.info("DEBUG")
-    #     logger.info(context.user_data['hashtag'])
-
 
     @log_errors
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('end', self.exit))
 
-        self.timer_dialog = ConversationHandler(
+        self.manage_dialog = ConversationHandler(
         entry_points=[CommandHandler('manage', self.manage_entrypoint)],
         states={
                 1:[
-                    # CallbackQueryHandler(self.timer_stop, pattern='^{}$'.format(str("TIMER:STOP"))),
-                    MessageHandler(Filters.attachment, self.getting_file,  run_async=True)
+                    MessageHandler(Filters.attachment, self.getting_file) # ,  run_async=True
                 ],
                 2:[
-                    CallbackQueryHandler(self.timer_continue, pattern='^{}$'.format(str("TIMER:RESUME"))),
-                    CallbackQueryHandler(self.timer_stop, pattern='^{}$'.format(str("TIMER:STOP"))),
-                    # MessageHandler(Filters.regex('^#[^ !@#$%^&*(),.?":{}|<>]*$'), self.set_hashtag)                
-                ],
-                3:[
-                    # MessageHandler(Filters.command, self.exit),
-                    MessageHandler(Filters.text, self.send_data)             
+                    MessageHandler(Filters.command, self.exit)
+                    # MessageHandler(Filters.text, self.send_data)                  
                 ]
             },
             fallbacks=[
@@ -303,4 +185,4 @@ class Manage(Handlers):
             ]
         )
 
-        dispatcher.add_handler(self.timer_dialog, 1)
+        dispatcher.add_handler(self.manage_dialog, 1)

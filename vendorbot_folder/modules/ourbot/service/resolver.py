@@ -13,48 +13,54 @@ def get_SMILES(request_query):
         return cirpy.resolve("{}".format(request_query), 'smiles')
 
 
-def CIRPY_resolve(str_input):
-    
+def CIRPY_resolve(reagent_without_SMILES):
+    """
+    {
+        "reagent_internal_id": uuid.uuid4().hex, 
+        "CAS": CAS_number
+    }
+    """
+    print(reagent_without_SMILES)
     try:
-        res = cirpy.resolve(str_input, 'smiles')
-        (smiles, CAS) = (res, str_input)
+        res = cirpy.resolve(reagent_without_SMILES['CAS'], 'smiles')
+        reagent_without_SMILES["SMILES"] = res
         if res == None:
             try:
-                pubchem_response = pubchempy.get_compounds(str_input, "name")
-                (smiles, CAS) = (pubchem_response[0].isomeric_smiles, str_input)
+                pubchem_response = pubchempy.get_compounds(reagent_without_SMILES['CAS'], "name")
+                res = pubchem_response[0].isomeric_smiles
+                reagent_without_SMILES["SMILES"] = res
             except:
-                (smiles, CAS) = ("resolver_error", str_input)
+                reagent_without_SMILES["SMILES"] = "resolver_error"
     except:
         try:
-            pubchem_response = pubchempy.get_compounds(str_input, "name")
+            pubchem_response = pubchempy.get_compounds(reagent_without_SMILES['CAS'], "name")
             res = pubchem_response[0].isomeric_smiles
-            (smiles, CAS) = (res, str_input)
+            reagent_without_SMILES["SMILES"] = res
         except:
-            (smiles, CAS) = ("resolver_error", str_input)
+            reagent_without_SMILES["SMILES"] = "resolver_error"
 
-    return (smiles, CAS)
+    return reagent_without_SMILES
 
 
-def batch_SMILES_resolve(CAS_list):
+def batch_SMILES_resolve(reagents_without_SMILES_list):
     # import_CAS_df = pd.read_csv(input_txt_file_path, header = None)
     # CAS_list = import_CAS_df[0].tolist()
     
     timer = Timer()
     timer.start()
-    # result = [CIRPY_resolve(item) for item in CAS_list]
     n = 50
     with Pool(processes=n) as pool:
-        result = pool.map(CIRPY_resolve, CAS_list)
+        result = pool.map(CIRPY_resolve, reagents_without_SMILES_list)
     timer.stop()
 
-    result_object_list = [{"CAS": i[1], "SMILES": i[0]} for i in result] # if i[0]!="resolver_error"
+    result_object_list = result # if i[0]!="resolver_error"
     
-    errors_CAS_list = [i[1] for i in result if i[0]=="resolver_error"]
+    errors_list = [i for i in result if i["SMILES"]=="resolver_error"]
 
     # # remove all error indications - this gives clean SMILES list
     # SMILES_list = list(filter(("resolver_error").__ne__, SMILES_list))
     
-    return (result_object_list, errors_CAS_list)
+    return (result_object_list, errors_list)
 
 
 

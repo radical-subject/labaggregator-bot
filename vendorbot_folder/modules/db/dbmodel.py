@@ -59,3 +59,35 @@ def get_timerdata_object(client, db_instance, collection_name: str, query: dict,
         )
     
     return timer_object
+
+
+
+@log_errors
+def get_user_reagents_object(client, db_instance, collection_name: str, query: dict, user_info): #self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query
+        
+    # достаем ее из бд
+    previous_records=get_records(client, db_instance, collection_name, query)
+    
+
+    # результат поиска может оказаться пустым
+    if previous_records == [] or previous_records == None:
+        userdata_dict = {
+            "_id": user_info.id,
+            "user_id": user_info.id,
+            "username": "@{}".format(user_info.username),
+            "firstname": user_info.first_name,
+            "lastname": user_info.last_name
+        }
+        user_reagents_object = dbschema.UserReagents(
+            **userdata_dict
+        )
+        
+    else:
+        # если раньше у пользователя были записи то импортируем данные пользователя в объект таймера
+        user_reagents_object = dbschema.UserReagents(
+            **previous_records[0]
+        )
+    
+    return user_reagents_object
+
+

@@ -63,7 +63,7 @@ class BotObject:
         logger.info('Starting bot...')
         self.update_dispatcher()
         self.updater.start_polling()
-        self.updater.idle(stop_signals=(2, 6, 13))
+        self.updater.idle(stop_signals=(2, 6, 13)) # stop_signals=(2, 6, 13)
 
 
 
