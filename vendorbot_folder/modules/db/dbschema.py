@@ -132,7 +132,7 @@ class UserReagents:
             "SMILES_not_found":SMILES_resolver_result["SMILES_not_found"], 
             "SMILES_found":SMILES_resolver_result["SMILES_found"],
             "blacklist_filter_result":blacklist_filter_result,
-            "total_reagents_imported": CAS_checker_out[0]-blacklist_filter_result,
+            "total_reagents_imported": len(CAS_checker_out[0])-blacklist_filter_result,
             "total_reagents_count_in_DB": len(self.user_reagents)
         }
 
