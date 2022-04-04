@@ -137,8 +137,6 @@ class UserReagents:
         }
 
 
-
-
     def resolve_CAS_to_SMILES(self, contact_username):
         """
         эта функция читает список реагентов, записи из листа которым не приписаны SMILES, пихает их в отдельный лист.
@@ -200,6 +198,31 @@ class UserReagents:
 
     def get_user_shared_reagents(self):
         return self.user_reagents
+
+    def get_digest_shared_reagents(self, didgest_part=None):
+        """
+        takes only shared reagents CAS
+        plugs contact info
+
+        output = {
+                'CAS1': [contact1, contact2, ...]
+                'CAS2': [.... etc, etc]
+            }
+
+        """
+        if didgest_part: 
+            pass
+        else:
+            digest_part = {}
+
+        for reagent in self.user_reagents: 
+            if reagent["CAS"] not in digest_part.keys():
+                digest_part[f'{reagent["CAS"]}'] = [reagent["contact"]]
+            else: 
+                if reagent["contact"] not in digest_part[f'{reagent["CAS"]}']:
+                    digest_part[f'{reagent["CAS"]}'].append(reagent["contact"])
+        
+        return digest_part
 
     def export(self):
         """

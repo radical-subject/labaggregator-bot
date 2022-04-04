@@ -67,7 +67,7 @@ def get_user_reagents_object(client, db_instance, collection_name: str, query: d
         
     # достаем ее из бд
     previous_records=get_records(client, db_instance, collection_name, query)
-    
+    # logger.info(previous_records)
 
     # результат поиска может оказаться пустым
     if previous_records == [] or previous_records == None:
@@ -83,11 +83,25 @@ def get_user_reagents_object(client, db_instance, collection_name: str, query: d
         )
         
     else:
-        # если раньше у пользователя были записи то импортируем данные пользователя в объект таймера
+        # если раньше у пользователя были записи то импортируем данные пользователя в объект 
         user_reagents_object = dbschema.UserReagents(
             **previous_records[0]
         )
     
     return user_reagents_object
 
+
+
+@log_errors
+def iterate_over_collection_of_users(client, db_instance, collection_name: str, *args):
+    db_name = db_instance.DATABASE_NAME
+
+    query = {"user_id": {"$regex":" /.*/"}}
+
+    collection = client[db_name][collection_name]
+    # search = list(collection.find(query, *args))
+    # logger.info(search):
+    cursor = collection.find(query) 
+    search = list(cursor)
+    return search
 
