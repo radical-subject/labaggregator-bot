@@ -90,14 +90,21 @@ class UserReagents:
         """
         вспомогательная функция, набивающая лист правильно форматированными реагентами для записи в объект
         """
-        return [
-            {
+
+        valid_CAS_numbers = []
+        non_valid_CAS_numbers = []
+
+        for CAS_number in CAS_list:
+            new_reagent = {
                 "reagent_internal_id": uuid.uuid4().hex, 
                 "CAS": CAS_number
             }
-            for CAS_number in CAS_list
-            if self.is_CAS_number(CAS_number)
-        ]
+            if self.is_CAS_number(CAS_number):
+                valid_CAS_numbers.append(new_reagent)
+            else:
+                non_valid_CAS_numbers.append(CAS_number)
+
+        return (valid_CAS_numbers, non_valid_CAS_numbers)
 
     def add_list_of_reagents(self, user_id, contact_username, client, db_instance, CAS_list=list):
         """
@@ -106,13 +113,28 @@ class UserReagents:
         if not CAS_list:
             return
 
-        try:
-            self.user_reagents += self.create_new_list_reagents(CAS_list)
-        except AttributeError:
-            setattr(self, "user_reagents", self.create_new_list_reagents(CAS_list))
+        input_lines_number = len(CAS_list)
+        CAS_checker_out = self.create_new_list_reagents(CAS_list)
+        
 
-        self.resolve_CAS_to_SMILES(contact_username) # дополнение списка SMILES-ами
-        self.blacklist_filter(client, db_instance) # фильтрация структур
+        try:
+            self.user_reagents += CAS_checker_out[0]
+        except AttributeError:
+            setattr(self, "user_reagents", CAS_checker_out[0])
+
+        SMILES_resolver_result = self.resolve_CAS_to_SMILES(contact_username) # дополнение списка SMILES-ами
+        blacklist_filter_result = self.blacklist_filter(client, db_instance) # фильтрация структур
+
+        return {
+            "input_lines_number":input_lines_number, 
+            "valid_CAS_numbers": CAS_checker_out[0], 
+            "failed_CAS_check_number":CAS_checker_out[1], 
+            "SMILES_not_found":SMILES_resolver_result["SMILES_not_found"], 
+            "SMILES_found":SMILES_resolver_result["SMILES_found"],
+            "blacklist_filter_result":blacklist_filter_result,
+            "total_reagents_imported": CAS_checker_out[0]-blacklist_filter_result,
+            "total_reagents_count_in_DB": len(self.user_reagents)
+        }
 
 
 
@@ -145,13 +167,18 @@ class UserReagents:
         # прибавляем к концу листа реагентов юзера лист с новыми, резолвнутыми реагентами
         self.user_reagents += resolved_SMILES[0]
 
-        return
+        return {
+            "SMILES_not_found":len(resolved_SMILES[1]), 
+            "SMILES_found":len(resolved_SMILES[0])-len(resolved_SMILES[1])
+        }
 
     def blacklist_filter(self, client, db_instance):
         """
         эта функция удаляет записи из импорта, которые похожи на наркотики
         """
-        for entry in self.user_reagents:
+        iterator = self.user_reagents
+        drugs_counter = 0
+        for entry in iterator:
             SMILES_input = entry["SMILES"]
             SMILES_input = SMILES_input.replace("|", "")
             if SMILES_input != 'resolver_error':
@@ -161,6 +188,7 @@ class UserReagents:
                         # print(f"{convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']} найден в импорте и вычеркнут")
                         logger.info(f"{entry['CAS']}, SIMILARITY RESULT = {result[0][0]}, {convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']} найден в импорте и вычеркнут")
                         self.user_reagents.remove(entry)
+                        drugs_counter+=1 
                 except Exception as e:
                     """
                     вертикальная черта в SMILES - непонятно что несёт, и RDKIT ее не понимает, убираем ее
@@ -168,7 +196,7 @@ class UserReagents:
                     logger.info(e)
                     pass
 
-        return    
+        return drugs_counter
 
     def get_user_shared_reagents(self):
         return self.user_reagents

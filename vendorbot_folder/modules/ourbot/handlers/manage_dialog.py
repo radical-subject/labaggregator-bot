@@ -35,7 +35,7 @@ class Manage(Handlers):
         """
         
         """
-        sent_message = update.message.reply_text('send cas list')
+        sent_message = update.message.reply_text('Отправьте мне .txt файл со списком CAS-номеров столбиком, следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\nSend cas list in .txt format.', parse_mode='HTML')
 
         return 1
 
@@ -49,6 +49,7 @@ class Manage(Handlers):
         user_info = update.message.from_user
         chat_id = update.message.chat.id
 
+        update.message.reply_text(f'Ожидайте: список обрабатывается.\nBe patient; it may take a while...')
         # Достаем из базы весь объект пользователя с реагентами
         # Если такого пользователя нет - функция на лету его создает и не плюется ошибками
         user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
@@ -72,17 +73,29 @@ class Manage(Handlers):
                 contact = "@{}".format(user_info.username)
 
         # импорт листа реагентов с фильтрациями
-        user_reagents_object.add_list_of_reagents(user_info.id, contact, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
+        import_stats = user_reagents_object.add_list_of_reagents(user_info.id, contact, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
         # экспорт JSON - не работает с pymongo! нужен dict
         data = user_reagents_object.export()
         # записываем в базу объект 
         dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
         
         
-        update.message.reply_text(f"{user_reagents_object.get_user_shared_reagents()[0]}")
-        sent_message = update.message.reply_text(f'file parsed and uploaded')
+        # update.message.reply_text(f"{user_reagents_object.get_user_shared_reagents()[0]}")
+        sent_message = update.message.reply_text(f'''file was successfully parsed and uploaded.
+<b>import results</b>:
+Строк в вашем списке: <b>{import_stats["input_lines_number"]}</b>
+Правильных CAS-номеров: <b>{len(import_stats["valid_CAS_numbers"])}</b>
+Опечатка в CAS: <b>{import_stats["failed_CAS_check_number"]}</b>
+Не найдено SMILES для: <b>{import_stats["SMILES_not_found"]}</b> позиций
+Найдено SMILES для: <b>{import_stats["SMILES_found"]}</b> реагентов
+Прекурсоров найдено и вычеркнуто: <b>{import_stats["blacklist_filter_result"]}</b>
+
+Итого: импортировано в базу <b>{import_stats["total_reagents_imported"]}</b> реагентов.
+В вашей базе сейчас: <b>{import_stats["total_reagents_count_in_DB"]}</b> реагентов.
+        ''', parse_mode='HTML')
         
-        return 2
+        self.exit(Update, CallbackContext)
+        return -1
 
 
 
@@ -95,11 +108,11 @@ class Manage(Handlers):
             query = update.callback_query
             if query == None:
                 reply_markup = InlineKeyboardMarkup([])
-                update.message.reply_text("Таймер абортирован другой командой.\nВсе переменные состояний очищены, и вы в этом виноваты сами.\nВыход из диалога таймера.\nДа поможет тебе святой Януарий!", reply_markup=reply_markup)
+                update.message.reply_text("Таймер прерван другой командой.\nВсе переменные состояний очищены, и вы в этом виноваты сами.", reply_markup=reply_markup)
             else:
-                update.message.reply_text(f"""Выход из диалога /manage.\nДа поможет тебе святой Антоний.""")
+                update.message.reply_text(f"""Выход из диалога /manage.""")
         except:
-            update.message.reply_text(f"""Выход из диалога /manage.\nДа поможет тебе святой Франциск.""")
+            update.message.reply_text(f"""Выход из диалога /manage.""")
             pass
         # now clear all cached data
         # clear assosiated with user data and custom context variables
@@ -172,11 +185,7 @@ class Manage(Handlers):
         entry_points=[CommandHandler('manage', self.manage_entrypoint)],
         states={
                 1:[
-                    MessageHandler(Filters.attachment, self.getting_file) # ,  run_async=True
-                ],
-                2:[
-                    MessageHandler(Filters.command, self.exit)
-                    # MessageHandler(Filters.text, self.send_data)                  
+                    MessageHandler(Filters.attachment, self.getting_file, run_async=True) # ,  run_async=True
                 ]
             },
             fallbacks=[
