@@ -4,7 +4,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors
+from modules.ourbot.handlers.decorators import log_errors
 from modules.db import dbmodel
 
 logger = logging.getLogger(__name__)

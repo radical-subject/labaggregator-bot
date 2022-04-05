@@ -1,6 +1,7 @@
 import logging
 logger = logging.getLogger(__name__)
 
+
 class Handlers:
     INITIAL = 1
     ADMIN = 1
@@ -18,4 +19,3 @@ class Handlers:
             for key, value in self.db_clients.items():
                 setattr(self, key, value)
         self.collection = None
-        

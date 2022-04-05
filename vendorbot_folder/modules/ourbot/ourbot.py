@@ -18,7 +18,7 @@ from modules.ourbot.handlers.manage_dialog import Manage
 from modules.ourbot.handlers.timer_dialog import TimerDialog
 from modules.ourbot.handlers.edit_entry_dialog import EditEntriesDialog
 
-from modules.ourbot.service.decorators import log_errors
+from modules.ourbot.handlers.decorators import log_errors
 # from handlers.initial import register_initial_handler
 logger = logging.getLogger(__name__)
 
@@ -48,13 +48,12 @@ class BotObject:
         self.edit_categories_dialog = EditCategoriesDialog(self.bot, self.db_instances)
         self.lab_dialog = LabDialog(self.db_instances)
         self.wishlist = Wishlist(self.db_instances)
-        self.search = Search(self.db_instances)
         self.timer_dialog = TimerDialog(self.bot, self.db_instances)
         self.edit_entries_dialog = EditEntriesDialog(self.bot, self.db_instances)
 
-        self.manage_dialog = Manage(self.bot, self.db_instances)
-        
+        self.search = Search(self.bot, self.db_instances)
 
+        self.manage_dialog = Manage(self.bot, self.db_instances)
 
         logger.info('Bot initialization complete.')
 
@@ -64,8 +63,6 @@ class BotObject:
         self.update_dispatcher()
         self.updater.start_polling()
         self.updater.idle(stop_signals=(2, 6, 13)) # stop_signals=(2, 6, 13)
-
-
 
     @log_errors
     def update_dispatcher(self):
@@ -82,8 +79,3 @@ class BotObject:
         self.edit_entries_dialog.register_handler(self.dispatcher)
 
         self.manage_dialog.register_handler(self.dispatcher)
- 
-
-
-
-        pass

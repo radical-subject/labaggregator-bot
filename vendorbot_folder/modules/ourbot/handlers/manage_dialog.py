@@ -1,15 +1,11 @@
 import logging
 import io
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler)
+from telegram import Update, InlineKeyboardMarkup, ParseMode
+from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors
+from modules.ourbot.handlers.decorators import log_errors
 from modules.db import dbmodel, dbschema
-
-from modules.db.dbschema import UserReagents
-from modules.ourbot.service.timer import Timer, TimerError
-from decimal import *
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +28,10 @@ class Manage(Handlers):
 
     @log_errors
     def manage_entrypoint(self, update: Update, context: CallbackContext):
-        """
-        
-        """
-        sent_message = update.message.reply_text('Отправьте мне .txt файл со списком CAS-номеров столбиком, следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\nSend cas list in .txt format.', parse_mode='HTML')
+        update.message.reply_text('Отправьте мне .txt файл со списком CAS-номеров столбиком, '
+                                  'следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\n'
+                                  'Send cas list in .txt format.',
+                                  parse_mode=ParseMode.HTML)
 
         return 1
 
@@ -78,8 +74,7 @@ class Manage(Handlers):
         data = user_reagents_object.export()
         # записываем в базу объект 
         dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
-        
-        
+
         # update.message.reply_text(f"{user_reagents_object.get_user_shared_reagents()[0]}")
         sent_message = update.message.reply_text(f'''file was successfully parsed and uploaded.
 <b>import results</b>:
@@ -93,11 +88,8 @@ class Manage(Handlers):
 Итого: импортировано в базу <b>{import_stats["total_reagents_imported"]}</b> реагентов.
 В вашей базе сейчас: <b>{import_stats["total_reagents_count_in_DB"]}</b> реагентов.
         ''', parse_mode='HTML')
-        
-        self.exit(Update, CallbackContext)
-        return -1
 
-
+        return self.exit(Update, CallbackContext)
 
     @log_errors
     def exit(self, update: Update, context: CallbackContext):

@@ -1,6 +1,6 @@
 import os, logging
 from modules.db import dbschema
-from modules.ourbot.service.decorators import log_errors
+from modules.ourbot.handlers.decorators import log_errors
 logger = logging.getLogger(__name__)
 
 

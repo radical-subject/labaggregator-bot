@@ -6,9 +6,11 @@ os.environ['TZ'] = 'Europe/Moscow'
 
 from telegram.ext.dispatcher import run_async
 
+from modules.ourbot.service.helpers import is_CAS_number
+
 from modules.db.rdkitdb import similarity_search, convert_to_smiles_and_get_additional_data
 from modules.ourbot.service.resolver import get_SMILES, batch_SMILES_resolve, CIRPY_resolve
-from modules.ourbot.service.decorators import log_errors
+from modules.ourbot.handlers.decorators import log_errors
 logger = logging.getLogger(__name__)
 
 
@@ -58,39 +60,13 @@ class UserReagents:
             self._id = uuid.uuid4().hex
     
     def __iter__(self):
-      for attr, value in self.__dict__.items():
-          yield attr, value
-
-    def is_CAS_number(self, CAS_number=str):
-        """
-        Функция работает грамотно, проверено кровью, ее, сука, не трогать! 
-        """
-        # Chemical Abstract Service Registry Number regular expression pattern
-        regExprCasRegNbr = "^[1-9][0-9]{1,6}\\-[0-9]{2}\\-[0-9]$"
-        pattern = re.compile(regExprCasRegNbr)
-        if not pattern.match(CAS_number):
-            logger.info(f"{CAS_number} is not CAS")
-            return False
-
-        only_digits = CAS_number.replace('-', '')
-        control_digit = only_digits[-1]
-        only_digits = only_digits[::-1]
-        list_digits = list(only_digits[1:])
-
-        sum_digits = 0
-        index = 1
-        for digit in list_digits:
-            sum_digits += int(digit) * index
-            index += 1
-
-        return sum_digits % 10 == int(control_digit)
-
+        for attr, value in self.__dict__.items():
+            yield attr, value
 
     def create_new_list_reagents(self, CAS_list=list):
         """
         вспомогательная функция, набивающая лист правильно форматированными реагентами для записи в объект
         """
-
         valid_CAS_numbers = []
         non_valid_CAS_numbers = []
 
@@ -99,12 +75,12 @@ class UserReagents:
                 "reagent_internal_id": uuid.uuid4().hex, 
                 "CAS": CAS_number
             }
-            if self.is_CAS_number(CAS_number):
+            if is_CAS_number(CAS_number):
                 valid_CAS_numbers.append(new_reagent)
             else:
                 non_valid_CAS_numbers.append(CAS_number)
 
-        return (valid_CAS_numbers, non_valid_CAS_numbers)
+        return valid_CAS_numbers, non_valid_CAS_numbers
 
     def add_list_of_reagents(self, user_id, contact_username, client, db_instance, CAS_list=list):
         """

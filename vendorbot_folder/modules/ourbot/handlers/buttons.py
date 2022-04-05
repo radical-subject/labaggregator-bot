@@ -1,12 +1,11 @@
 import logging, pymongo
 
-from faker import Faker
 from bson import ObjectId
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors
+from modules.ourbot.handlers.decorators import log_errors
 from modules.db import dbmodel
 
 logger = logging.getLogger(__name__)
@@ -20,8 +19,6 @@ class Buttons(Handlers):
     def button_handler(self, update: Update, context: CallbackContext) -> None:
         query = update.callback_query
         query.answer()
-        faker = Faker()
-
 
         if query.data.startswith('LABS_ID'):
             """

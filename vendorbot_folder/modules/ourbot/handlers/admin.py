@@ -5,7 +5,7 @@ from telegram.ext import CallbackContext, CommandHandler
 from telegram.ext.dispatcher import run_async
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors, restricted
+from modules.ourbot.handlers.decorators import log_errors, is_admin
 from modules.ourbot.service import mongoDumpModule
 from modules.db import dbconfig, dbmodel, rdkitdb
 
@@ -20,7 +20,7 @@ class Admin(Handlers):
         self.bot=bot
     
     @log_errors
-    @restricted
+    @is_admin
     @run_async # deprecated way of async running # sometimes this may break! not now but configuration is dangerous overall
     def purge_handler(self, update: Update, context: CallbackContext):
         button_list = [
@@ -37,7 +37,7 @@ class Admin(Handlers):
         return
     
     @log_errors
-    @restricted
+    @is_admin
     def update_rdkit_db_blacklist_handler(self, update: Update, context: CallbackContext):
         """
         updates blacklist with srs/Narkotiki_test.sdf

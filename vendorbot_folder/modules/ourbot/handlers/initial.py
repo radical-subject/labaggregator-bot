@@ -1,24 +1,21 @@
 import logging
-import pymongo
 
-from telegram import (Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton)
-from telegram.ext import (Updater, CommandHandler, CallbackContext, ConversationHandler, InlineQueryHandler,
-                          CallbackQueryHandler)
+from telegram import (ReplyKeyboardMarkup, KeyboardButton, ParseMode)
 
 from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler
-from telegram.ext.dispatcher import run_async
 
-
-import sys,os
+import sys
 import pandas as pd
 sys.path.append("..")
 from modules.db.dbschema import UserReagents
         
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors
+from modules.ourbot.handlers.decorators import log_errors
+from modules.ourbot.handlers.helpers import is_admin_chat
 from modules.db import dbmodel, dbschema
+
 import json
 from bson import ObjectId
 
@@ -46,27 +43,29 @@ class Inital(Handlers):
         self.collection_2 = "timer_data_collection"
 
     @log_errors
-    def start_msg(self, update: Update, context: CallbackContext):
+    def start(self, update: Update, context: CallbackContext):
         """
         welcome message and initialization of user by inserting his data into DB
         """
-        # retrieving data from user message
         user_info = update.message.from_user
         chat_id = update.message.chat.id
 
         # приветственное сообщение юзеру
-        update.message.reply_text(
-            """Привет, {}! 👩🏻‍💻 
+        text = f"""Привет, {user_info.first_name}! 👩🏻‍💻 
 Рады тебя видеть, мхехе.
 Доступны следующие команды:
-/start - приветствие 
-/purge_handler - очистка бд (только админам)
+/start - приветствие
 /help - инструкции по пользованию
+/manage - диалог управления своими списками реагентов
+/search - поиск 
+"""
+        if is_admin_chat(chat_id):
+            text += """== Админам ==
+/purge_handler - очистка бд (только админам)
 /dump - дамп базы данных (присылает в лс зип-дамп)
 /blacklist_update - заполнение базы блеклиста и обсчет. команда выполняется асинхронно
-/manage - диалог управления своими списками реагентов
-/choose_lab - выбираем лабораторию
-/my_lab - показывает выбранную лабораторию. осторожно с переменными состояния хранящимися в контексте - там уже адская путаница. к тому же некоторые команды норовят переменные состояния сбросить .clear(). """.format(user_info.first_name), parse_mode='HTML')
+"""
+        update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
         # запись данных юзера в БД
         userdata_dict = {
@@ -77,26 +76,20 @@ class Inital(Handlers):
             "lastname": user_info.last_name
         }
 
-
         try:
 
             # logger.info(f"{self.vendorbot_db_client}, {self.db_instances['vendorbot_db']}, {self.collection}, {userdata_dict}")
             dbmodel.add_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, userdata_dict)
-            logger.info('user initialized by /start command.')
             raise Exception("TEST FUCKING TEST")
 
         except Exception as e:
-        
-        # pymongo.errors.DuplicateKeyError:
-        
             print(f"{e}, HELLO MR MUSLIM MERRY FUCKING CHRISTMAS")
             logger.info(e)
             logger.info("User already exists: skipping insertion of userdata in DB")
         
         # associated with user chat and context stored data should be cleaned up to prevent mess
         context.chat_data.clear()
-        user_data = context.user_data
-        user_data.clear()
+        context.user_data.clear()
 
         return self.INITIAL
 
@@ -121,8 +114,7 @@ class Inital(Handlers):
         # clear assosiated with user data and custom context variables
         context.chat_data.clear()
         context.user_data.clear()
-        # equivalent of return ConversationHandler.END
-        return -1
+        return ConversationHandler.END
 
     def my_lab(self, update: Update, context: CallbackContext):
         current_lab = context.user_data.get('current_lab')
@@ -131,19 +123,16 @@ class Inital(Handlers):
 
     def help_command(self, update: Update, context: CallbackContext):
         """Send a message when the command /help is issued."""
-        update.message.reply_text(
-        """
+        update.message.reply_text("""
 Добро пожаловать в альфа-версию бота для обмена реактивов. 
 Чтобы получить доступ к системе обмена необходимо поделиться своим списком. 
 /manage - Загрузить свой список реагентов можно в виде .txt файла с CAS номерами в столбик. 
 /search - В разработке. Текстовый поиск произвольного формата по базе общественных реагентов.
 
 пока /search в разработке, общественные списки будут публиковаться дайджестами в канале лабаггрегатора.
-        """,
-        parse_mode='HTML'
-        )
-        return self.INITIAL
+        """, parse_mode=ParseMode.HTML)
 
+        return self.INITIAL
 
     @log_errors
     def today_stats(self, update: Update, context: CallbackContext):
@@ -228,7 +217,7 @@ class Inital(Handlers):
 
     @log_errors
     def register_handler(self, dispatcher):
-        dispatcher.add_handler(CommandHandler('start', self.start_msg))
+        dispatcher.add_handler(CommandHandler('start', self.start))
         dispatcher.add_handler(CommandHandler('my_lab', self.my_lab))
         dispatcher.add_handler(CommandHandler('end', self.exit_command))
         dispatcher.add_handler(CommandHandler('help', self.help_command))

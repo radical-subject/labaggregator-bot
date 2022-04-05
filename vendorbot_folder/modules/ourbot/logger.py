@@ -1,4 +1,4 @@
-import sys
+
 import logging
 
 logging.basicConfig(
