@@ -42,11 +42,23 @@ class Search(Handlers):
 
         text = update.message.text
         if is_CAS_number(text):
-            update.message.reply_text('ищем CAS в базе шеринга...')
+            update.message.reply_text('Ищем CAS в базе шеринга...')
             mongo_query = {"user_reagents": { '$elemMatch': { 'CAS': text}}}
             result = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
+
+            
+            contacts = []
+            for entry in result:
+                user_reagents_object = dbschema.UserReagents(
+                    **entry
+                )
+                for contact in user_reagents_object.get_contacts_for_CAS(text):
+                    if contact not in contacts:
+                        contacts.append(contact)
+
+
             try:
-                update.message.reply_text(f'Реагентом могут поделиться эти контакты: {result[0]["username"]}')
+                update.message.reply_text(f'Реагентом могут поделиться эти контакты: {contacts}')
             except AttributeError: 
                 update.message.reply_text('Реагентом пока никто не готов поделиться.')
 

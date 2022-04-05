@@ -202,6 +202,17 @@ class UserReagents:
         
         return didgest_part
 
+    
+    def get_contacts_for_CAS(self, input_CAS):
+        contacts = []
+        for reagent in self.user_reagents:
+            if input_CAS in reagent.values():
+                if reagent["contact"] not in contacts:
+                    contacts.append(reagent["contact"])
+        return contacts
+
+
+
     def export(self):
         """
         UserReagents_export = {
