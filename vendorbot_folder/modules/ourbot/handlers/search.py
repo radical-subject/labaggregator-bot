@@ -7,6 +7,8 @@ from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.helpers import is_CAS_number
 from modules.ourbot.logger import log
 
+from modules.db import dbmodel, dbschema
+
 SEARCH_STATE = range(1)
 CANCEL = 'Отмена'
 CANCEL_REGEXP = '^Отмена$'
@@ -18,6 +20,7 @@ class Search(Handlers):
     def __init__(self, bot, db_instances):
         super(Search, self).__init__(db_instances)
         self.bot = bot
+        self.collection = "users_collection"
 
     def search(self, update: Update, context: CallbackContext):
         """
@@ -34,12 +37,16 @@ class Search(Handlers):
 
         text = update.message.text
         if is_CAS_number(text):
-            update.message.reply_text('Лаборант узрел CAS, убежал искать...')
-
-            update.message.reply_text('Что-то нашёл!')
+            update.message.reply_text('ищем CAS в базе шеринга...')
+            mongo_query = {"user_reagents": { '$elemMatch': { 'CAS': text}}}
+            result = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
+            try:
+                update.message.reply_text(f'Реагентом могут поделиться эти контакты: {result[0]["username"]}')
+            except AttributeError: 
+                update.message.reply_text('Реагентом пока никто не готов поделиться.')
 
         else:
-            update.message.reply_text('Лаборант не умеет не CAS, сорян')
+            update.message.reply_text('Неправильный CAS номер. Попробуйте еще раз.')
 
         return SEARCH_STATE
 

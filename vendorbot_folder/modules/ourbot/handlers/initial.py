@@ -21,6 +21,16 @@ from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
+
+# API test for Ketcher
+from fastapi import FastAPI
+app = FastAPI()
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+
+
 class JSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, ObjectId):
@@ -47,6 +57,8 @@ class Inital(Handlers):
         """
         welcome message and initialization of user by inserting his data into DB
         """
+
+            
         user_info = update.message.from_user
         chat_id = update.message.chat.id
 

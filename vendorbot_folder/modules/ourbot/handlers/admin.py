@@ -60,16 +60,16 @@ class Admin(Handlers):
         update.message.reply_text(f'Ожидайте: список обрабатывается...')
 
         all_entries = dbmodel.iterate_over_collection_of_users(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection)
-        logger.info(f"len all_entries = {len(all_entries)}")
+        # logger.info(f"len all_entries = {len(all_entries)}")
         digest = None
         for entry in all_entries:
             user_reagents_object = dbschema.UserReagents(**entry)
-            logger.info(len(user_reagents_object.user_reagents))
+            # logger.info(len(user_reagents_object.user_reagents))
             # user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
             # logger.info(user_reagents_object.export())
             digest = user_reagents_object.get_digest_shared_reagents(digest)
-            logger.info(f"length = {len(digest)}")
-            logger.info(str(digest))
+            # logger.info(f"length = {len(digest)}")
+            # logger.info(str(digest))
         
         logger.info(f"final length = {len(digest)}")
 
