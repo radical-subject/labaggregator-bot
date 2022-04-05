@@ -1,1 +1,8 @@
 python-telegram-bot
+
+
+#
+
+pymongo
+cirpy
+pubchempy

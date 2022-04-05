@@ -1,25 +1,17 @@
-import os
-import sys
-from logging import getLogger, StreamHandler, Formatter, INFO, DEBUG
+import logging
 
-log_level = DEBUG
+log_level = logging.DEBUG
 
 
 class Logger(object):
     def __init__(self):
-        log = getLogger('')
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-        formatter = Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        console = logging.StreamHandler()
+        console.setLevel(logging.INFO)
+        console.setFormatter(formatter)
+        logging.getLogger('').addHandler(console)
 
-        # Use console for log output
-        if os.getenv('NOCONSOLE') == '1':
-            console = sys.stderr
-            if console is not None:
-                # Logging to console and file both
-                console = StreamHandler(console)
-                console.setLevel(log_level)
-                console.setFormatter(formatter)
-                log.addHandler(console)
+Logger()
 
-
-log = logger = getLogger('')
+log = logger = logging.getLogger('')

@@ -70,7 +70,7 @@ class Search(Handlers):
                                               run_async=True)
                                ],
             },
-            fallbacks=[RegexHandler(CANCEL_REGEXP, self.cancel)],
+            fallbacks=[MessageHandler(Filters.regex(CANCEL_REGEXP), self.cancel)],
         )
 
         dispatcher.add_handler(self.conversation_handler, 1)
