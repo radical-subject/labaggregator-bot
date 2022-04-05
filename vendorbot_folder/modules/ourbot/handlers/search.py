@@ -1,6 +1,4 @@
 
-import time
-
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
     RegexHandler, MessageHandler, Filters
