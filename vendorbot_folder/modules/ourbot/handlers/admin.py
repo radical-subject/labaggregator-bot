@@ -55,31 +55,24 @@ class Admin(Handlers):
         """
         produces digest
         """
-        # retrieving data from user message
-        # ищем запись относящуюся к пользователю
         user_id = update.message.from_user.id
-        mongo_query = {"user_id": user_id}
-        user_info = update.message.from_user
-        chat_id = update.message.chat.id
 
-        update.message.reply_text(f'Ожидайте: список обрабатывается.\nBe patient; it may take a while...')
-        # Достаем из базы весь объект пользователя с реагентами
-        # Если такого пользователя нет - функция на лету его создает и не плюется ошибками
+        update.message.reply_text(f'Ожидайте: список обрабатывается...')
+
         all_entries = dbmodel.iterate_over_collection_of_users(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection)
         logger.info(f"len all_entries = {len(all_entries)}")
-        didgest = None
+        digest = None
         for entry in all_entries:
             user_reagents_object = dbschema.UserReagents(**entry)
             logger.info(len(user_reagents_object.user_reagents))
             # user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
             # logger.info(user_reagents_object.export())
-            didgest = user_reagents_object.get_digest_shared_reagents(didgest)
-            logger.info(f"length = {len(didgest)}")
+            digest = user_reagents_object.get_digest_shared_reagents(digest)
+            logger.info(f"length = {len(digest)}")
+            logger.info(str(digest))
         
-        logger.info(f"final length = {len(didgest)}")
+        logger.info(f"final length = {len(digest)}")
 
-        return 
-        
     @log_errors
     @is_admin
     def dump(self, update: Update, context: CallbackContext):
@@ -98,12 +91,10 @@ class Admin(Handlers):
             update.message.reply_text(result)
         except:
             update.message.reply_text("что-то не так. скорее всего база данных слишком большая и тебе нужно наладить закачку на гуглодиск.")
-        return
 
     @log_errors
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
         dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=True))
         dispatcher.add_handler(CommandHandler('blacklist_update', self.update_rdkit_db_blacklist_handler, run_async=True))
-        dispatcher.add_handler(CommandHandler('didgest', self.prepare_digest, run_async=True))
-
+        dispatcher.add_handler(CommandHandler('digest', self.prepare_digest, run_async=True))

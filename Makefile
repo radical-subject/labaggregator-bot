@@ -70,19 +70,19 @@ goto_app_src:
 
 #  Run development environment
 env_dev:
-	-BOT_TOKEN=${BOT_TOKEN} $(DOCKER_COMPOSE_DEV_CMD) up --build $(c)
+	-BOT_TOKEN=${DEVELOPMENT_BOT_TOKEN} $(DOCKER_COMPOSE_DEV_CMD) up --build $(c)
 
 #  Builds docker compose file in this directory with prod token and launches bot
 env_prod: mongod_stop goto_app_src pull
-	-BOT_TOKEN=${BOT_TOKEN} $(DOCKER_COMPOSE_CMD) up --build -d $(c)
+	-BOT_TOKEN=${PRODUCTION_BOT_TOKEN} $(DOCKER_COMPOSE_CMD) up --build -d $(c)
 
 #  Run development environment
 env_test: 
-	-BOT_TOKEN=${BOT_TOKEN} $(DOCKER_COMPOSE_TEST_CMD) up --build --abort-on-container-exit -d $(c)
+	-BOT_TOKEN=${DEVELOPMENT_BOT_TOKEN} $(DOCKER_COMPOSE_TEST_CMD) up --build --abort-on-container-exit -d $(c)
 
 #  Builds docker compose file in this directory with prod token, after git scrip (git pull) command is triggered by github actions
 prod_remote: mongod_stop goto_app_src stop
-	-${GITHUB_SCRIPT} && BOT_TOKEN=${BOT_TOKEN} $(DOCKER_COMPOSE_CMD) up --build -d $(c)
+	-${GITHUB_SCRIPT} && BOT_TOKEN=${PRODUCTION_BOT_TOKEN} $(DOCKER_COMPOSE_CMD) up --build -d $(c)
 
 #  stops application
 stop: mongod_stop goto_app_src
