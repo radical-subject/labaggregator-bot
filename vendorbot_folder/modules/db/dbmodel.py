@@ -96,12 +96,12 @@ def get_user_reagents_object(client, db_instance, collection_name: str, query: d
 def iterate_over_collection_of_users(client, db_instance, collection_name: str, *args):
     db_name = db_instance.DATABASE_NAME
 
-    query = {"user_id": {"$regex":" /.*/"}}
+    # query = {"user_id": {"$regex":" /.*/"}}
 
     collection = client[db_name][collection_name]
     # search = list(collection.find(query, *args))
     # logger.info(search):
-    cursor = collection.find(query) 
+    cursor = collection.find({}) 
     search = list(cursor)
     return search
 

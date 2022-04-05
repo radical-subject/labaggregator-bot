@@ -66,18 +66,19 @@ class Admin(Handlers):
         # Достаем из базы весь объект пользователя с реагентами
         # Если такого пользователя нет - функция на лету его создает и не плюется ошибками
         all_entries = dbmodel.iterate_over_collection_of_users(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection)
-        logger.info(all_entries)
+        logger.info(f"len all_entries = {len(all_entries)}")
         didgest = None
         for entry in all_entries:
-            logger.info(entry)
             user_reagents_object = dbschema.UserReagents(**entry)
+            logger.info(len(user_reagents_object.user_reagents))
             # user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
             # logger.info(user_reagents_object.export())
             didgest = user_reagents_object.get_digest_shared_reagents(didgest)
+            logger.info(f"length = {len(didgest)}")
         
-        logger.info(didgest)
+        logger.info(f"final length = {len(didgest)}")
 
-        return
+        return 
         
     @log_errors
     @is_admin
