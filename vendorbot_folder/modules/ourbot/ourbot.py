@@ -4,6 +4,7 @@ from telegram.ext import (Updater, CommandHandler, CallbackContext, Conversation
                           CallbackQueryHandler)
 from telegram.utils.request import Request
 
+from modules.ourbot.logger import logger
 from modules.ourbot.handlers.lab_dialog import LabDialog
 from modules.ourbot.handlers.initial import Inital
 from modules.ourbot.handlers.admin import Admin
@@ -20,7 +21,6 @@ from modules.ourbot.handlers.edit_entry_dialog import EditEntriesDialog
 
 from modules.ourbot.handlers.decorators import log_errors
 # from handlers.initial import register_initial_handler
-logger = logging.getLogger(__name__)
 
 
 class BotObject:

@@ -1,17 +1,11 @@
 import logging
+
+from modules.ourbot.logger import log
 from modules.token_extractor import token #extracts bot token
 
 from modules.db.dbconfig import root_db, timerbot_db, vendorbot_db, blacklist_rdkit_db
 
 from modules.ourbot.ourbot import BotObject
-
-# Enable logging
-logging.basicConfig(
-    # filename='my_runtime_log.log', # saving log to filename
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO  # DEBUG
-)
-logging.info('logger started')
-logger = logging.getLogger(__name__)
 
 
 def main():
