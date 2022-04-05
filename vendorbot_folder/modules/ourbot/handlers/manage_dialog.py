@@ -9,6 +9,7 @@ from modules.db import dbmodel, dbschema
 
 logger = logging.getLogger(__name__)
 
+
 class Manage(Handlers):
     """
     В этом диалоговом хендлере пользователь добавляет свой список реагентов. 

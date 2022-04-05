@@ -61,7 +61,6 @@ def get_timerdata_object(client, db_instance, collection_name: str, query: dict,
     return timer_object
 
 
-
 @log_errors
 def get_user_reagents_object(client, db_instance, collection_name: str, query: dict, user_info): #self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query
         
