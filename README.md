@@ -1,12 +1,54 @@
-## Launch Instructions
-### Windows
-prod:
+## Setup
 
-_docker-compose up --build_
+Установить docker
 
-dev:
+## Launch 
 
-_docker-compose -f docker-compose.yml -f docker-compose.development.yml up --build_
+### Development: Windows & MacOs & Linux
+
+```
+docker-compose -f docker-compose.yml -f docker-compose.development.yml up --build
+```
+or
+
+```
+make env_dev
+```
+
+### Production: Windows & MacOs & Linux
+
+```
+docker-compose -f up --build
+```
+
+or 
+
+```
+make env_prod
+```
+
+### Файл окружения
+
+.env файл в корне
+
+Содержание:
+
+```
+BOT_TOKEN=<token>
+```
+
+## Запуск юниттестов
+
+```
+docker-compose -f docker-compose.pytest.yml up --build --abort-on-container-exit
+```
+
+or 
+
+```
+make env_test
+```
+
 
 #### overwriting env variables for docker-compose 
 may be done by prepending KEY=ARG to docker-compose command:
@@ -18,6 +60,7 @@ if you want to start bot locally with
 _secrets/token.secret_
 
 file, you may omit unnesessary _KEY=ARG_, then bot will fall to default behaviour, reading token from secret file.
+
 ### Linux
 for git cloning of private repo there should be ssh key added. 
 - add private key to /.ssh/ via ssh-add ~/.ssh/id_ed1231.

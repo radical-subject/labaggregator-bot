@@ -5,7 +5,7 @@ services:
     build: ./vendorbot_folder # относительный путь до папки  файлами. откуда compose будет брать их чтобы сбилдить
     container_name: vendorbot_container
     tty: true # this fucker is a must for container to run - why?
-    restart: unless-stopped
+    #restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
       - MONGO_URL=mongodb://mongodb_api:27017/vendorbot_container # mongodb://mongodb_api:27017/timerbot # doesnt matter which is outer port of mongodb_api container, this accesses directtly to internal port?
@@ -15,7 +15,7 @@ services:
       - MONGO_VENDORBOT_DATABASE=vendorbot_db  
       - MONGO_BOT_USERNAME=bot
       - MONGO_BOT_PASSWORD=botpsswd
-      - BOT_TOKEN=${PRODUCTION_BOT_TOKEN}
+      - BOT_TOKEN=${BOT_TOKEN}
     depends_on:
       - mongodb_api
     volumes:
@@ -25,7 +25,7 @@ services:
   mongodb_api:
     image: mongo:latest
     container_name: mongodb
-    restart: always
+    #restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: dr5[gnhn
