@@ -210,19 +210,21 @@ class UserReagents:
             }
 
         """
-        if didgest_part: 
+
+        if didgest_part != None: 
             pass
         else:
-            digest_part = {}
+            didgest_part = {}
+
 
         for reagent in self.user_reagents: 
-            if reagent["CAS"] not in digest_part.keys():
-                digest_part[f'{reagent["CAS"]}'] = [reagent["contact"]]
+            if reagent["CAS"] not in didgest_part.keys():
+                didgest_part[f'{reagent["CAS"]}'] = [reagent["contact"]]
             else: 
-                if reagent["contact"] not in digest_part[f'{reagent["CAS"]}']:
-                    digest_part[f'{reagent["CAS"]}'].append(reagent["contact"])
+                if reagent["contact"] not in didgest_part[f'{reagent["CAS"]}']:
+                    didgest_part[f'{reagent["CAS"]}'].append(reagent["contact"])
         
-        return digest_part
+        return didgest_part
 
     def export(self):
         """
