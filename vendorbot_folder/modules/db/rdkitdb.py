@@ -66,7 +66,7 @@ def update_rdkit_with_sialdrich (client, db_instance):
 def similarity_search(DB_rdkit_connection, SMILES_input):
 
     mol_input = Chem.MolFromSmiles(SMILES_input)
-   # similarity_results = similarity.SimSearch(mol_input, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, 0.1)
+    # similarity_results = similarity.SimSearch(mol_input, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, 0.1)
     similarity_results = similarity.SimSearchAggregate(mol_input, DB_rdkit_connection.molecules, DB_rdkit_connection.mfp_counts, 0.1)
     # results_substructure = substructure.SubSearch(mol_input, DB_rdkit_connection.molecules, chirality=False)
     from operator import itemgetter
