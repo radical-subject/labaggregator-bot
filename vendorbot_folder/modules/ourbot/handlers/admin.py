@@ -76,26 +76,27 @@ class Admin(Handlers):
         logger.info(f"digest length = {len(digest.keys())}")
         update.message.reply_text(f'Всего {len(digest.keys())} CAS')
 
-        cas_list = list(digest.keys())
-        cas_list = sorted(cas_list)
+        if digest:
+            cas_list = list(digest.keys())
+            cas_list = sorted(cas_list)
 
-        digest_cas_txt = '\n'.join(cas_list)
+            digest_cas_txt = '\n'.join(cas_list)
 
-        f = BytesIO(bytes(digest_cas_txt, 'utf-8'))
-        f.name = 'digest_cas.txt'
-        f.seek(0)
+            f = BytesIO(bytes(digest_cas_txt, 'utf-8'))
+            f.name = 'digest_cas.txt'
+            f.seek(0)
 
-        context.bot.send_document(chat_id, f)
+            context.bot.send_document(chat_id, f)
 
-        digest_txt = ''
-        for cas in cas_list:
-            digest_txt += f'{cas} : {", ".join(digest[cas])}\n'
+            digest_txt = ''
+            for cas in cas_list:
+                digest_txt += f'{cas} : {", ".join(digest[cas])}\n'
 
-        f = BytesIO(bytes(digest_txt, 'utf-8'))
-        f.name = 'digest.txt'
-        f.seek(0)
+            f = BytesIO(bytes(digest_txt, 'utf-8'))
+            f.name = 'digest.txt'
+            f.seek(0)
 
-        context.bot.send_document(chat_id, f)
+            context.bot.send_document(chat_id, f)
 
     @log_errors
     @is_admin

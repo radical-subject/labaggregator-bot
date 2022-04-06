@@ -1,5 +1,6 @@
 
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, \
+    InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
     RegexHandler, MessageHandler, CallbackQueryHandler, Filters
 
@@ -30,7 +31,7 @@ class Search(Handlers):
         """
         Старт ветки диалога "поиск"
         """
-        reply_markup = InlineKeyboardMarkup(cancel_keyboard) #resize_keyboard=True
+        reply_markup = InlineKeyboardMarkup(cancel_keyboard)
         update.message.reply_text("🙋🏻‍♀️ Enter query (name or CAS):\n\n"
                                   "🖋 Пришли интересующий CAS-номер:",
                                   reply_markup=reply_markup)
@@ -46,7 +47,6 @@ class Search(Handlers):
             mongo_query = {"user_reagents": { '$elemMatch': { 'CAS': text}}}
             result = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
 
-            
             contacts = []
             for entry in result:
                 user_reagents_object = dbschema.UserReagents(
@@ -56,10 +56,9 @@ class Search(Handlers):
                     if contact not in contacts:
                         contacts.append(contact)
 
-
-            try:
-                update.message.reply_text(f'Реагентом могут поделиться эти контакты: {contacts}')
-            except AttributeError: 
+            if contacts:
+                update.message.reply_text(f'Реагентом могут поделиться эти контакты: {", ".join(contacts)}')
+            else:
                 update.message.reply_text('Реагентом пока никто не готов поделиться.')
 
         else:
@@ -71,6 +70,7 @@ class Search(Handlers):
         """
         Выход из ветки диалога "поиск"
         """
+
         # необходимо согласно мануалу ответить на query
         query = update.callback_query
         query.answer()
@@ -84,7 +84,7 @@ class Search(Handlers):
             chat_id=sent_message.chat_id,
             message_id=sent_message.message_id,
             reply_markup=None,
-            parse_mode='Markdown'
+            parse_mode=ParseMode.MARKDOWN
         )
         
         # now clear all cached data
@@ -100,10 +100,9 @@ class Search(Handlers):
             entry_points=[CommandHandler('search', self.search),],
             states={
                 SEARCH_STATE: [
-                    CallbackQueryHandler(self.cancel, pattern='^{}$'.format(str("SEARCH:CANCEL"))),
-                    MessageHandler(Filters.text & ~Filters.command, self.search_cas,
-                                              run_async=True)
-                               ],
+                    CallbackQueryHandler(self.cancel, pattern='^SEARCH:CANCEL$'),
+                    MessageHandler(Filters.text & ~Filters.command, self.search_cas, run_async=True)
+                ],
             },
             fallbacks=[MessageHandler(Filters.regex(CANCEL_REGEXP), self.cancel)],
         )
