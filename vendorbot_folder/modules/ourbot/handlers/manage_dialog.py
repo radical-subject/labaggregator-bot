@@ -124,61 +124,6 @@ class Manage(Handlers):
 
         return ConversationHandler.END
     
-    # @log_errors
-    # def write_to_db(self, update: Update, context: CallbackContext, comment, archived_status="False"):
-    #     """
-    #     функция пишет информацию о потраченных минутах таймера в базу данных. 
-    #     """
-    #     # ищем запись относящуюся к пользователю
-    #     user_id = update.message.from_user.id
-    #     mongo_query = {"user_id": user_id}
-
-    #     # дебажим содержимое переменных
-    #     print("==============================")
-    #     logger.info(f"mongo_query = {mongo_query}")
-    #     logger.info(f"context_user_data = {context.user_data}")
-    #     print("==============================")
-
-    #     # user_data может не иметь "current_category"
-    #     # усли бы было обращение к user_data по ключу то при отсутствии ключа получалось бы KeyError. чтобы этого избежать используем .get
-    #     current_category = str(context.user_data.get('current_category')) # gives None if there is no such key == when no caegories were yet created
-    #     total_elapsed_minutes = context.user_data["total_elapsed_minutes"]
-
-    #     # достаем ее из бд
-    #     previous_records=dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query)
-        
-    #     # результат поиска может оказаться пустым
-    #     if previous_records == [] or previous_records == None:
-    #         timer_object = dbschema.TimerData(
-    #             **{
-    #                 "user_id": user_id
-    #             }
-    #         )
-    #         # к минимальному объекту добавляем текущую запись таймера
-    #         try:
-    #             context.user_data['hashtag']
-    #             timer_object.add_timerdata_entry(total_elapsed_minutes, comment, current_category, archived_status, **{'hashtag' : context.user_data['hashtag']})
-    #         except KeyError: 
-    #             timer_object.add_timerdata_entry(total_elapsed_minutes, comment, current_category, archived_status)
-    #         data = timer_object.export()
-    #         # записываем в базу новосозданный объект
-    #         dbmodel.add_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, data)
-    #     else:
-    #         # если раньше у пользователя были записи то импортируем данные пользователя в объект таймера
-    #         timer_object = dbschema.TimerData(
-    #             **previous_records[0]
-    #         )
-    #         # манипулируем с объектом таймера добавляя в него запись 
-    #         # update db timer_data record by upserting and replasing existing data dict with updated 
-    #         try:
-    #             context.user_data['hashtag']
-    #             timer_object.add_timerdata_entry(total_elapsed_minutes, comment, current_category, archived_status, **{'hashtag' : context.user_data['hashtag']})
-    #         except KeyError: 
-    #             timer_object.add_timerdata_entry(total_elapsed_minutes, comment, current_category, archived_status)
-    #         data = timer_object.export()
-    #         # записываем экспортированный в словарь объект в базу
-    #         dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
-
 
     @log_errors
     def register_handler(self, dispatcher):

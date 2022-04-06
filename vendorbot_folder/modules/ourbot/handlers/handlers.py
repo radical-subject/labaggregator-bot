@@ -7,7 +7,6 @@ class Handlers:
     ADMIN = 1
     LABS = 2
     WISHLIST = 2
-    CATEGORIES = 2
 
     def __init__(self, db_instances):
         self.db_instances=db_instances
