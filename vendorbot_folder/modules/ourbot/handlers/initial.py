@@ -1,25 +1,20 @@
-import logging
 
+import json
+from bson import ObjectId
+import pandas as pd
+
+from modules.ourbot.logger import logger
 from telegram import (ReplyKeyboardMarkup, KeyboardButton, ParseMode)
 
 from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler
 
-import sys
-import pandas as pd
-sys.path.append("..")
 from modules.db.dbschema import UserReagents
         
-
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import log_errors
 from modules.ourbot.handlers.helpers import is_admin_chat
 from modules.db import dbmodel, dbschema
-
-import json
-from bson import ObjectId
-
-logger = logging.getLogger(__name__)
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -41,7 +36,6 @@ class Inital(Handlers):
         super().__init__(db_instances)
         self.bot=bot
         self.collection = "users_collection"
-        self.collection_2 = "timer_data_collection"
 
     @log_errors
     def start(self, update: Update, context: CallbackContext):
@@ -136,46 +130,6 @@ class Inital(Handlers):
 
         return self.INITIAL #todo не нужно - это не conversation_handler !
 
-    #TODO remove
-    @log_errors
-    def today_stats(self, update: Update, context: CallbackContext):
-        """Send information about work entries for today"""
-        user_info = update.message.from_user
-        user_id = user_info.id
-        # ищем запись относящуюся к пользователю
-        mongo_query = {"user_id": user_id}
-        previous_records=dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection_2, mongo_query)
-        # logger.info(previous_records[0])
-        timer_object = dbschema.TimerData(
-            **previous_records[0]
-        )
-        # logger.info(timer_object.export())
-
-        try:
-            data = timer_object.export()
-        except:
-            data = "No records"
-        try:
-            time_netto_today = timer_object.get_netto_today()
-            logger.info(f"time netto today = {timer_object.get_netto_today()} minutes")
-        except:
-            time_netto_today = 0
-
-        # пересчет в красивый формат
-        time_netto_today_hours = time_netto_today // 60
-        time_netto_today_minutes = time_netto_today % 60
-        logger.info(data)
-
-        str_line = ''
-        for i in (list(item.items()) for item in data['timerdata']):
-            str_line += "\n".join([': '.join(map(str, tuple_item)) for tuple_item in i])
-            str_line += "\n\n" 
-        entries = str_line.rstrip("\n")
-
-        update.message.reply_text(f"===================\n{entries}\n===================\n\nTime brutto today == 10 hours.\nthis is temporarily hardcoded.\n\ntime_netto_today = {time_netto_today_hours:.0f} h. {time_netto_today_minutes:.2f} min.")
-        
-        return self.INITIAL #todo не нужно - это не conversation_handler !
-
     @log_errors
     # @run_async
     def resolve_tests(self, update: Update, context: CallbackContext):
@@ -224,6 +178,5 @@ class Inital(Handlers):
         dispatcher.add_handler(CommandHandler('my_lab', self.my_lab))
         dispatcher.add_handler(CommandHandler('end', self.exit_command))
         dispatcher.add_handler(CommandHandler('help', self.help_command))
-        dispatcher.add_handler(CommandHandler('today', self.today_stats))
         dispatcher.add_handler(CommandHandler('resolve_tests', self.resolve_tests))
         dispatcher.add_handler(CommandHandler('capture_contact', self.capture_contact))

@@ -8,7 +8,7 @@ class Logger(object):
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         console = logging.StreamHandler()
-        console.setLevel(logging.INFO)
+        console.setLevel(logging.DEBUG)
         console.setFormatter(formatter)
         logging.getLogger('').addHandler(console)
 
