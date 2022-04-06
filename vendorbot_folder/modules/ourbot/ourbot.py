@@ -10,14 +10,9 @@ from modules.ourbot.handlers.initial import Inital
 from modules.ourbot.handlers.admin import Admin
 from modules.ourbot.handlers.buttons import Buttons
 from modules.ourbot.handlers.labs import Labs
-from modules.ourbot.handlers.categories_dialog import CategoriesDialog
-from modules.ourbot.handlers.edit_categories_dialog import EditCategoriesDialog
 from modules.ourbot.handlers.search import Search
 from modules.ourbot.handlers.wishlist import Wishlist
 from modules.ourbot.handlers.manage_dialog import Manage
-
-from modules.ourbot.handlers.timer_dialog import TimerDialog
-from modules.ourbot.handlers.edit_entry_dialog import EditEntriesDialog
 
 from modules.ourbot.handlers.decorators import log_errors
 # from handlers.initial import register_initial_handler
@@ -44,12 +39,8 @@ class BotObject:
         self.admin = Admin(self.bot, self.db_instances)
         self.buttons = Buttons(self.db_instances)
         self.labs = Labs(self.db_instances)
-        self.categories_dialog = CategoriesDialog(self.db_instances)
-        self.edit_categories_dialog = EditCategoriesDialog(self.bot, self.db_instances)
         self.lab_dialog = LabDialog(self.db_instances)
         self.wishlist = Wishlist(self.db_instances)
-        self.timer_dialog = TimerDialog(self.bot, self.db_instances)
-        self.edit_entries_dialog = EditEntriesDialog(self.bot, self.db_instances)
 
         self.search = Search(self.bot, self.db_instances)
 
@@ -69,13 +60,8 @@ class BotObject:
         self.initial.register_handler(self.dispatcher)
         self.admin.register_handler(self.dispatcher)
         self.labs.register_handler(self.dispatcher)
-        self.categories_dialog.register_handler(self.dispatcher)
-        self.edit_categories_dialog.register_handler(self.dispatcher)
         self.wishlist.register_handler(self.dispatcher)
         self.search.register_handler(self.dispatcher)
         self.lab_dialog.register_handler(self.dispatcher)
         self.buttons.register_handler(self.dispatcher)
-        self.timer_dialog.register_handler(self.dispatcher)
-        self.edit_entries_dialog.register_handler(self.dispatcher)
-
         self.manage_dialog.register_handler(self.dispatcher)
