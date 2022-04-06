@@ -19,7 +19,6 @@ MONGO_BOT_PASSWORD = os.environ["MONGO_BOT_PASSWORD"]  # db bot
 
 root_db = MongoDriver(MONGO_URL, MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD, INIT_DATABASE_NAME)
 
-vendorbot_collections = ()
 
 # --------------------------------------
 # --------------------------------------

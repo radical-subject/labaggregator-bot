@@ -8,8 +8,8 @@ from modules.ourbot.handlers.decorators import log_errors
 from modules.ourbot.handlers.helpers import get_txt_content
 
 from modules.db import dbmodel, dbschema
+from modules.ourbot.logger import logger
 
-logger = logging.getLogger(__name__)
 
 UPLOAD_STATE = range(1)
 
@@ -43,8 +43,6 @@ class Manage(Handlers):
     @log_errors
     def getting_file(self, update: Update, context: CallbackContext):
 
-        # retrieving data from user message
-        # ищем запись относящуюся к пользователю
         user_id = update.message.from_user.id
         mongo_query = {"user_id": user_id}
         user_info = update.message.from_user
@@ -56,8 +54,6 @@ class Manage(Handlers):
         #TODO replace: user_reagents_object = dbschema.UserReagents(dbmodel.get_user(user_id))
         user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
 
-        current_state = context.user_data.get('state')
-
         CAS_list = get_txt_content(update, context)
 
         # оставляю возможность хардкодить вручную контакт, прописывая первую строку импортируемого файла руками:
@@ -65,10 +61,6 @@ class Manage(Handlers):
         if CAS_list and CAS_list[0] and CAS_list[0].startswith("reagents_contact:"):
             contact = CAS_list[0].split(":")[1]
         else:
-            # TODO удалить!!
-            # его может не быть если он скрыт от ботов. это в настройках телеграма.
-            # мы обрабатываем txt файл. НЕ нужно делать лишнюю работу.
-            # я сделал возможным и без заполненного contact выводить:  contact ИЛИ username ИЛИ chat_id
             if not user_info.username:
                 update.message.reply_text('Добавьте первую строку "reagents_contact:<телефон/почта>" '
                                           'или заполните свой username')
@@ -86,20 +78,23 @@ class Manage(Handlers):
         dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
 
         # update.message.reply_text(f"{user_reagents_object.shared_reagents()[0]}")
-        sent_message = update.message.reply_text(f'''file was successfully parsed and uploaded.
+
+        sent_message = f'''file was successfully parsed and uploaded.
 <b>import results</b>:
 Строк в вашем списке: <b>{import_stats["input_lines_number"]}</b>
 Правильных CAS-номеров: <b>{len(import_stats["valid_CAS_numbers"])}</b>
-Опечатка в CAS: <b>{import_stats["failed_CAS_check_number"]}</b>
+Опечатка в CAS: <b>{", ".join(import_stats["failed_CAS_check_number"])}</b>
 Не найдено SMILES для: <b>{import_stats["SMILES_not_found"]}</b> позиций
 Найдено SMILES для: <b>{import_stats["SMILES_found"]}</b> реагентов
 Прекурсоров найдено и вычеркнуто: <b>{import_stats["blacklist_filter_result"]}</b>
 
 Итого: импортировано в базу <b>{import_stats["total_reagents_imported"]}</b> реагентов.
 В вашей базе сейчас: <b>{import_stats["total_reagents_count_in_DB"]}</b> реагентов.
-        ''', parse_mode='HTML')
+        '''
 
-        update.message.reply_text(sent_message)
+        update.message.reply_text(sent_message, parse_mode=ParseMode.HTML)
+
+        update.message.reply_text("Диалога /manage завершен")
         return ConversationHandler.END
 
     @log_errors
@@ -107,78 +102,12 @@ class Manage(Handlers):
         """
         handler for terminating all dialog sequences
         """
-        try:
-            query = update.callback_query
-            if query == None:
-                reply_markup = InlineKeyboardMarkup([])
-                update.message.reply_text("Таймер прерван другой командой.\nВсе переменные состояний очищены, и вы в этом виноваты сами.", reply_markup=reply_markup)
-            else:
-                update.message.reply_text(f"""Выход из диалога /manage.""")
-        except:
-            update.message.reply_text(f"""Выход из диалога /manage.""")
-            pass
-        # now clear all cached data
-        # clear assosiated with user data and custom context variables
+        update.message.reply_text("Диалога /manage завершен")
+
         context.chat_data.clear()
         context.user_data.clear()
 
         return ConversationHandler.END
-    
-    # @log_errors
-    # def write_to_db(self, update: Update, context: CallbackContext, comment, archived_status="False"):
-    #     """
-    #     функция пишет информацию о потраченных минутах таймера в базу данных. 
-    #     """
-    #     # ищем запись относящуюся к пользователю
-    #     user_id = update.message.from_user.id
-    #     mongo_query = {"user_id": user_id}
-
-    #     # дебажим содержимое переменных
-    #     print("==============================")
-    #     logger.info(f"mongo_query = {mongo_query}")
-    #     logger.info(f"context_user_data = {context.user_data}")
-    #     print("==============================")
-
-    #     # user_data может не иметь "current_category"
-    #     # усли бы было обращение к user_data по ключу то при отсутствии ключа получалось бы KeyError. чтобы этого избежать используем .get
-    #     current_category = str(context.user_data.get('current_category')) # gives None if there is no such key == when no caegories were yet created
-    #     total_elapsed_minutes = context.user_data["total_elapsed_minutes"]
-
-    #     # достаем ее из бд
-    #     previous_records=dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query)
-        
-    #     # результат поиска может оказаться пустым
-    #     if previous_records == [] or previous_records == None:
-    #         timer_object = dbschema.TimerData(
-    #             **{
-    #                 "user_id": user_id
-    #             }
-    #         )
-    #         # к минимальному объекту добавляем текущую запись таймера
-    #         try:
-    #             context.user_data['hashtag']
-    #             timer_object.add_timerdata_entry(total_elapsed_minutes, comment, current_category, archived_status, **{'hashtag' : context.user_data['hashtag']})
-    #         except KeyError: 
-    #             timer_object.add_timerdata_entry(total_elapsed_minutes, comment, current_category, archived_status)
-    #         data = timer_object.export()
-    #         # записываем в базу новосозданный объект
-    #         dbmodel.add_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, data)
-    #     else:
-    #         # если раньше у пользователя были записи то импортируем данные пользователя в объект таймера
-    #         timer_object = dbschema.TimerData(
-    #             **previous_records[0]
-    #         )
-    #         # манипулируем с объектом таймера добавляя в него запись 
-    #         # update db timer_data record by upserting and replasing existing data dict with updated 
-    #         try:
-    #             context.user_data['hashtag']
-    #             timer_object.add_timerdata_entry(total_elapsed_minutes, comment, current_category, archived_status, **{'hashtag' : context.user_data['hashtag']})
-    #         except KeyError: 
-    #             timer_object.add_timerdata_entry(total_elapsed_minutes, comment, current_category, archived_status)
-    #         data = timer_object.export()
-    #         # записываем экспортированный в словарь объект в базу
-    #         dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
-
 
     @log_errors
     def register_handler(self, dispatcher):
