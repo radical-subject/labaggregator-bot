@@ -1,5 +1,5 @@
 import logging, os
-
+from io import BytesIO
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler
 from telegram.ext.dispatcher import run_async
@@ -17,7 +17,7 @@ class Admin(Handlers):
         super().__init__(db_instances)
         # чтобы использовать модуль bot из пакета telegram здесь, 
         # нужно его передать при инициализации инстанса этого класса в OurBot.
-        self.bot=bot
+        self.bot = bot
         self.collection = "users_collection"
     
     @log_errors
@@ -51,27 +51,51 @@ class Admin(Handlers):
 
     @log_errors
     @is_admin
-    def prepare_digest(self, update: Update, context: CallbackContext):
+    def digest(self, update: Update, context: CallbackContext):
         """
         produces digest
         """
-        user_id = update.message.from_user.id
+        chat_id = update.message.chat_id
 
         update.message.reply_text(f'Ожидайте: список обрабатывается...')
 
-        all_entries = dbmodel.iterate_over_collection_of_users(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection)
+        users = dbmodel.get_all_users() # dbmodel.iterate_over_collection_of_users(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection)
         # logger.info(f"len all_entries = {len(all_entries)}")
-        digest = None
-        for entry in all_entries:
-            user_reagents_object = dbschema.UserReagents(**entry)
-            # logger.info(len(user_reagents_object.user_reagents))
-            # user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
-            # logger.info(user_reagents_object.export())
-            digest = user_reagents_object.get_digest_shared_reagents(digest)
-            # logger.info(f"length = {len(digest)}")
-            # logger.info(str(digest))
-        
-        logger.info(f"final length = {len(digest)}")
+
+        digest = {}
+        for user in users:
+            for r in dbschema.get_shared_reagents(user):
+                name = dbschema.reagent_name(r)
+                contact = dbschema.reagent_contact(user, r)
+                if name and name not in digest:
+                    digest[name] = []
+
+                if contact not in digest[name]:   # если у пользователя 2 реактива, то будет повторяться contact
+                    digest[name].append(contact)
+
+        logger.info(f"digest length = {len(digest.keys())}")
+        update.message.reply_text(f'Всего {len(digest.keys())} CAS')
+
+        cas_list = list(digest.keys())
+        cas_list = sorted(cas_list)
+
+        digest_cas_txt = '\n'.join(cas_list)
+
+        f = BytesIO(bytes(digest_cas_txt, 'utf-8'))
+        f.name = 'digest_cas.txt'
+        f.seek(0)
+
+        context.bot.send_document(chat_id, f)
+
+        digest_txt = ''
+        for cas in cas_list:
+            digest_txt += f'{cas} : {", ".join(digest[cas])}\n'
+
+        f = BytesIO(bytes(digest_txt, 'utf-8'))
+        f.name = 'digest.txt'
+        f.seek(0)
+
+        context.bot.send_document(chat_id, f)
 
     @log_errors
     @is_admin
@@ -97,4 +121,4 @@ class Admin(Handlers):
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
         dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=True))
         dispatcher.add_handler(CommandHandler('blacklist_update', self.update_rdkit_db_blacklist_handler, run_async=True))
-        dispatcher.add_handler(CommandHandler('digest', self.prepare_digest, run_async=True))
+        dispatcher.add_handler(CommandHandler('digest', self.digest, run_async=True))

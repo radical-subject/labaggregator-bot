@@ -17,6 +17,7 @@ def log_errors(f):
             return f(*args, **kwargs)
         except Exception as e:
             log.error(traceback.format_exc())
+            #TODO если не убирать, то сюда нужно raise Exception(e)
     return inner
 
 

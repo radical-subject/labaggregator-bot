@@ -1,7 +1,26 @@
-import os, logging
+from typing import Dict
 from modules.db import dbschema
 from modules.ourbot.handlers.decorators import log_errors
-logger = logging.getLogger(__name__)
+from modules.db.dbconfig import vendorbot_db
+from modules.ourbot.logger import logger
+
+
+def user_collection():
+    return vendorbot_db.client[vendorbot_db.DATABASE_NAME]['users_collection']
+
+
+def get_user(user_id: int):
+    users = list(user_collection().find({"user_id": user_id}))
+    if users:
+        return users[0]
+
+
+def add_user(data):  # json
+    return user_collection().insert_one(data)
+
+
+def get_all_users():
+    return list(user_collection().find({}))
 
 
 @log_errors

@@ -57,7 +57,7 @@ class TimerDialog(Handlers):
         query.answer()
         if query.data.startswith('TIMER'):
             command = query.data.split(':')[1]
-            assert(command == "PAUSE", "wrong callback query data in timer_pause()")
+            assert command == "PAUSE", "wrong callback query data in timer_pause()"
 
         sent_message = update.callback_query.message
         t = context.user_data["timer_object"]
@@ -94,7 +94,7 @@ class TimerDialog(Handlers):
         query.answer()
         if query.data.startswith('TIMER'):
             command = query.data.split(':')[1]
-            assert(command == "RESUME", "wrong callback query data in timer_pause()")
+            assert command == "RESUME", "wrong callback query data in timer_pause()"
 
         sent_message = update.callback_query.message
         t = context.user_data["timer_object"]
@@ -130,7 +130,7 @@ class TimerDialog(Handlers):
         query.answer()
         if query.data.startswith('TIMER'):
             command = query.data.split(':')[1]
-            assert(command == "STOP", "wrong callback query data in timer_pause()")
+            assert command == "STOP", "wrong callback query data in timer_pause()"
 
         sent_message = update.callback_query.message
         t = context.user_data["timer_object"]

@@ -9,17 +9,18 @@ logger = logging.getLogger(__name__)
 # ----------------------------------------------------------
 # ----------------------------------------------------------
 
-#RDKIT IMPORTS
-import rdkit
-from rdkit import Chem
-from rdkit.Chem import PandasTools
-# for similarity search need mongo-rdkit
-from mongordkit.Search import similarity, substructure
-from mongordkit.Database import write
+try:
+    import rdkit
+    from rdkit import Chem
+    from rdkit.Chem import PandasTools
+    # for similarity search need mongo-rdkit
+    from mongordkit.Search import similarity, substructure
+    from mongordkit.Database import write
+except:
+    logger.error('rdkit not found')
 
 
 @log_errors
-
 def update_rdkit_with_sialdrich (client, db_instance):
     # Disable rdkit warnings
     rdkit.RDLogger.DisableLog('rdApp.*')

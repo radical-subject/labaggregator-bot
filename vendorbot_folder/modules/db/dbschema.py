@@ -1,5 +1,5 @@
 import re
-from typing import Text
+from typing import Text, List
 import uuid, json 
 import os, time, logging
 os.environ['TZ'] = 'Europe/Moscow'
@@ -12,6 +12,30 @@ from modules.db.rdkitdb import similarity_search, convert_to_smiles_and_get_addi
 from modules.ourbot.service.resolver import get_SMILES, batch_SMILES_resolve, CIRPY_resolve
 from modules.ourbot.handlers.decorators import log_errors
 logger = logging.getLogger(__name__)
+
+
+def get_shared_reagents(user):
+    if 'user_reagents' in user:
+        return filter(lambda r: r['sharing_status'] == 'shared', user['user_reagents'])
+    return []
+
+
+def reagent_name(r):
+    """
+    У нас может быть что-то не заполнено (?)
+    """
+    if 'CAS' in r and r['CAS']:
+        return r['CAS']
+    if 'reagent_name' in r and r['reagent_name']:
+        return r['reagent_name']
+
+
+def reagent_contact(user, reagent):
+    if 'contact' in reagent and reagent['contact']:
+        return reagent['contact']
+    elif 'username' in user and user['username']:
+        return user['username']
+    return user['user_id']   # хоть так
 
 
 class UserReagents:
@@ -82,7 +106,7 @@ class UserReagents:
 
         return valid_CAS_numbers, non_valid_CAS_numbers
 
-    def add_list_of_reagents(self, user_id, contact_username, client, db_instance, CAS_list=list):
+    def add_list_of_reagents(self, user_id, contact_username, client, db_instance, CAS_list: List[str]):
         """
         эта функция создает список реагентов в объекте из листа, дополняя его SMILES и потом отсеивая наркотики
         """
@@ -92,7 +116,6 @@ class UserReagents:
         input_lines_number = len(CAS_list)
         CAS_checker_out = self.create_new_list_reagents(CAS_list)
         
-
         try:
             self.user_reagents += CAS_checker_out[0]
         except AttributeError:
@@ -172,35 +195,8 @@ class UserReagents:
 
         return drugs_counter
 
-    def get_user_shared_reagents(self):
+    def shared_reagents(self):
         return self.user_reagents
-
-    def get_digest_shared_reagents(self, didgest_part=None):
-        """
-        takes only shared reagents CAS
-        plugs contact info
-
-        output = {
-                'CAS1': [contact1, contact2, ...]
-                'CAS2': [.... etc, etc]
-            }
-
-        """
-
-        if didgest_part != None: 
-            pass
-        else:
-            didgest_part = {}
-
-
-        for reagent in self.user_reagents: 
-            if reagent["CAS"] not in didgest_part.keys():
-                didgest_part[f'{reagent["CAS"]}'] = [reagent["contact"]]
-            else: 
-                if reagent["contact"] not in didgest_part[f'{reagent["CAS"]}']:
-                    didgest_part[f'{reagent["CAS"]}'].append(reagent["contact"])
-        
-        return didgest_part
 
     def export(self):
         """
@@ -215,33 +211,9 @@ class UserReagents:
             "reagent_requests": self.reagent_requests,
             "user_reagents": self.user_reagents
         }
-        """      
-        UserReagents_export = {**{"_id": self._id}, **dict(self)}
+        """
+        return {**{"_id": self._id}, **dict(self)}
         # json.dumps(UserReagents_export) # exports json string (to use it as python object you should convert it by json.loads())
-        return UserReagents_export
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

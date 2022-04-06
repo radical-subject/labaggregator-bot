@@ -22,15 +22,6 @@ from bson import ObjectId
 logger = logging.getLogger(__name__)
 
 
-# API test for Ketcher
-from fastapi import FastAPI
-app = FastAPI()
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-
-
 class JSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, ObjectId):
@@ -58,7 +49,6 @@ class Inital(Handlers):
         welcome message and initialization of user by inserting his data into DB
         """
 
-            
         user_info = update.message.from_user
         chat_id = update.message.chat.id
 
@@ -80,8 +70,11 @@ class Inital(Handlers):
 """
         update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
+        #TODO А давай писать, если не заполнено user_info.username, то и поиском пользоваться нельзя?
+        # иначе мы только по номеру диалога будем знать чей реактив, либо по номеру мобилки
+
         # запись данных юзера в БД
-        userdata_dict = {
+        userdata = {
             "_id": user_info.id,
             "user_id": user_info.id,
             "username": "@{}".format(user_info.username),
@@ -89,23 +82,18 @@ class Inital(Handlers):
             "lastname": user_info.last_name
         }
 
-        try:
-
-            # logger.info(f"{self.vendorbot_db_client}, {self.db_instances['vendorbot_db']}, {self.collection}, {userdata_dict}")
-            dbmodel.add_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, userdata_dict)
-            raise Exception("TEST FUCKING TEST")
-
-        except Exception as e:
-            print(f"{e}, HELLO MR MUSLIM MERRY FUCKING CHRISTMAS")
-            logger.info(e)
+        if not dbmodel.get_user(user_info.id):
+            dbmodel.add_user(userdata)
+        else:
             logger.info("User already exists: skipping insertion of userdata in DB")
-        
+
         # associated with user chat and context stored data should be cleaned up to prevent mess
         context.chat_data.clear()
         context.user_data.clear()
 
-        return self.INITIAL
+        return self.INITIAL  #todo не нужно - это не conversation_handler !
 
+    #TODO remove
     def exit_command(self, update: Update, context: CallbackContext):
         """
         hadler for terminating all dialog sequences
@@ -127,8 +115,9 @@ class Inital(Handlers):
         # clear assosiated with user data and custom context variables
         context.chat_data.clear()
         context.user_data.clear()
-        return ConversationHandler.END
+        return ConversationHandler.END #todo не нужно - это не conversation_handler !
 
+    #TODO remove
     def my_lab(self, update: Update, context: CallbackContext):
         current_lab = context.user_data.get('current_lab')
         result = 'None' if current_lab is None else JSONEncoder().encode(current_lab)
@@ -145,8 +134,9 @@ class Inital(Handlers):
 пока /search в разработке, общественные списки будут публиковаться дайджестами в канале лабаггрегатора.
         """, parse_mode=ParseMode.HTML)
 
-        return self.INITIAL
+        return self.INITIAL #todo не нужно - это не conversation_handler !
 
+    #TODO remove
     @log_errors
     def today_stats(self, update: Update, context: CallbackContext):
         """Send information about work entries for today"""
@@ -184,7 +174,7 @@ class Inital(Handlers):
 
         update.message.reply_text(f"===================\n{entries}\n===================\n\nTime brutto today == 10 hours.\nthis is temporarily hardcoded.\n\ntime_netto_today = {time_netto_today_hours:.0f} h. {time_netto_today_minutes:.2f} min.")
         
-        return self.INITIAL
+        return self.INITIAL #todo не нужно - это не conversation_handler !
 
     @log_errors
     # @run_async
@@ -212,7 +202,7 @@ class Inital(Handlers):
         data = user_reagents_object.export()
         # записываем в базу объект 
         dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
-        update.message.reply_text(f"{user_reagents_object.get_user_shared_reagents()[0]}")
+        update.message.reply_text(f"{user_reagents_object.shared_reagents()[0]}")
 
     @log_errors
     def capture_contact(self, update: Update, context: CallbackContext):

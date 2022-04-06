@@ -5,9 +5,13 @@ from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackConte
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import log_errors
+from modules.ourbot.handlers.helpers import get_txt_content
+
 from modules.db import dbmodel, dbschema
 
 logger = logging.getLogger(__name__)
+
+UPLOAD_STATE = range(1)
 
 
 class Manage(Handlers):
@@ -24,7 +28,7 @@ class Manage(Handlers):
         передаем коллекции, с которыми по умолчанию работает этот хендлер
         """
         super().__init__(db_instances)
-        self.bot=bot
+        self.bot = bot
         self.collection = "users_collection"
 
     @log_errors
@@ -34,7 +38,7 @@ class Manage(Handlers):
                                   'Send cas list in .txt format.',
                                   parse_mode=ParseMode.HTML)
 
-        return 1
+        return UPLOAD_STATE
 
     @log_errors
     def getting_file(self, update: Update, context: CallbackContext):
@@ -44,39 +48,44 @@ class Manage(Handlers):
         user_id = update.message.from_user.id
         mongo_query = {"user_id": user_id}
         user_info = update.message.from_user
-        chat_id = update.message.chat.id
 
         update.message.reply_text(f'Ожидайте: список обрабатывается.\nBe patient; it may take a while...')
         # Достаем из базы весь объект пользователя с реагентами
         # Если такого пользователя нет - функция на лету его создает и не плюется ошибками
+
+        #TODO replace: user_reagents_object = dbschema.UserReagents(dbmodel.get_user(user_id))
         user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
 
         current_state = context.user_data.get('state')
-        
-        out = io.BytesIO()
-        context.bot.get_file(update.message.document).download(out=out)
-        out.seek(0)
-        content = out.read().decode('utf-8')
-        CAS_list = [item.strip() for item in content.split("\n")]
-        
+
+        CAS_list = get_txt_content(update, context)
+
         # оставляю возможность хардкодить вручную контакт, прописывая первую строку импортируемого файла руками:
         # в формате reagents_contact:+79265776746
-        if CAS_list[0].startswith("reagents_contact:"):
+        if CAS_list and CAS_list[0] and CAS_list[0].startswith("reagents_contact:"):
             contact = CAS_list[0].split(":")[1]
         else:
-            if user_info.username == None:
-                raise Exception("у пользователя нет username!")
+            # TODO удалить!!
+            # его может не быть если он скрыт от ботов. это в настройках телеграма.
+            # мы обрабатываем txt файл. НЕ нужно делать лишнюю работу.
+            # я сделал возможным и без заполненного contact выводить:  contact ИЛИ username ИЛИ chat_id
+            if not user_info.username:
+                update.message.reply_text('Добавьте первую строку "reagents_contact:<телефон/почта>" '
+                                          'или заполните свой username')
+                return UPLOAD_STATE
             else:
-                contact = "@{}".format(user_info.username)
+                contact = f'@{user_info.username}'
 
         # импорт листа реагентов с фильтрациями
         import_stats = user_reagents_object.add_list_of_reagents(user_info.id, contact, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
         # экспорт JSON - не работает с pymongo! нужен dict
+
         data = user_reagents_object.export()
+
         # записываем в базу объект 
         dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
 
-        # update.message.reply_text(f"{user_reagents_object.get_user_shared_reagents()[0]}")
+        # update.message.reply_text(f"{user_reagents_object.shared_reagents()[0]}")
         sent_message = update.message.reply_text(f'''file was successfully parsed and uploaded.
 <b>import results</b>:
 Строк в вашем списке: <b>{import_stats["input_lines_number"]}</b>
@@ -90,7 +99,8 @@ class Manage(Handlers):
 В вашей базе сейчас: <b>{import_stats["total_reagents_count_in_DB"]}</b> реагентов.
         ''', parse_mode='HTML')
 
-        return self.exit(Update, CallbackContext)
+        update.message.reply_text(sent_message)
+        return ConversationHandler.END
 
     @log_errors
     def exit(self, update: Update, context: CallbackContext):
@@ -111,8 +121,8 @@ class Manage(Handlers):
         # clear assosiated with user data and custom context variables
         context.chat_data.clear()
         context.user_data.clear()
-        # equivalent of return ConversationHandler.END
-        return -1
+
+        return ConversationHandler.END
     
     @log_errors
     def write_to_db(self, update: Update, context: CallbackContext, comment, archived_status="False"):
@@ -175,16 +185,15 @@ class Manage(Handlers):
         dispatcher.add_handler(CommandHandler('end', self.exit))
 
         self.manage_dialog = ConversationHandler(
-        entry_points=[CommandHandler('manage', self.manage_entrypoint)],
-        states={
-                1:[
-                    MessageHandler(Filters.attachment, self.getting_file, run_async=True) # ,  run_async=True
-                ]
-            },
+            entry_points=[CommandHandler('manage', self.manage_entrypoint)],
+            states={
+                    UPLOAD_STATE: [
+                        MessageHandler(Filters.attachment, self.getting_file, run_async=True)
+                    ]
+                },
             fallbacks=[
-                MessageHandler(Filters.regex('^Done$'), self.exit)
-                # MessageHandler(Filters.command, self.exit)
-            ]
+                    MessageHandler(Filters.regex('^Done$'), self.exit)
+                ]
         )
 
         dispatcher.add_handler(self.manage_dialog, 1)
