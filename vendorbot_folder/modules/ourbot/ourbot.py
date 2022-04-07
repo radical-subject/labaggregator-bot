@@ -1,21 +1,19 @@
-import logging
-from telegram import (Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton)
-from telegram.ext import (Updater, CommandHandler, CallbackContext, ConversationHandler, InlineQueryHandler,
-                          CallbackQueryHandler)
+
+from signal import SIGINT, SIGIOT, SIGPIPE
+
+from telegram import Bot
+from telegram.ext import Updater
 from telegram.utils.request import Request
 
 from modules.ourbot.logger import logger
-from modules.ourbot.handlers.lab_dialog import LabDialog
 from modules.ourbot.handlers.initial import Inital
 from modules.ourbot.handlers.admin import Admin
-from modules.ourbot.handlers.buttons import Buttons
-from modules.ourbot.handlers.labs import Labs
-from modules.ourbot.handlers.search import Search
-from modules.ourbot.handlers.wishlist import Wishlist
+from modules.ourbot.handlers.search_dialog import Search
 from modules.ourbot.handlers.manage_dialog import Manage
 
-from modules.ourbot.handlers.decorators import log_errors
-# from handlers.initial import register_initial_handler
+
+#def error_callback(update, context):
+#    logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 
 class BotObject:
@@ -29,39 +27,26 @@ class BotObject:
         self.bot = Bot(self.token, request=request)
         self.updater = Updater(bot=self.bot, workers=num_threads)
 
-        # self.bot = Bot(self.token)
-        # self.updater = Updater(self.token)
         self.dispatcher = self.updater.dispatcher
-        self.db_instances=db_instances
-        
+        self.db_instances = db_instances
 
         self.initial = Inital(self.bot, self.db_instances)
         self.admin = Admin(self.bot, self.db_instances)
-        self.buttons = Buttons(self.db_instances)
-        self.labs = Labs(self.db_instances)
-        self.lab_dialog = LabDialog(self.db_instances)
-        self.wishlist = Wishlist(self.db_instances)
-
-        self.search = Search(self.bot, self.db_instances)
-
+        self.search_dialog = Search(self.bot, self.db_instances)
         self.manage_dialog = Manage(self.bot, self.db_instances)
 
         logger.info('Bot initialization complete.')
 
-    @log_errors
     def start(self):
         logger.info('Starting bot...')
         self.update_dispatcher()
         self.updater.start_polling()
-        self.updater.idle(stop_signals=(2, 6, 13)) # stop_signals=(2, 6, 13)
+        self.updater.idle(stop_signals=(SIGINT, SIGIOT, SIGPIPE))
 
-    @log_errors
     def update_dispatcher(self):
+#        self.dispatcher.add_error_handler(error_callback)
+
         self.initial.register_handler(self.dispatcher)
         self.admin.register_handler(self.dispatcher)
-        self.labs.register_handler(self.dispatcher)
-        self.wishlist.register_handler(self.dispatcher)
-        self.search.register_handler(self.dispatcher)
-        self.lab_dialog.register_handler(self.dispatcher)
-        self.buttons.register_handler(self.dispatcher)
+        self.search_dialog.register_handler(self.dispatcher)
         self.manage_dialog.register_handler(self.dispatcher)

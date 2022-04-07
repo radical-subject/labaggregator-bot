@@ -12,9 +12,8 @@ from telegram.ext import CallbackContext, CommandHandler, ConversationHandler
 from modules.db.dbschema import UserReagents
         
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.handlers.decorators import log_errors
 from modules.ourbot.handlers.helpers import is_admin_chat
-from modules.db import dbmodel, dbschema
+from modules.db.dbmodel import users_collection
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -34,15 +33,12 @@ class Inital(Handlers):
 
     def __init__(self, bot, db_instances):
         super().__init__(db_instances)
-        self.bot=bot
-        self.collection = "users_collection"
 
-    @log_errors
     def start(self, update: Update, context: CallbackContext):
         """
+        Стартовая точка общения с ботом.
         welcome message and initialization of user by inserting his data into DB
         """
-
         user_info = update.message.from_user
         chat_id = update.message.chat.id
 
@@ -76,46 +72,14 @@ class Inital(Handlers):
             "lastname": user_info.last_name
         }
 
-        if not dbmodel.get_user(user_info.id):
-            dbmodel.add_user(userdata)
+        if not users_collection.get_user(user_info.id):
+            users_collection.add_user(userdata)
         else:
             logger.info("User already exists: skipping insertion of userdata in DB")
 
         # associated with user chat and context stored data should be cleaned up to prevent mess
         context.chat_data.clear()
         context.user_data.clear()
-
-        return self.INITIAL  #todo не нужно - это не conversation_handler !
-
-    #TODO remove
-    def exit_command(self, update: Update, context: CallbackContext):
-        """
-        hadler for terminating all dialog sequences
-        """
-        try:
-            query = update.callback_query
-            if query != None:
-                reply_markup = InlineKeyboardMarkup([])
-                query.edit_message_text(
-                    text="You cancelled db removal. Да поможет тебе святой Януарий!",
-                    reply_markup=reply_markup
-                )
-            else:
-                update.message.reply_text(f"""Выход из диалога. Да поможет тебе святой Антоний.""")
-        except:
-            update.message.reply_text(f"""Выход из диалога. Да поможет тебе святой Антоний.""")
-            pass
-        # now clear all cached data
-        # clear assosiated with user data and custom context variables
-        context.chat_data.clear()
-        context.user_data.clear()
-        return ConversationHandler.END #todo не нужно - это не conversation_handler !
-
-    #TODO remove
-    def my_lab(self, update: Update, context: CallbackContext):
-        current_lab = context.user_data.get('current_lab')
-        result = 'None' if current_lab is None else JSONEncoder().encode(current_lab)
-        update.message.reply_text(result, parse_mode='HTML')
 
     def help_command(self, update: Update, context: CallbackContext):
         """Send a message when the command /help is issued."""
@@ -128,55 +92,6 @@ class Inital(Handlers):
 пока /search в разработке, общественные списки будут публиковаться дайджестами в канале лабаггрегатора.
         """, parse_mode=ParseMode.HTML)
 
-        return self.INITIAL #todo не нужно - это не conversation_handler !
-
-    @log_errors
-    # @run_async
-    def resolve_tests(self, update: Update, context: CallbackContext):
-
-        input_txt_file_path = "./srs/user_reagent_lists_import/Chusov_1.txt"
-        import_CAS_df = pd.read_csv(input_txt_file_path, header = None)
-        CAS_list = import_CAS_df[0].tolist()
-
-        # retrieving data from user message
-        # ищем запись относящуюся к пользователю
-        user_id = update.message.from_user.id
-        mongo_query = {"user_id": user_id}
-        logger.info(f"mongo_query: {mongo_query}")
-        user_info = update.message.from_user
-        chat_id = update.message.chat.id
-
-        initial_record = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
-        logger.info(f"initial_record: {initial_record}")
-        user_reagents_object = UserReagents(**initial_record[0])
-        
-        # импорт листа реагентов с фильтрациями
-        user_reagents_object.add_list_of_reagents(user_info.id, user_info.username, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
-        # экспорт JSON - не работает с pymongo! нужен dict
-        data = user_reagents_object.export()
-        # записываем в базу объект 
-        dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
-        update.message.reply_text(f"{user_reagents_object.shared_reagents()[0]}")
-
-    @log_errors
-    def capture_contact(self, update: Update, context: CallbackContext):
-        # retrieving data from user message
-        user_info = update.message.from_user
-        chat_id = update.message.chat.id
-
-        reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]])
-        self.bot.sendMessage(chat_id, 'Example', reply_markup=reply_markup)
-
-    @log_errors
-    def set_tag(self, update: Update, context: CallbackContext):
-        """set tag for timerdata"""
-        pass
-
-    @log_errors
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('start', self.start))
-        dispatcher.add_handler(CommandHandler('my_lab', self.my_lab))
-        dispatcher.add_handler(CommandHandler('end', self.exit_command))
         dispatcher.add_handler(CommandHandler('help', self.help_command))
-        dispatcher.add_handler(CommandHandler('resolve_tests', self.resolve_tests))
-        dispatcher.add_handler(CommandHandler('capture_contact', self.capture_contact))

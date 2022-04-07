@@ -1,15 +1,14 @@
-import logging
-import io
+
 from telegram import Update, InlineKeyboardMarkup, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.handlers.decorators import log_errors
 from modules.ourbot.handlers.helpers import get_txt_content
 
-from modules.db import dbmodel, dbschema
+from modules.db.dbmodel import users_collection
+from modules.db import dbschema
 from modules.ourbot.logger import logger
-
+from modules.ourbot.handlers.decorators import log_errors
 
 UPLOAD_STATE = range(1)
 
@@ -28,10 +27,7 @@ class Manage(Handlers):
         передаем коллекции, с которыми по умолчанию работает этот хендлер
         """
         super().__init__(db_instances)
-        self.bot = bot
-        self.collection = "users_collection"
 
-    @log_errors
     def manage_entrypoint(self, update: Update, context: CallbackContext):
         update.message.reply_text('Отправьте мне .txt файл со списком CAS-номеров столбиком, '
                                   'следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\n'
@@ -40,19 +36,21 @@ class Manage(Handlers):
 
         return UPLOAD_STATE
 
-    @log_errors
     def getting_file(self, update: Update, context: CallbackContext):
 
         user_id = update.message.from_user.id
-        mongo_query = {"user_id": user_id}
         user_info = update.message.from_user
 
         update.message.reply_text(f'Ожидайте: список обрабатывается.\nBe patient; it may take a while...')
-        # Достаем из базы весь объект пользователя с реагентами
-        # Если такого пользователя нет - функция на лету его создает и не плюется ошибками
 
-        #TODO replace: user_reagents_object = dbschema.UserReagents(dbmodel.get_user(user_id))
-        user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
+        # Достаем из базы весь объект пользователя с реагентами
+        # Пользователь должен быть
+        user = users_collection.get_user(user_id)
+        if not user:
+            update.message.reply_text('Это почему тебя нет в БД?! Тыкни /start')
+            return ConversationHandler.END
+
+        user_reagents_object = dbschema.UserReagents()
 
         CAS_list = get_txt_content(update, context)
 
@@ -74,10 +72,8 @@ class Manage(Handlers):
 
         data = user_reagents_object.export()
 
-        # записываем в базу объект 
-        dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
-
-        # update.message.reply_text(f"{user_reagents_object.shared_reagents()[0]}")
+        # записываем в базу объект
+        users_collection.update_user(user_id, data)
 
         sent_message = f'''file was successfully parsed and uploaded.
 <b>import results</b>:
@@ -97,7 +93,6 @@ class Manage(Handlers):
         update.message.reply_text("Диалога /manage завершен")
         return ConversationHandler.END
 
-    @log_errors
     def exit(self, update: Update, context: CallbackContext):
         """
         handler for terminating all dialog sequences
@@ -109,7 +104,6 @@ class Manage(Handlers):
 
         return ConversationHandler.END
 
-    @log_errors
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('end', self.exit))
 

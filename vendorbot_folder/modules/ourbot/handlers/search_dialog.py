@@ -8,7 +8,9 @@ from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.helpers import is_CAS_number
 from modules.ourbot.logger import log
 
-from modules.db import dbmodel, dbschema
+from modules.db import dbschema
+from modules.db.dbmodel import users_collection
+
 
 SEARCH_STATE = range(1)
 CANCEL = 'Отмена'
@@ -24,7 +26,6 @@ cancel_keyboard = [
 class Search(Handlers):
     def __init__(self, bot, db_instances):
         super(Search, self).__init__(db_instances)
-        self.bot = bot
         self.collection = "users_collection"
 
     def search(self, update: Update, context: CallbackContext):
@@ -39,19 +40,16 @@ class Search(Handlers):
 
     def search_cas(self, update: Update, context: CallbackContext):
 
-        chat_id = update.message.chat_id
-
         text = update.message.text
         if is_CAS_number(text):
             update.message.reply_text('Ищем CAS в базе шеринга...')
-            mongo_query = {"user_reagents": { '$elemMatch': { 'CAS': text}}}
-            result = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
+
+            users = users_collection.get_users_by_cas(text)
 
             contacts = []
-            for entry in result:
-                user_reagents_object = dbschema.UserReagents(
-                    **entry
-                )
+            for user in users:
+                user_reagents_object = dbschema.UserReagents(**user)
+
                 for contact in user_reagents_object.get_contacts_for_CAS(text):
                     if contact not in contacts:
                         contacts.append(contact)
@@ -79,7 +77,7 @@ class Search(Handlers):
         sent_message = update.callback_query.message
 
         # редактируем его меняя текст и убирая кнопку. диалог завершен.
-        self.bot.edit_message_text(
+        context.bot.edit_message_text(
             text=f'STOPPED',
             chat_id=sent_message.chat_id,
             message_id=sent_message.message_id,

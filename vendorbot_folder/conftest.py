@@ -10,5 +10,5 @@ def pytest_sessionstart(session: Session) -> None:
 
 # Load fixtures
 pytest_plugins = [
-    #'tests.fixtures'
+    'modules.tests.fixtures'
 ]

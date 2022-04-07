@@ -1,13 +1,7 @@
-import logging
-logger = logging.getLogger(__name__)
 
 
+# TODO удалить
 class Handlers:
-    INITIAL = 1
-    ADMIN = 1
-    LABS = 2
-    WISHLIST = 2
-
     def __init__(self, db_instances):
         self.db_instances=db_instances
         self.db_clients={}

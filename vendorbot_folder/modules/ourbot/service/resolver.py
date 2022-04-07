@@ -55,7 +55,7 @@ def batch_SMILES_resolve(reagents_without_SMILES_list):
     # # remove all error indications - this gives clean SMILES list
     # SMILES_list = list(filter(("resolver_error").__ne__, SMILES_list))
     
-    return (result_object_list, errors_list)
+    return result_object_list, errors_list
 
 
 

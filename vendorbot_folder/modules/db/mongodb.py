@@ -1,4 +1,5 @@
-import pymongo, logging
+import pymongo
+from modules.ourbot.logger import logger
 
 
 class MongoDriver:
@@ -9,7 +10,7 @@ class MongoDriver:
             self.DATABASE_HOST = host
             self.DATABASE_ADMIN_USERNAME = username
             self.DATABASE_ADMIN_PASSWORD = password
-            logging.info(f"connect to: {self.DATABASE_ADMIN_USERNAME}, {self.DATABASE_ADMIN_PASSWORD}, {self.DATABASE_HOST}")
+            logger.info(f"connect to: {self.DATABASE_ADMIN_USERNAME}, {self.DATABASE_ADMIN_PASSWORD}, {self.DATABASE_HOST}")
 
             self.client = pymongo.MongoClient(self.DATABASE_HOST,
                                               username=self.DATABASE_ADMIN_USERNAME,
@@ -21,7 +22,7 @@ class MongoDriver:
             # self.client = self.client_base(username=self.DATABASE_ADMIN_USERNAME, password=self.DATABASE_ADMIN_PASSWORD)
 
             self.DATABASE_NAME = name
-            logging.info(f"[+] {self.DATABASE_NAME} database connected!")
+            logger.info(f"[+] {self.DATABASE_NAME} database connected!")
         except Exception as e:
-            logging.info("[-] Database connection error!")
+            logger.info("[-] Database connection error!")
             raise e

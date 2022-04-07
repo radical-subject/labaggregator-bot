@@ -1,7 +1,8 @@
 
-import os, logging
+import os
 from modules.ourbot.handlers.decorators import log_errors
-logger = logging.getLogger(__name__)
+from modules.ourbot.logger import logger
+
 
 # ----------------------------------------------------------
 # ----------------------------------------------------------

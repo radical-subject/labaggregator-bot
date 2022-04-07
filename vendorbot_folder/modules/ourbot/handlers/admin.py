@@ -1,15 +1,15 @@
-import logging, os
+import os
+import traceback
 from io import BytesIO
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler
-from telegram.ext.dispatcher import run_async
 
+from modules.ourbot.logger import logger
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.handlers.decorators import log_errors, is_admin
+from modules.ourbot.handlers.decorators import is_admin
 from modules.ourbot.service import mongoDumpModule
-from modules.db import dbconfig, dbmodel, rdkitdb, dbschema
-
-logger = logging.getLogger(__name__)
+from modules.db.dbmodel import users_collection
+from modules.db import dbconfig, rdkitdb, dbschema
 
 
 class Admin(Handlers):
@@ -18,11 +18,8 @@ class Admin(Handlers):
         # чтобы использовать модуль bot из пакета telegram здесь, 
         # нужно его передать при инициализации инстанса этого класса в OurBot.
         self.bot = bot
-        self.collection = "users_collection"
-    
-    @log_errors
+
     @is_admin
-    # @run_async # deprecated way of async running # sometimes this may break! not now but configuration is dangerous overall
     def purge_handler(self, update: Update, context: CallbackContext):
         button_list = [
             [
@@ -35,32 +32,31 @@ class Admin(Handlers):
             "👩🏻‍🦰 Do you really want to purge the database?",
             reply_markup=reply_markup
         )
-        return
-    
-    @log_errors
+
     @is_admin
     def update_rdkit_db_blacklist_handler(self, update: Update, context: CallbackContext):
         """
+        Загружает sdf файл со списком веществ в базу данных blacklist при помощи rdkit.
         updates blacklist with srs/Narkotiki_test.sdf
         """
         reply = rdkitdb.update_rdkit_db_blacklist(self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
         update.message.reply_text(f"{reply} molecules successfully imported. nice!")
         reply = rdkitdb.update_blacklist_with_pandas (self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
-        logging.info(f"{reply} molecules successfully imported with metadata in separate collection. nice!")
-        return
+        logger.info(f"{reply} molecules successfully imported with metadata in separate collection. nice!")
 
-    @log_errors
     @is_admin
     def digest(self, update: Update, context: CallbackContext):
         """
-        produces digest
+        Возвращает 2 файла:
+        digest.txt – список shared компонентов в виде CAS и username пользователя
+        digest_cas.txt - список всех shared компонентов в виде CAS
         """
         chat_id = update.message.chat_id
 
         update.message.reply_text(f'Ожидайте: список обрабатывается...')
 
-        users = dbmodel.get_all_users() # dbmodel.iterate_over_collection_of_users(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection)
-        # logger.info(f"len all_entries = {len(all_entries)}")
+        users = users_collection.get_all_users()
+        logger.info(f"users {len(users)}")
 
         digest = {}
         for user in users:
@@ -98,7 +94,6 @@ class Admin(Handlers):
 
             context.bot.send_document(chat_id, f)
 
-    @log_errors
     @is_admin
     def dump(self, update: Update, context: CallbackContext):
         """
@@ -106,18 +101,19 @@ class Admin(Handlers):
         """
         chat_id = update.message.chat.id
         path = mongoDumpModule.dump_database(dbconfig.MONGO_INITDB_ROOT_USERNAME, dbconfig.MONGO_INITDB_ROOT_PASSWORD)[1]
-        logging.info(f'{path}')
+        logger.info(f'{path}')
         files = os.listdir("./mongodumps")
-        logging.info(f'{files}')
+        logger.info(f'{files}')
         # this bot cannot send more than 50 mb
         try:
-            self.bot.sendDocument(chat_id=chat_id, document=open(f'{path}.zip', 'rb'), timeout=1000)
+            context.bot.sendDocument(chat_id=chat_id, document=open(f'{path}.zip', 'rb'), timeout=1000)
             result = 'Гена, помнишь ты просил меня принести тебе бекап базы данных, я пошел и принес, вот оно. Гена на.'
             update.message.reply_text(result)
-        except:
+        except Exception as err:
+            tb = traceback.format_exc()
             update.message.reply_text("что-то не так. скорее всего база данных слишком большая и тебе нужно наладить закачку на гуглодиск.")
+            update.message.reply_text(f"ошибка: {tb}")
 
-    @log_errors
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
         dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=True))
