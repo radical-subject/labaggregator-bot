@@ -6,8 +6,9 @@ from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.helpers import get_txt_content
 
 from modules.db.dbmodel import users_collection
-from modules.db import dbschema
+from modules.db import dbschema, dbmodel
 from modules.ourbot.logger import logger
+from modules.ourbot.handlers.helpers import bot_commands_text
 from modules.ourbot.handlers.decorators import log_errors
 
 UPLOAD_STATE = range(1)
@@ -38,6 +39,7 @@ class Manage(Handlers):
 
     def getting_file(self, update: Update, context: CallbackContext):
 
+        chat_id = update.message.chat_id
         user_id = update.message.from_user.id
         user_info = update.message.from_user
 
@@ -74,6 +76,8 @@ class Manage(Handlers):
 
         # записываем в базу объект
         users_collection.update_user(user_id, data)
+        #mongo_query = {"user_id": user_id}
+        #dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], 'users_collection', mongo_query, data)
 
         sent_message = f'''file was successfully parsed and uploaded.
 <b>import results</b>:
@@ -90,14 +94,14 @@ class Manage(Handlers):
 
         update.message.reply_text(sent_message, parse_mode=ParseMode.HTML)
 
-        update.message.reply_text("Диалога /manage завершен")
+        update.message.reply_text(bot_commands_text(chat_id))
         return ConversationHandler.END
 
     def exit(self, update: Update, context: CallbackContext):
         """
         handler for terminating all dialog sequences
         """
-        update.message.reply_text("Диалога /manage завершен")
+        update.message.reply_text(bot_commands_text(chat_id))
 
         context.chat_data.clear()
         context.user_data.clear()

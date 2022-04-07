@@ -1,6 +1,6 @@
 
 
-# TODO удалить
+# TODO удалить после удаления blacklist_rdkit_db_client
 class Handlers:
     def __init__(self, db_instances):
         self.db_instances=db_instances

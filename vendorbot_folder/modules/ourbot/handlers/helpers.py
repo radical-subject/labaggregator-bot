@@ -7,21 +7,22 @@ from telegram.ext import CallbackContext
 from telegram import Update
 
 
-#TODO don't use
-def remove_job_if_exists(name: str, context: CallbackContext) -> bool:
-    """
-    Удаляет задачу из очереди задач Бота по имени
-
-    :param name: имя задачи. должно быть уникальным.
-    :param context:
-    :return: False - нет такой задачи, True - задача удалена
-    """
-    current_jobs = context.job_queue.get_jobs_by_name(name)
-    if not current_jobs:
-        return False
-    for job in current_jobs:
-        job.schedule_removal()
-    return True
+def bot_commands_text(chat_id):
+    text = """
+Доступны следующие команды:
+/start - приветствие
+/help - инструкции по пользованию
+/manage - загрузить список компонентов (заменит старый)
+/search - поиск по CAS
+"""
+    if is_admin_chat(chat_id):
+        text += """\n== Админам ==
+/digest - загрузить все shared
+/purge_handler - очистка бд (только админам)
+/dump - дамп базы данных (присылает в лс зип-дамп)
+/blacklist_update - заполнение базы блеклиста и обсчет. команда выполняется асинхронно
+"""
+    return text
 
 
 LIST_OF_ADMINS = [336091411, 122267418, 588927967, 47390523]  # tg id's 336091411, 122267418, 588927967, 47390523

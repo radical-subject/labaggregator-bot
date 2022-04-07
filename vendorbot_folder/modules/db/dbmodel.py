@@ -19,7 +19,9 @@ class UsersCollection:
 
     def update_user(self, user_id: int, user_data):
         logger.info(f"user {user_id} update data: {user_data}")
-        result = self.collection.update({"user_id": user_id}, {"$set": user_data}, upsert=True)
+        if '_id' in user_data:
+            del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
+        result = self.collection.update_one({"user_id": user_id}, {"$set": user_data}, upsert=True)
         logger.info(f"user {user_id} updated")
         return result
 

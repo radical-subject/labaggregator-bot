@@ -13,6 +13,9 @@ from modules.ourbot.handlers.manage_dialog import Manage
 
 
 #def error_callback(update, context):
+#    """
+#    Унылый диалог - просто выводит сообщение и строку ошибки без трейслога
+#    """
 #    logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 
@@ -44,7 +47,7 @@ class BotObject:
         self.updater.idle(stop_signals=(SIGINT, SIGIOT, SIGPIPE))
 
     def update_dispatcher(self):
-#        self.dispatcher.add_error_handler(error_callback)
+        #self.dispatcher.add_error_handler(error_callback)
 
         self.initial.register_handler(self.dispatcher)
         self.admin.register_handler(self.dispatcher)
