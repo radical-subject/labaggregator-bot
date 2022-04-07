@@ -1,16 +1,21 @@
 import logging
-
-log_level = logging.DEBUG
+import sys
+log_level = logging.INFO
 
 
 class Logger(object):
     def __init__(self):
+        log = logging.getLogger('')
+        log.setLevel(log_level)
+
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-        console = logging.StreamHandler()
-        console.setLevel(logging.DEBUG)
-        console.setFormatter(formatter)
-        logging.getLogger('').addHandler(console)
+        console = sys.stderr
+        if console is not None:
+            console = logging.StreamHandler(console)
+            console.setLevel(log_level)
+            console.setFormatter(formatter)
+            log.addHandler(console)
 
 Logger()
 
