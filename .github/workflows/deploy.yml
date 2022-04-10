@@ -23,9 +23,7 @@ jobs:
         KEY: ${{ secrets.SSHKEY }}
       with:
         source: "."
-        target: "/home/vpn/labaggregator2022"
-
-# "/home/${{ secrets.USERNAME }}/labaggregator2022"
+        target: "/home/${{ secrets.USERNAME }}/labaggregator2022"
 
     - name: create env file
       uses: appleboy/ssh-action@master
@@ -37,9 +35,7 @@ jobs:
         script: |    # 1я переменная с >, остальные с >>
           cd ./labaggregator2022
           touch .env
-          echo BOT_TOKEN=5284411350:AAFIhX3kOEJE89idoa8BH-7tsPnHNwIPaUA > .env
-
-# echo BOT_TOKEN=${{ secrets.DEVELOPMENT_BOT_TOKEN }} > .env
+          echo BOT_TOKEN=${{ secrets.DEVELOPMENT_BOT_TOKEN }} > .env
 
     - name: Docker-compose build & up
       uses: appleboy/ssh-action@master
