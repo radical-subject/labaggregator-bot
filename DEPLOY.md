@@ -4,7 +4,7 @@
 
 При коммите в ветку deploy GitHub Actions 
 запускают скрипты которые обновляют git, 
-копируют файлы на VPS и перезапукают докер
+копируют файлы на VPS и перезапукают докер.
 
 
 ## Настройка виртуального сервера VPS 
@@ -27,6 +27,11 @@ sudo usermod -aG docker $USER
 sudo systemctl enable docker.service
 sudo systemctl enable containerd.service
 ```
+
+### Настраиваем swap
+
+https://www.digitalocean.com/community/tutorials/how-to-add-swap-space-on-ubuntu-16-04
+
 
 ## Настройка GitHub Actions
 
@@ -73,3 +78,12 @@ b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAACFwAAAAdzc2gtcn
 
 имя переменной: SSHKEY
 
+
+# Ошибки
+
+### Первый запуск
+```
+err: The command '/bin/sh -c conda env create -f env.yml' returned a non-zero code: 137
+err: Service 'vendorbot_service' failed to build : Build failed
+```
+- не хватает памяти. нужно сделать swap файл. я сделал на 4Гб. Возможно и 2Гб хватит.
