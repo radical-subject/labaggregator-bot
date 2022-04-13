@@ -40,7 +40,7 @@ BOT_TOKEN=<token>
 ## Запуск юниттестов
 
 ```
-docker-compose -f docker-compose.pytest.yml up --build --abort-on-container-exit
+docker-compose -f docker-compose.yml -f docker-compose.pytest.yml up --build --abort-on-container-exit
 ```
 
 or 

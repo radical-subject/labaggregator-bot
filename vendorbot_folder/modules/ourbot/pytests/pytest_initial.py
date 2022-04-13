@@ -12,7 +12,6 @@ def test_start(bot, user, admin):
     message = user.get_message()
 
     assert message
-
     answer = message['text']
 
     assert 'Рады тебя видеть, мхехе.' in answer, answer
@@ -29,7 +28,6 @@ def test_start(bot, user, admin):
     message = admin.get_message()
 
     assert message
-
     answer = message['text']
 
     assert 'Рады тебя видеть, мхехе.' in answer, answer
@@ -39,3 +37,13 @@ def test_start(bot, user, admin):
 
     for a in admin_commands:
         assert a in answer
+
+
+def test_help(bot, user):
+
+    user.send_command('/help')
+
+    message = user.get_message()
+
+    assert message
+    assert 'Добро пожаловать' in message['text']

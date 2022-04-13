@@ -94,6 +94,9 @@ class Admin(Handlers):
 
             context.bot.send_document(chat_id, f)
 
+        else:
+            update.message.reply_text(f'Ничего нет')
+
     @is_admin
     def dump(self, update: Update, context: CallbackContext):
         """
