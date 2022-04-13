@@ -5,7 +5,6 @@ from modules.ourbot.ourbot import BotObject
 from telegram_bot_unittest.routes import TELEGRAM_URL
 from telegram_bot_unittest.core import core
 from telegram_bot_unittest.user import BOT_TOKEN, Tester, UserBase, ChatBase
-from telegram_bot_unittest.fixtures import u
 from modules.ourbot.handlers.helpers import LIST_OF_ADMINS
 
 

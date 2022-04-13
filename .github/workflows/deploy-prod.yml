@@ -1,9 +1,9 @@
-name: Deploy
+name: Deploy production (now dummy)
 
 on:
   push:
     branches:
-    - deploy
+    - master
 
 jobs:
 
@@ -23,7 +23,7 @@ jobs:
         KEY: ${{ secrets.SSHKEY }}
       with:
         source: "."
-        target: "/home/${{ secrets.USERNAME }}/labaggregator2022-${GITHUB_REF##*/}"
+        target: "/home/${{ secrets.USERNAME }}/labaggregator2022"
 
     - name: create env file
       uses: appleboy/ssh-action@master
@@ -33,9 +33,9 @@ jobs:
         key: ${{ secrets.SSHKEY }}
         script_stop: true
         script: |    # 1я переменная с >, остальные с >>
-          cd ./labaggregator2022-${GITHUB_REF##*/}
+          cd ./labaggregator2022
           touch .env
-          echo BOT_TOKEN=${{ secrets.DEVELOPMENT_BOT_TOKEN }} > .env
+          echo BOT_TOKEN=${{ secrets.DUMMY_BOT_TOKEN }} > .env
 
     - name: Docker-compose build & up
       uses: appleboy/ssh-action@master
@@ -45,6 +45,6 @@ jobs:
         key: ${{ secrets.SSHKEY }}
         script_stop: true
         script: |
-          cd ./labaggregator2022-${GITHUB_REF##*/}
+          cd ./labaggregator2022
           docker-compose build
           docker-compose up -d
