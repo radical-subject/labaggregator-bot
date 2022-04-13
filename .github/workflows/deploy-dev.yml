@@ -37,6 +37,10 @@ jobs:
           touch .env
           echo BOT_TOKEN=${{ secrets.DEVELOPMENT_BOT_TOKEN }} > .env
 
+    - name: Test with pytest
+      run: |
+        pytest
+
     - name: Docker-compose build & up
       uses: appleboy/ssh-action@master
       with:
