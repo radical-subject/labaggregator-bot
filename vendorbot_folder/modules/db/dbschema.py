@@ -28,6 +28,14 @@ def reagent_name(r):
         return r['reagent_name']
 
 
+def reagent_CAS(r):
+    """
+    У нас может быть что-то не заполнено (?)
+    """
+    if 'CAS' in r and r['CAS']:
+        return r['CAS']
+
+
 def reagent_contact(user, reagent):
     if 'contact' in reagent and reagent['contact']:
         return reagent['contact']
