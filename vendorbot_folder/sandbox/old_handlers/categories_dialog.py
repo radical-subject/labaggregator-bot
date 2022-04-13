@@ -1,11 +1,10 @@
 import logging
 
-from faker import Faker
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Filters, CallbackContext, CommandHandler, MessageHandler, ConversationHandler
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors
+from modules.ourbot.handlers.decorators import log_errors
 from modules.db import dbmodel, dbschema
 
 logger = logging.getLogger(__name__)

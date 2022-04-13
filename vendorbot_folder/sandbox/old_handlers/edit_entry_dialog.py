@@ -1,12 +1,11 @@
 import logging
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler)
+from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler)
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors
-from modules.db import dbmodel, dbschema
-from decimal import *
+from modules.ourbot.handlers.decorators import log_errors
+from modules.db import dbmodel
 
 from modules.db.dbmodel import get_timerdata_object
 

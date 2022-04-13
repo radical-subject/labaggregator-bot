@@ -4,7 +4,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler)
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors
+from modules.ourbot.handlers.decorators import log_errors
 from modules.db import dbmodel, dbschema
 from modules.ourbot.service.timer import Timer, TimerError
 from decimal import *
@@ -57,7 +57,7 @@ class TimerDialog(Handlers):
         query.answer()
         if query.data.startswith('TIMER'):
             command = query.data.split(':')[1]
-            assert(command == "PAUSE", "wrong callback query data in timer_pause()")
+            assert command == "PAUSE", "wrong callback query data in timer_pause()"
 
         sent_message = update.callback_query.message
         t = context.user_data["timer_object"]
@@ -94,7 +94,7 @@ class TimerDialog(Handlers):
         query.answer()
         if query.data.startswith('TIMER'):
             command = query.data.split(':')[1]
-            assert(command == "RESUME", "wrong callback query data in timer_pause()")
+            assert command == "RESUME", "wrong callback query data in timer_pause()"
 
         sent_message = update.callback_query.message
         t = context.user_data["timer_object"]
@@ -130,7 +130,7 @@ class TimerDialog(Handlers):
         query.answer()
         if query.data.startswith('TIMER'):
             command = query.data.split(':')[1]
-            assert(command == "STOP", "wrong callback query data in timer_pause()")
+            assert command == "STOP", "wrong callback query data in timer_pause()"
 
         sent_message = update.callback_query.message
         t = context.user_data["timer_object"]

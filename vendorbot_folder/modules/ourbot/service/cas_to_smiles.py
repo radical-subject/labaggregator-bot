@@ -28,10 +28,10 @@ def cas_to_smiles(cas: str):
     try:
         # log.info(f'Processing... {cas}')
         res = cirpy_smiles_resolve(cas)
-        if res == None:
+        if not res:
             return pubchempy_smiles_resolve(cas)
-        else:
-            return res
+
+        return res
     except Exception as err:
         # log.error(f'{cas}: cirpy_smiles_resolve error: {err}')
         return pubchempy_smiles_resolve(cas)

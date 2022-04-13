@@ -12,10 +12,10 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=root # 
       - MONGO_INITDB_ROOT_PASSWORD=dr5[gnhn # 
       - MONGO_INITDB_DATABASE=admin
-      - MONGO_VENDORBOT_DATABASE=vendorbot_db  
+      - MONGO_VENDORBOT_DATABASE=vendorbot_db
       - MONGO_BOT_USERNAME=bot
       - MONGO_BOT_PASSWORD=botpsswd
-      - BOT_TOKEN=${PRODUCTION_BOT_TOKEN}
+      - BOT_TOKEN=${BOT_TOKEN}
     depends_on:
       - mongodb_api
     volumes:

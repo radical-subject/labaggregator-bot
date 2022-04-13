@@ -1,0 +1,15 @@
+version: '3.7'
+
+services:
+  vendorbot_service:
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: "no"
+    command:  conda run -n vendorbot_env --no-capture-output pytest --cov=.
+
+  mongodb_api:
+    restart: "no"
+
+volumes:
+    mongodb_api:
+    mongo_dumps:

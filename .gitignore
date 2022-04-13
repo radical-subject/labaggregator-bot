@@ -132,4 +132,5 @@ dmypy.json
 
 node_modules
 secrets/
-.idea/workspace.xml
+.idea
+.env

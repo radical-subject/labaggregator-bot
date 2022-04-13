@@ -1,0 +1,15 @@
+python-telegram-bot
+
+
+#
+
+pymongo
+cirpy
+pubchempy
+
+#Pandas   # только для csv
+
+
+# pytest
+pytest
+conv
