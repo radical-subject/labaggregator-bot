@@ -2,7 +2,7 @@
 from modules.ourbot.service.helpers import is_CAS_number
 
 
-def test_is_CAS_number():
+def test_is_cas_number():
     assert is_CAS_number('75-64-9')
     assert is_CAS_number('120-46-7')
 
