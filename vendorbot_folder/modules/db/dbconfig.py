@@ -18,7 +18,8 @@ MONGO_TEST_DBNAME = 'test_db'
 db_client = pymongo.MongoClient(MONGO_URL,
                                 username=MONGO_BOT_USERNAME,
                                 password=MONGO_BOT_PASSWORD,
-                                authSource="admin")
+                                authSource="admin",
+                                connectTimeoutMS=5)
 
 
 vendorbot_db = MongoDriver(MONGO_URL, MONGO_BOT_USERNAME, MONGO_BOT_PASSWORD, MONGO_VENDORBOT_DATABASE)

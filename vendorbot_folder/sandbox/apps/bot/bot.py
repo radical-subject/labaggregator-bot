@@ -12,14 +12,7 @@ def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
 
     update.message.reply_text(
-        f"""Привет, {user.first_name}! 👩🏻‍💻 
-Рады тебя видеть, мхехе.
-Доступны следующие команды:
-/start - приветствие 
-/manage - прислать список 
-/search - поиск по компонентам
-/dump - присылает в лс зип-дамп базы данных
-""",
+        f"""Привет""",
         parse_mode=ParseMode.HTML)
 
     #todo db.add_user(...)

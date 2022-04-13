@@ -101,6 +101,7 @@ class Manage(Handlers):
         """
         handler for terminating all dialog sequences
         """
+        chat_id = update.message.chat_id
         update.message.reply_text(bot_commands_text(chat_id))
 
         context.chat_data.clear()

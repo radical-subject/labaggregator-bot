@@ -21,13 +21,13 @@ from modules.ourbot.handlers.manage_dialog import Manage
 
 class BotObject:
 
-    def __init__(self, token: str, **db_instances):
+    def __init__(self, token: str, base_url: str = None, **db_instances):
         logger.info('Bot initialization... __init__ in BotObject...')
         self.token = token
 
         num_threads = 10
         request = Request(con_pool_size=num_threads + 4)
-        self.bot = Bot(self.token, request=request)
+        self.bot = Bot(self.token, base_url, request=request)
         self.updater = Updater(bot=self.bot, workers=num_threads)
 
         self.dispatcher = self.updater.dispatcher
@@ -44,7 +44,7 @@ class BotObject:
         logger.info('Starting bot...')
         self.update_dispatcher()
         self.updater.start_polling()
-        self.updater.idle(stop_signals=(SIGINT, SIGIOT, SIGPIPE))
+        self.updater.idle(stop_signals=(SIGINT, SIGIOT, SIGPIPE))  # TODO зачем другие сигналы?
 
     def update_dispatcher(self):
         #self.dispatcher.add_error_handler(error_callback)
