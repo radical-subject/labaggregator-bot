@@ -101,6 +101,12 @@ Also nginx will be needed for ssl/tls in future development.
 vendorbot_container is place where all chemoinformatics (except draw-input by ketcher) is done. For now it is done by mongo-rdkit chemoinformatics data cartridge. 
 
 We look forward to migrate to postgresql catridge published by Timur Madzhidov in nearest future: it is because our web application is based on Express+React+Postgresql.
+
+## gitflow
+1. берем задачу из трелло. 
+2. делаем форк основного репозитория от dev
+3. работаем у себя локально, когда доделали задачу - оформляем pull request
+4. владелец репозитория мерджит пул реквест в дев. 
+
 ## Further Info
 - look into DEVNOTES.md for raw details and notes on development process
-- also look into gitflow-README.md to get aqcuainted with command development rules
