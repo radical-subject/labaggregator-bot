@@ -23,7 +23,7 @@ jobs:
         KEY: ${{ secrets.DEVELOPMENT_SSHKEY }}
       with:
         source: "."
-        target: "/home/${{ secrets.USERNAME }}/labaggregator2022-dev"
+        target: "/home/${{ secrets.DEVELOPMENT_USERNAME }}/labaggregator2022-dev"
 
     - name: create env file
       uses: appleboy/ssh-action@master
