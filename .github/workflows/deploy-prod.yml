@@ -18,9 +18,9 @@ jobs:
     - name: Copy repository contents via scp
       uses: appleboy/scp-action@master
       env:
-        HOST: ${{ secrets.HOST }}
-        USERNAME: ${{ secrets.USERNAME }}
-        KEY: ${{ secrets.SSHKEY }}
+        HOST: ${{ secrets.PRODUCTION_HOST }}
+        USERNAME: ${{ secrets.PRODUCTION_USERNAME }}
+        KEY: ${{ secrets.PRODUCTION_SSHKEY }}
       with:
         source: "."
         target: "/home/${{ secrets.USERNAME }}/labaggregator2022"
@@ -28,9 +28,9 @@ jobs:
     - name: create env file
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSHKEY }}
+        host: ${{ secrets.PRODUCTION_HOST }}
+        username: ${{ secrets.PRODUCTION_USERNAME }}
+        key: ${{ secrets.PRODUCTION_SSHKEY }}
         script_stop: true
         script: |    # 1я переменная с >, остальные с >>
           cd ./labaggregator2022
@@ -40,9 +40,9 @@ jobs:
     - name: Docker-compose build & up
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSHKEY }}
+        host: ${{ secrets.PRODUCTION_HOST }}
+        username: ${{ secrets.PRODUCTION_USERNAME }}
+        key: ${{ secrets.PRODUCTION_SSHKEY }}
         script_stop: true
         script: |
           cd ./labaggregator2022
