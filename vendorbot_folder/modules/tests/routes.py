@@ -78,7 +78,17 @@ def sendMessage(token: str):
 
 def start_server():
     s = waitress.create_server(app, host=HOST, port=PORT)
-    t = threading.Thread(target=s.run)
+
+    def run(s):
+        try:
+            s.run()
+        except Exception as err:
+            logger.error(err)
+        del s
+        logger.info("server deleted")
+
+    t = threading.Thread(target=run, args=(s,))
+    t.daemon = True
     t.start()
     return s, t
 
@@ -87,9 +97,11 @@ def shutdown_server(s, t):
     logger.info('start close server')
     s.close()
     logger.info('server closed')
+
     if t.is_alive():
         logger.info('start join thread')
         t.join(timeout=2.0)
+        logger.info('thread joined')
 
 
 if __name__ == "__main__":

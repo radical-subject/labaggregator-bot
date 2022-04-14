@@ -1,6 +1,6 @@
 import logging
 import sys
-log_level = logging.INFO
+log_level = logging.DEBUG
 
 
 class Logger(object):
