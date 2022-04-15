@@ -1,5 +1,11 @@
+import os
+import logging
 from typing import Dict
 from telegram import User, Chat
+from .storage import DocumentBase, storage
+
+logger = logging.getLogger(__file__)
+
 
 BOT_ID = 5000000000
 
@@ -74,3 +80,19 @@ class Tester:
         messages = self.core.get_updates(self.user.id, timeout)
         if messages:
             return messages[0]['message']
+
+    def send_file(self, dir: str, file_name: str) -> None:
+
+        try:
+            document = DocumentBase(dir, file_name)
+            storage.add(document['file_id'], document)
+
+            self.core.user_send(virtual_bot.id,
+                                user_from=self.user.to_dict(),
+                                chat=self.chat.to_dict(),
+                                document=document.to_dict()
+                                )
+
+        except Exception as err:
+            logger.error(err)
+

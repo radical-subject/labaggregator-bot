@@ -14,13 +14,6 @@ def now() -> int:
     return int((datetime.utcnow() - epoch).total_seconds())
 
 
-def result_ok(result: List, ok: bool = True) -> Dict:
-    return {
-            "ok": ok,
-            "result": result
-    }
-
-
 class TelegramCore:
 
     def __init__(self):
@@ -32,15 +25,19 @@ class TelegramCore:
         if id not in self.income:
             self.income[id] = Queue()
 
-    def user_send(self, bot_id, user_from, chat, text) -> Dict:
+    def user_send(self, bot_id, user_from, chat, text: str = None, document = None) -> Dict:
 
         self._message_counter += 1
         message = {'message_id': self._message_counter,
                    'from': user_from,
                    'chat': chat,
-                   'date': now(),
-                   'text': text
+                   'date': now()
                    }
+        if text:
+            message.update({'text': text})
+
+        if document:
+            message.update({'document': document})
 
         self.init_queue(bot_id)
         self.income[bot_id].put(message)

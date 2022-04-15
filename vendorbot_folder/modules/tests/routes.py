@@ -2,10 +2,11 @@ import logging
 import json
 import threading
 import waitress
-from flask import Flask, request, make_response
-
+from typing import List, Dict
+from flask import Flask, request, make_response, send_file
 from flask import json
-from .core import result_ok, core
+from .core import core
+from .storage import storage, FileBase
 from .user import virtual_bot
 
 logger = logging.getLogger(__name__)
@@ -15,6 +16,13 @@ app = Flask(__name__)
 HOST = '127.0.0.1'
 PORT = 5555
 TELEGRAM_URL = f'http://{HOST}:{PORT}/'
+
+
+def result_ok(result: List, ok: bool = True) -> Dict:
+    return {
+            "ok": ok,
+            "result": result
+    }
 
 
 def server_response(data):
@@ -74,6 +82,30 @@ def sendMessage(token: str):
                         )
 
     return server_response(ret)
+
+
+@app.route('/<token>/getFile', methods=['POST'])
+def getFile(token: str):
+
+    data = request.get_json()
+    file_id = data['file_id']
+
+    document = storage.get(file_id)
+    if document:
+        file = FileBase(document,
+                        file_path=f'file/{file_id}')
+
+        return server_response(file.to_dict())
+
+    return result_ok([], False)
+
+
+@app.route('/<token>/file/<file_id>', methods=['GET'])
+def file(token: str, file_id: str):
+
+    document = storage.get(file_id)
+
+    return send_file(document.local_path, as_attachment=True)
 
 
 def start_server():

@@ -27,7 +27,7 @@ class BotObject:
 
         num_threads = 10
         request = Request(con_pool_size=num_threads + 4)
-        self.bot = Bot(self.token, base_url, request=request)
+        self.bot = Bot(self.token, base_url, base_url, request=request)
         self.updater = Updater(bot=self.bot, workers=num_threads)
 
         self.dispatcher = self.updater.dispatcher
