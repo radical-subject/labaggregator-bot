@@ -3,6 +3,8 @@ def test_start(bot, user, admin):
     """
     Проверим какие команды показываются обычному юзеру, а какие админу
     """
+    user.init_dialog()
+    admin.init_dialog()
 
     user_commands = ['/start', '/help', '/manage', '/search']
     admin_commands = ['/digest', '/dump', '/purge_handler', '/blacklist_update']
@@ -24,7 +26,6 @@ def test_start(bot, user, admin):
 
     #
     admin.send_command('/start')
-
     message = admin.get_message()
 
     assert message
@@ -40,6 +41,7 @@ def test_start(bot, user, admin):
 
 
 def test_help(bot, user):
+    user.init_dialog()
 
     user.send_command('/help')
 

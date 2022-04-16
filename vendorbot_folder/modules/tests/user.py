@@ -60,6 +60,14 @@ class Tester:
         self.user = user
         self.chat = chat
 
+    def init_dialog(self):
+        self.send_command('/start')
+        self.clean_dialog()
+
+    def clean_dialog(self):
+        while self.get_message(timeout=0.5):
+            pass
+
     def send_message(self, text: str) -> None:
 
         self.core.user_send(virtual_bot.id,
