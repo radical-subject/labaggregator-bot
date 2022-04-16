@@ -5,7 +5,8 @@ def test_digest(purge_users_collection: None,  # очищаем БД
 
     user.send_command('/digest')
 
-    assert not user.get_message()
+    message = admin.get_message()
+    assert not message, f'/digest только для администраторов, {message}'
 
     admin.send_command('/digest')
 
