@@ -105,6 +105,7 @@ class Inital(Handlers):
     def register_handler(self, dispatcher):
         
         dispatcher.add_handler(CommandHandler('help', self.help_command))
+        dispatcher.add_handler(CommandHandler('start', self.start))
 
         self.conversation_handler = ConversationHandler(
             entry_points=[CommandHandler('start', self.start),],
@@ -116,4 +117,4 @@ class Inital(Handlers):
             fallbacks=[MessageHandler(Filters.regex("CANCEL_REGEXP"), self.help_command)],
         )
         
-        dispatcher.add_handler(self.conversation_handler, 1)
+        #dispatcher.add_handler(self.conversation_handler, 1)
