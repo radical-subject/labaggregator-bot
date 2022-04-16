@@ -7,7 +7,7 @@ from modules.ourbot.logger import logger
 from telegram import (ReplyKeyboardMarkup, KeyboardButton, ParseMode)
 
 from telegram import Update, InlineKeyboardMarkup
-from telegram.ext import CallbackContext, CommandHandler, ConversationHandler
+from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, MessageHandler, Filters
 
 from modules.db.dbschema import UserReagents
         
@@ -22,6 +22,7 @@ class JSONEncoder(json.JSONEncoder):
             return str(o)
         return json.JSONEncoder.default(self, o)
 
+REQUESTED_CONTACT_STATE = "INITIAL:GET_CONTACT"
 
 class Inital(Handlers):
 
@@ -33,6 +34,7 @@ class Inital(Handlers):
 
     def __init__(self, bot, db_instances):
         super().__init__(db_instances)
+        self.bot = bot
 
     def start(self, update: Update, context: CallbackContext):
         """
@@ -52,6 +54,13 @@ class Inital(Handlers):
         #TODO А давай писать, если не заполнено user_info.username, то и поиском пользоваться нельзя?
         # иначе мы только по номеру диалога будем знать чей реактив, либо по номеру мобилки
 
+        if user_info.username == None:
+        
+            reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]])
+            self.bot.sendMessage(chat_id, 'You havent set up your username. You will not be able to use sharing. Please share your contact to proceed:', reply_markup=reply_markup)
+
+            return REQUESTED_CONTACT_STATE
+
         # запись данных юзера в БД
         userdata = {
             "_id": user_info.id,
@@ -70,6 +79,18 @@ class Inital(Handlers):
         context.chat_data.clear()
         context.user_data.clear()
 
+        return -1
+
+    def get_contact(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+        phone_number = update.message.contact.phone_number
+        logger.info(phone_number)
+        
+        reply_markup = ReplyKeyboardMarkup([])
+        self.bot.sendMessage(chat_id, 'Thanks.', reply_markup=reply_markup)
+        
+        return -1
+
     def help_command(self, update: Update, context: CallbackContext):
         """Send a message when the command /help is issued."""
         update.message.reply_text("""
@@ -82,5 +103,17 @@ class Inital(Handlers):
         """, parse_mode=ParseMode.HTML)
 
     def register_handler(self, dispatcher):
-        dispatcher.add_handler(CommandHandler('start', self.start))
+        
         dispatcher.add_handler(CommandHandler('help', self.help_command))
+
+        self.conversation_handler = ConversationHandler(
+            entry_points=[CommandHandler('start', self.start),],
+            states={
+                REQUESTED_CONTACT_STATE: [
+                    MessageHandler(Filters.contact, self.get_contact)
+                ],
+            },
+            fallbacks=[MessageHandler(Filters.regex("CANCEL_REGEXP"), self.help_command)],
+        )
+        
+        dispatcher.add_handler(self.conversation_handler, 1)
