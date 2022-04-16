@@ -17,26 +17,27 @@ CHAT_ID = 1
 class UserBase(User):
 
     def __init__(self, id: int = CHAT_ID):
+        logging.info(f'create UserBase={id}')
         super().__init__(
             id,  # id
-            'FN',  # first_name
+            'FirstName',  # first_name
             False,  # is_bot
-            'LN',  # last_name
-            'user1',  # username
+            'LastName',  # last_name
+            f'user{id}',  # username
             'ru'  # language_code
         )
 
 
 class ChatBase(Chat):
 
-    def __init__(self, id: int = CHAT_ID):
+    def __init__(self, user: UserBase):
         super().__init__(
-            id,
+            user.id,
             'private',  # type
             None,  # title
-            'user1',  # username
-            'FN',  # first_name
-            'LN',  # last_name
+            user.username,
+            user.first_name,
+            user.last_name,
         )
 
 
