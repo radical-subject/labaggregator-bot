@@ -9,6 +9,14 @@
 
 ## Настройка виртуального сервера VPS 
 
+### Настраиваем swap
+
+https://www.digitalocean.com/community/tutorials/how-to-add-swap-space-on-ubuntu-16-04
+
+### Ставим на сервер docker-engine
+
+https://docs.docker.com/engine/install/ubuntu/
+
 ### Ставим на сервер docker-compose
 
 https://docs.docker.com/compose/install/
@@ -27,10 +35,6 @@ sudo usermod -aG docker $USER
 sudo systemctl enable docker.service
 sudo systemctl enable containerd.service
 ```
-
-### Настраиваем swap
-
-https://www.digitalocean.com/community/tutorials/how-to-add-swap-space-on-ubuntu-16-04
 
 
 ## Настройка GitHub Actions

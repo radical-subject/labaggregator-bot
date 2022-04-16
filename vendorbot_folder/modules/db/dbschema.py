@@ -28,6 +28,14 @@ def reagent_name(r):
         return r['reagent_name']
 
 
+def reagent_CAS(r):
+    """
+    У нас может быть что-то не заполнено (?)
+    """
+    if 'CAS' in r and r['CAS']:
+        return r['CAS']
+
+
 def reagent_contact(user, reagent):
     if 'contact' in reagent and reagent['contact']:
         return reagent['contact']
@@ -111,7 +119,6 @@ class UserReagents:
         if not CAS_list:
             return
 
-        input_lines_number = len(CAS_list)
         CAS_checker_out = self.create_new_list_reagents(CAS_list)
         
         try:
@@ -123,7 +130,7 @@ class UserReagents:
         blacklist_filter_result = self.blacklist_filter(client, db_instance) # фильтрация структур
 
         return {
-            "input_lines_number": input_lines_number,
+            "input_lines_number": len(CAS_list),
             "valid_CAS_numbers": CAS_checker_out[0], 
             "failed_CAS_check_number": CAS_checker_out[1],
             "SMILES_not_found": SMILES_resolver_result["SMILES_not_found"],

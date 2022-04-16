@@ -1,16 +1,26 @@
+
 import pytest
-
-from modules.ourbot.logger import logger
-from modules.db.dbconfig import db_client, MONGO_TEST_DBNAME
-from modules.db.dbmodel import UsersCollection
-
-
-@pytest.fixture
-def purge_users_collection() -> None:
-    db_client[MONGO_TEST_DBNAME].drop_collection('users_collection')
-    logger.info(f"fixture purge: users_collection cleaned.")
+import logging
+logger = logging.getLogger(__name__)
+from .routes import start_server, shutdown_server
+from .user import Tester, UserBase, ChatBase
+from .core import core
 
 
-@pytest.fixture
-def users_collection() -> UsersCollection:
-    return UsersCollection(db_client, MONGO_TEST_DBNAME)
+u = UserBase()
+chat = ChatBase()
+
+
+@pytest.fixture(scope='session')
+def user() -> Tester:
+    user = Tester(core, u, chat)
+    return user
+
+
+@pytest.fixture(scope='session')
+def telegram_server():
+    s, t = start_server()
+    logger.info('telegram server started')
+    yield
+    logger.info('telegram server shutdown begin')
+    shutdown_server(s, t)
