@@ -118,4 +118,4 @@ class Admin(Handlers):
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
         dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=True))
         dispatcher.add_handler(CommandHandler('blacklist_update', self.update_rdkit_db_blacklist_handler, run_async=True))
-        dispatcher.add_handler(CommandHandler('digest', self.digest, run_async=True))
+        dispatcher.add_handler(CommandHandler('digest', self.digest))
