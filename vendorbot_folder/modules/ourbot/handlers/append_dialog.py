@@ -12,6 +12,7 @@ from modules.ourbot.handlers.helpers import bot_commands_text, CONV_APPEND, APPE
 from .manage_dialog import get_contact_from_cas_file
 
 import logging
+import traceback
 logger = logging.getLogger(__name__)
 
 
@@ -57,7 +58,7 @@ class Append(Handlers):
                 update.message.reply_text("Это почему тебя нет в БД?! Тыкни /start")
                 return ConversationHandler.END
 
-            user_reagents_object = UserReagents()
+            user_reagents_object = UserReagents(**user)
 
             cas_list = get_txt_content(update, context)
 
@@ -75,11 +76,11 @@ class Append(Handlers):
 
             users_collection.update_user(user_id, data)
 
-            sent_message = text_report + f"""Итого: импортировано в базу <b>{len(reagents)}</b> реагентов.
-                                             В вашей базе сейчас: <b>{len(user_reagents_object.user_reagents)}</b> реагентов."""
+            sent_message = text_report + f"""Итого: импортировано в базу <b>{len(reagents)}</b> реагентов.\
+В вашей базе сейчас: <b>{len(user_reagents_object.user_reagents)}</b> реагентов."""
 
         except Exception as err:
-            logger.error(err)
+            logger.error(traceback.format_exc())
             sent_message = "Ошибка обработки, лаборанты уже разбужены!"
 
         update.message.reply_text(sent_message, parse_mode=ParseMode.HTML)

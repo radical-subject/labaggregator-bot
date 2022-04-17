@@ -101,7 +101,6 @@ class Inital(Handlers):
             "phone_number": phone_number
         }
 
-        
         if not users_collection.get_user(user_info.id):
             users_collection.add_user(userdata)
         else:

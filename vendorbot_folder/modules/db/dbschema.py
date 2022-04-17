@@ -68,14 +68,15 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
         })
 
     return reagents, f"""file was successfully parsed and uploaded.
-    <b>import results</b>:
-    Строк в вашем списке: <b>{len(cas_list)}</b>
-    Правильных CAS-номеров: <b>{len(valid_cas_list)}</b>
-    Опечатка в CAS: <b>{", ".join(failed_cas)}</b>
-    Не найдено SMILES для: <b>{len(valid_cas_list) - len(cas_smiles_list)}</b> позиций
-    Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов
-    Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}</b>
-    """
+<b>import results</b>:
+Строк в вашем списке: <b>{len(cas_list)}</b>
+Правильных CAS-номеров: <b>{len(valid_cas_list)}</b>
+Опечатка в CAS: <b>{", ".join(failed_cas)}</b>
+Не найдено SMILES для: <b>{len(valid_cas_list) - len(cas_smiles_list)}</b> позиций
+Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов
+Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}</b>
+"""
+
 
 class UserReagents:
     """

@@ -47,20 +47,27 @@ def pubchempy_get_smileses(name: str):
     r = requests.post('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/JSON',
                       data=f'name={name}',
                       timeout=10.0)
-    assert r.ok
+    assert r.ok, f"pubchempy_get_smileses({name}) http error"
 
     j = r.json()
 
     smiles = []
-    pc_compounds = j['PC_Compounds']
-    for compound in pc_compounds:
-        for prop in compound['props']:
-            if prop['urn']['label'] == 'SMILES':
-                smiles.append(prop['value']['sval'])
+    if 'PC_Compounds' in j:
+        for compound in j['PC_Compounds']:
+            if 'props' in compound:
+                for prop in compound['props']:
+                    if 'urn' in prop and 'label' in prop['urn']:
+                        if prop['urn']['label'] == 'SMILES':
+                            if 'value' in prop and 'sval' in prop['value']:
+                                smiles.append(prop['value']['sval'])
+                            else:
+                                logger.warning(f"pubchem: incorrect SMILES value {name}")
+                    else:
+                        logger.warning(f"pubchem: incorrect prop {name}")
+            else:
+                logger.warning(f"pubchem: no props for {name}")
 
-    smiles = list(set(smiles))  # удалим дубликаты
-
-    return smiles
+    return list(set(smiles))  # удалим дубликаты
 
 
 def pubchempy_get_smiles(name: str):
@@ -68,7 +75,9 @@ def pubchempy_get_smiles(name: str):
     :param name: reagent name (eng)
     :return: first smiles value found
     """
-    return pubchempy_get_smileses(name)[0]
+    smileses = pubchempy_get_smileses(name)
+    if smileses:
+        return smileses[0]
 
 
 def pubchempy_smiles_resolve(cas: str):
