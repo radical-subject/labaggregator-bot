@@ -1,4 +1,7 @@
 
+import uuid
+import time
+
 from telegram import Update, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
@@ -7,8 +10,12 @@ from modules.ourbot.handlers.helpers import get_txt_content
 
 from modules.db.dbmodel import users_collection
 from modules.db import dbschema
+from modules.db.blacklist import blacklist_engine
 from modules.ourbot.logger import logger
 from modules.ourbot.handlers.helpers import bot_commands_text, CONV_MANAGE, UPLOAD_STATE
+
+from modules.ourbot.service.helpers import is_cas_number
+from modules.ourbot.service.cas_to_smiles import banch_cas_to_smiles
 
 
 class Manage(Handlers):
@@ -28,10 +35,10 @@ class Manage(Handlers):
 
     def manage(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
-        logger.info(f'manage({chat_id})')
-        update.message.reply_text('Отправьте мне .txt файл со списком CAS-номеров столбиком, '
-                                  'следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\n'
-                                  'Send cas list in .txt format.',
+        logger.info(f"manage({chat_id})")
+        update.message.reply_text("Отправьте мне .txt файл со списком CAS-номеров столбиком, "
+                                  "следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\n"
+                                  "Send cas list in .txt format.",
                                   parse_mode=ParseMode.HTML)
 
         return UPLOAD_STATE
@@ -40,60 +47,84 @@ class Manage(Handlers):
         chat_id = update.message.chat_id
         user_id = update.message.from_user.id
         user_info = update.message.from_user
-        logger.info(f'getting_file({chat_id})')
+        logger.info(f"getting_file({chat_id})")
 
-        update.message.reply_text(f'Ожидайте: список обрабатывается.\nBe patient; it may take a while...')
+        update.message.reply_text(f"Ожидайте: список обрабатывается.\nBe patient; it may take a while...")
 
-        # Достаем из базы весь объект пользователя с реагентами
-        # Пользователь должен быть
-        user = users_collection.get_user(user_id)
-        if not user:
-            update.message.reply_text('Это почему тебя нет в БД?! Тыкни /start')
-            return ConversationHandler.END
+        try:
 
-        user_reagents_object = dbschema.UserReagents()
+            # Достаем из базы весь объект пользователя с реагентами
+            # Пользователь должен быть
+            user = users_collection.get_user(user_id)
+            if not user:
+                update.message.reply_text("Это почему тебя нет в БД?! Тыкни /start")
+                return ConversationHandler.END
 
-        CAS_list = get_txt_content(update, context)
+            user_reagents_object = dbschema.UserReagents()
 
-        # оставляю возможность хардкодить вручную контакт, прописывая первую строку импортируемого файла руками:
-        # в формате reagents_contact:+79265776746
-        if CAS_list and CAS_list[0] and CAS_list[0].startswith("reagents_contact:"):
-            contact = CAS_list[0].split(":")[1]
-        else:
-            if not user_info.username:
-                update.message.reply_text('Добавьте первую строку "reagents_contact:<телефон/почта>" '
-                                          'или заполните свой username')
-                return UPLOAD_STATE
+            cas_list = get_txt_content(update, context)
+
+            # оставляю возможность хардкодить вручную контакт, прописывая первую строку импортируемого файла руками:
+            # в формате reagents_contact:+79265776746
+            if cas_list and cas_list[0] and cas_list[0].startswith("reagents_contact:"):
+                contact = cas_list[0].split(":")[1]
             else:
-                contact = f'@{user_info.username}'
+                if not user_info.username:
+                    update.message.reply_text("Добавьте первую строку 'reagents_contact:<телефон/почта>' "
+                                              "или заполните свой username")
+                    return UPLOAD_STATE
+                else:
+                    contact = f"@{user_info.username}"
 
-        # импорт листа реагентов с фильтрациями
-        import_stats = user_reagents_object.add_list_of_reagents(user_info.id, contact, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
-        # экспорт JSON - не работает с pymongo! нужен dict
+            # импорт листа реагентов с фильтрациями
 
-        data = user_reagents_object.export()
+            valid_cas_list = [r for r in cas_list if is_cas_number(r)]
+            failed_cas = [r for r in cas_list if not is_cas_number(r)]
+            cas_smiles_list = banch_cas_to_smiles(valid_cas_list)
 
-        # записываем в базу объект
-        users_collection.update_user(user_id, data)
-        #mongo_query = {"user_id": user_id}
-        #dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], 'users_collection', mongo_query, data)
+            cas_smiles_whitelist = [cas_smile for cas_smile in cas_smiles_list if not blacklist_engine.is_similar(cas_smile[1])]
 
-        sent_message = f'''file was successfully parsed and uploaded.
-<b>import results</b>:
-Строк в вашем списке: <b>{import_stats["input_lines_number"]}</b>
-Правильных CAS-номеров: <b>{len(import_stats["valid_CAS_numbers"])}</b>
-Опечатка в CAS: <b>{", ".join(import_stats["failed_CAS_check_number"])}</b>
-Не найдено SMILES для: <b>{import_stats["SMILES_not_found"]}</b> позиций
-Найдено SMILES для: <b>{import_stats["SMILES_found"]}</b> реагентов
-Прекурсоров найдено и вычеркнуто: <b>{import_stats["blacklist_filter_result"]}</b>
+            reagents = []
 
-Итого: импортировано в базу <b>{import_stats["total_reagents_imported"]}</b> реагентов.
-В вашей базе сейчас: <b>{import_stats["total_reagents_count_in_DB"]}</b> реагентов.
-        '''
+            now = time.strftime("%d.%m.%Y %H:%M", time.localtime())
+
+            for cas, smiles in cas_smiles_whitelist:
+                reagents.append({
+                    "reagent_internal_id": uuid.uuid4().hex,
+                    "CAS": cas,
+                    "SMILES": smiles,
+                    "contact": contact,
+                    "sharing_status": "shared",
+                    "timestamp": now
+                })
+
+            user_reagents_object.user_reagents = reagents   # перезаписываем
+
+            data = user_reagents_object.export()
+
+            # записываем в базу объект
+            users_collection.update_user(user_id, data)
+
+            sent_message = f"""file was successfully parsed and uploaded.
+    <b>import results</b>:
+    Строк в вашем списке: <b>{len(cas_list)}</b>
+    Правильных CAS-номеров: <b>{len(valid_cas_list)}</b>
+    Опечатка в CAS: <b>{", ".join(failed_cas)}</b>
+    Не найдено SMILES для: <b>{len(valid_cas_list) - len(cas_smiles_list)}</b> позиций
+    Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов
+    Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}</b>
+    
+    Итого: импортировано в базу <b>{len(cas_smiles_whitelist)}</b> реагентов.
+    В вашей базе сейчас: <b>{len(user_reagents_object.user_reagents)}</b> реагентов.
+            """
+        except Exception as err:
+            logger.error(err)
+            sent_message = "Ошибка обработки, лаборанты уже разбужены!"
 
         update.message.reply_text(sent_message, parse_mode=ParseMode.HTML)
 
         update.message.reply_text(bot_commands_text(chat_id))
+
         return ConversationHandler.END
 
     def exit(self, update: Update, context: CallbackContext):
@@ -101,7 +132,7 @@ class Manage(Handlers):
         handler for terminating all dialog sequences
         """
         chat_id = update.message.chat_id
-        logger.info(f'manage.exit({chat_id})')
+        logger.info(f"manage.exit({chat_id})")
         update.message.reply_text(bot_commands_text(chat_id))
 
         context.chat_data.clear()
@@ -112,7 +143,7 @@ class Manage(Handlers):
     def register_handler(self, dispatcher):
 
         conv_manage = ConversationHandler(
-            entry_points=[CommandHandler('manage', self.manage)],
+            entry_points=[CommandHandler("manage", self.manage)],
             states={
                     UPLOAD_STATE: [
                         MessageHandler(Filters.attachment, self.getting_file, run_async=True)
