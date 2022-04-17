@@ -60,14 +60,14 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
 
     cas_smiles_whitelist = []
     errors = []
-    for cs in cas_smiles_list:
+    for cas, smiles in cas_smiles_list:
         try:
-            if not blacklist_engine.is_similar(cs[1]):
-                cas_smiles_whitelist.append(cs)
+            if not blacklist_engine.is_similar(smiles):
+                cas_smiles_whitelist.append((cas, smiles))
         except Exception as err:
             tb = traceback.format_exc()
-            logger.error(f"is_similar failed for ({cs}). Error: {tb}")
-            errors.append(cs)
+            logger.error(f"is_similar failed for ({cas}, {smiles}). Error: {tb}")
+            errors.append(f"({cas}, {smiles})")
 
     reagents = []
 
@@ -83,16 +83,21 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
             "timestamp": now
         })
 
-    return reagents, f"""file was successfully parsed and uploaded.
-<b>import results</b>:
-Строк в вашем списке: <b>{len(cas_list)}</b>
-Правильных CAS-номеров: <b>{len(valid_cas_list)}</b>
-Опечатка в CAS: <b>{", ".join(failed_cas)}</b>
-Не найдено SMILES для: <b>{len(no_smiles_list)}</b> позиций\n{", ".join(no_smiles_list)}\n
-Ошибка обработки SMILES: <b>{len(errors)}</b> позиций\n{", ".join(errors)}\n
-Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов
-Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}</b>
-"""
+    message = f"file was successfully parsed and uploaded.\n"
+    message += f"<b>import results</b>:\n"
+    message += f"Строк в вашем списке: <b>{len(cas_list)}</b>\n"
+    message += f"Правильных CAS-номеров: <b>{len(valid_cas_list)}</b>\n"
+    message += f"Опечатка в CAS: <b>{', '.join(failed_cas)}</b>\n"
+    message += f"Не найдено SMILES для: <b>{len(no_smiles_list)}</b> позиций\n"
+    if no_smiles_list:
+        message += f"{', '.join(no_smiles_list)}\n"
+    message += f"Ошибка обработки SMILES: <b>{len(errors)}</b> позиций\n"
+    if errors:
+        message += f"{', '.join(errors)}\n"
+    message += f"Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов\n"
+    message += f"Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}\n</b>"
+
+    return reagents, message
 
 
 class UserReagents:
