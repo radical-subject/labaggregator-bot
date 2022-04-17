@@ -71,6 +71,7 @@ class UserReagents:
         user_reagents: [
             {
                 CAS: "50-00-0",
+                SMILES: "???",
                 reagent_name: "something 4-something"
                 sharing_status: "shared"
             }
@@ -203,10 +204,10 @@ class UserReagents:
 
         return drugs_counter
 
-    def get_contacts_for_CAS(self, input_CAS):
+    def get_contacts_for_reagent(self, value):
         contacts = []
         for reagent in self.user_reagents:
-            if input_CAS in reagent.values():
+            if value in reagent.values():
                 if reagent["contact"] not in contacts:
                     contacts.append(reagent["contact"])
         return contacts

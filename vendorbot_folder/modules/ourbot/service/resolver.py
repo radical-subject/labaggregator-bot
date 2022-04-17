@@ -8,7 +8,7 @@ def get_SMILES(request_query):
     try:
         pubchem_response = pubchempy.get_compounds(request_query, "name")
         return pubchem_response[0].isomeric_smiles
-    except:
+    except Exception as err:
         return cirpy.resolve("{}".format(request_query), 'smiles')
 
 

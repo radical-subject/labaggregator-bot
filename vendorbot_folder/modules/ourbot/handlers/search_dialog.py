@@ -6,12 +6,12 @@ from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
 
 from modules.ourbot.handlers.helpers import CONV_SEARCH, SEARCH_STATE
 from modules.ourbot.handlers.handlers import Handlers
+from modules.ourbot.service.cas_to_smiles import pubchempy_get_smiles
 from modules.ourbot.service.helpers import is_CAS_number
 from modules.ourbot.logger import logger
 
 from modules.db import dbschema
 from modules.db.dbmodel import users_collection
-
 
 CANCEL_CALLBACK = str('SEARCH:CANCEL')
 
@@ -43,37 +43,50 @@ class Search(Handlers):
         chat_id = update.message.chat_id
         logger.info(f'search_cas({chat_id})')
 
+        contacts = []
+
         text = update.message.text
         if is_CAS_number(text):
             update.message.reply_text('Ищем CAS в базе шеринга...')
 
             users = users_collection.get_users_by_cas(text)
 
-            contacts = []
             for user in users:
                 user_reagents_object = dbschema.UserReagents(**user)
 
-                for contact in user_reagents_object.get_contacts_for_CAS(text):
+                for contact in user_reagents_object.get_contacts_for_reagent(text):
                     if contact not in contacts:
                         contacts.append(contact)
 
-            if contacts:
-                update.message.reply_text(f'Реагентом могут поделиться эти контакты: {", ".join(contacts)}')
-            else:
-                update.message.reply_text('Реагентом пока никто не готов поделиться.')
-
         else:
-            update.message.reply_text('Неправильный CAS номер. Попробуйте еще раз.')
+            update.message.reply_text('Не похоже на CAS. Сейчас поищем по названию...')
+            try:
+                smiles = pubchempy_get_smiles(text)
+                update.message.reply_text(f'Ищем по пользователям SMILES={smiles}')
+
+                users = users_collection.get_users_by_smiles(smiles)
+
+                for user in users:
+                    user_reagents_object = dbschema.UserReagents(**user)
+
+                    for contact in user_reagents_object.get_contacts_for_reagent(smiles):
+                        if contact not in contacts:
+                            contacts.append(contact)
+
+            except Exception as err:
+                logger.error(err)
+
+        if contacts:
+            update.message.reply_text(f'Реагентом могут поделиться эти контакты: {", ".join(contacts)}')
+        else:
+            update.message.reply_text('Реагентом пока никто не готов поделиться.')
 
         return SEARCH_STATE
 
-    def exit(self, update: Update, context: CallbackContext) -> int:
+    def exit_callback(self, update: Update, context: CallbackContext) -> int:
         """
         Выход из ветки диалога "поиск"
         """
-        chat_id = update.message.chat_id
-        logger.info(f'search.exit({chat_id})')
-
         # необходимо согласно мануалу ответить на query
         query = update.callback_query
         query.answer()
@@ -83,7 +96,7 @@ class Search(Handlers):
 
         # редактируем его меняя текст и убирая кнопку. диалог завершен.
         context.bot.edit_message_text(
-            text=f'STOPPED',
+            text=f'STOPPED',  #sent_message.text TODO я думаю тут нужно оставлять прежнее сообщение, нужно просто кнопку убрать.
             chat_id=sent_message.chat_id,
             message_id=sent_message.message_id,
             reply_markup=None,
@@ -97,13 +110,20 @@ class Search(Handlers):
 
         return ConversationHandler.END
 
+    def exit(self, update: Update, context: CallbackContext) -> int:
+
+        chat_id = update.message.chat_id
+        logger.info(f'search.exit({chat_id})')
+
+        return ConversationHandler.END
+
     def register_handler(self, dispatcher):
 
         conv_search = ConversationHandler(
             entry_points=[CommandHandler('search', self.search),],
             states={
                 SEARCH_STATE: [
-                    CallbackQueryHandler(self.exit, pattern=CANCEL_CALLBACK),
+                    CallbackQueryHandler(self.exit_callback, pattern=CANCEL_CALLBACK),
                     MessageHandler(Filters.text & ~Filters.command, self.search_cas, run_async=True)
                 ],
             },

@@ -11,7 +11,6 @@ from modules.ourbot.logger import logger
 from modules.ourbot.handlers.helpers import bot_commands_text, CONV_MANAGE, UPLOAD_STATE
 
 
-
 class Manage(Handlers):
     """
     В этом диалоговом хендлере пользователь добавляет свой список реагентов. 
