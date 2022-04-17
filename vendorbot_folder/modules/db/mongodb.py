@@ -1,5 +1,6 @@
 import pymongo
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 class MongoDriver:

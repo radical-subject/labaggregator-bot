@@ -6,7 +6,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
 
 from modules.db.dbconfig import MONGO_VENDORBOT_DATABASE, root_client
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import is_admin
 from modules.ourbot.service import mongoDumpModule
@@ -59,7 +60,7 @@ class Admin(Handlers):
 
     def purge(self):
         """
-        timerbot_client is not authorized on db to drop it.
+        vendorbot_db_client is not authorized on db to drop it.
         only root can. so, root_client and root instance is transferred as arguments to dbmodel.
         """
         root_client[MONGO_VENDORBOT_DATABASE].command("dropDatabase")

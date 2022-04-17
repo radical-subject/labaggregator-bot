@@ -1,5 +1,6 @@
 
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 from telegram import (ReplyKeyboardMarkup, KeyboardButton, ParseMode)
 
 from telegram import Update

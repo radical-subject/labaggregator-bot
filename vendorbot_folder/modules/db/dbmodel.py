@@ -1,6 +1,7 @@
 
 from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(name)
 
 
 class UsersCollection:
