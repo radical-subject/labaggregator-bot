@@ -67,7 +67,7 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
         except Exception as err:
             tb = traceback.format_exc()
             logger.error(f"is_similar failed for ({cas}, {smiles}). Error: {tb}")
-            errors.append(f"({cas}, {smiles})")
+            errors.append(f"{cas}, {smiles}")
 
     reagents = []
 
@@ -85,15 +85,15 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
 
     message = f"file was successfully parsed and uploaded.\n"
     message += f"<b>import results</b>:\n"
-    message += f"Строк в вашем списке: <b>{len(cas_list)}</b>\n"
-    message += f"Правильных CAS-номеров: <b>{len(valid_cas_list)}</b>\n"
+    message += f"Строк в вашем списке <b>{len(cas_list)}</b>\n"
+    message += f"Правильных CAS-номеров <b>{len(valid_cas_list)}</b>\n"
     message += f"Опечатка в CAS: <b>{', '.join(failed_cas)}</b>\n"
     message += f"Не найдено SMILES для: <b>{len(no_smiles_list)}</b> позиций\n"
     if no_smiles_list:
-        message += f"{', '.join(no_smiles_list)}\n"
-    message += f"Ошибка обработки SMILES: <b>{len(errors)}</b> позиций\n"
+        message += "\n".join(no_smiles_list) + "\n"
+    message += f"Ошибка обработки SMILES <b>{len(errors)}</b> позиций\n"
     if errors:
-        message += f"{', '.join(errors)}\n"
+        message += "\n".join(errors) + "\n"
     message += f"Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов\n"
     message += f"Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}\n</b>"
 
