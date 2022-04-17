@@ -111,6 +111,9 @@ class UserReagents:
                     contacts.append(reagent["contact"])
         return contacts
 
+    def add_phone_number (self, phone_number):
+        self.phone_number = phone_number
+
     def export(self):
         """
         UserReagents_export = {

@@ -1,14 +1,15 @@
 import os
+import pymongo
 import traceback
 from io import BytesIO
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackContext, CommandHandler
+from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
 
 from modules.ourbot.logger import logger
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import is_admin
 from modules.ourbot.service import mongoDumpModule
-from modules.db.dbmodel import users_collection
+from modules.db.dbmodel import users_collection, purge
 from modules.db import dbconfig, rdkitdb, dbschema
 
 
@@ -32,6 +33,37 @@ class Admin(Handlers):
             "👩🏻‍🦰 Do you really want to purge the database?",
             reply_markup=reply_markup
         )
+
+    def button_handler(self, update: Update, context: CallbackContext):
+        query = update.callback_query
+        query.answer()
+
+        if query.data.startswith('ADMIN'):
+            """
+            buttons for database purging are proceeded below
+            """
+            command = query.data.split(':')[1]
+            if command == 'YUP':
+                try:
+                    self.purge()
+                    query.edit_message_text(text=f"База очищена.\nДа поможет тебе святой Франциск!")
+                except pymongo.errors.OperationFailure:
+                    query.edit_message_text(text=f"Client is not authorized on db to drop it.")
+
+            if command == 'NOPE':
+                query.edit_message_text(text=f"Блять нахуй я сюда пришёл... а, полотенце!")
+        else:
+            # query.edit_message_text(text=f"Something wrong")
+            pass
+
+    def purge(self):
+        """
+        timerbot_client is not authorized on db to drop it.
+        only root can. so, root_client and root instance is transferred as arguments to dbmodel.
+        """
+        users_collection.drop_db() # self.root_client, self.db_instances["vendorbot_db"]
+
+
 
     @is_admin
     def update_rdkit_db_blacklist_handler(self, update: Update, context: CallbackContext):
@@ -119,3 +151,4 @@ class Admin(Handlers):
         dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=True))
         dispatcher.add_handler(CommandHandler('blacklist_update', self.update_rdkit_db_blacklist_handler, run_async=True))
         dispatcher.add_handler(CommandHandler('digest', self.digest, run_async=True))
+        dispatcher.add_handler(CallbackQueryHandler(self.button_handler))
