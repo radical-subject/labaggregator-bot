@@ -7,6 +7,9 @@ from telegram.ext import CallbackContext
 from telegram import Update
 
 
+CONV_START, CONV_MANAGE, CONV_SEARCH = range(3)
+
+
 def bot_commands_text(chat_id):
     text = """
 Доступны следующие команды:

@@ -4,21 +4,21 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardR
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
     RegexHandler, MessageHandler, CallbackQueryHandler, Filters
 
+from modules.ourbot.handlers.helpers import CONV_SEARCH
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.helpers import is_CAS_number
-from modules.ourbot.logger import log
+from modules.ourbot.logger import logger
 
 from modules.db import dbschema
 from modules.db.dbmodel import users_collection
 
 
 SEARCH_STATE = range(1)
-CANCEL = 'Отмена'
-CANCEL_REGEXP = '^Отмена$'
+CANCEL_CALLBACK = str('SEARCH:CANCEL')
 
 cancel_keyboard = [
     [
-        InlineKeyboardButton("CANCEL SEARCH", callback_data=str('SEARCH:CANCEL'))
+        InlineKeyboardButton("CANCEL SEARCH", callback_data=CANCEL_CALLBACK)
     ]
 ]
 
@@ -32,6 +32,8 @@ class Search(Handlers):
         """
         Старт ветки диалога "поиск"
         """
+        chat_id = update.message.chat_id
+        logger.info(f'search({chat_id})')
         reply_markup = InlineKeyboardMarkup(cancel_keyboard)
         update.message.reply_text("🙋🏻‍♀️ Enter query (name or CAS):\n\n"
                                   "🖋 Пришли интересующий CAS-номер:",
@@ -39,6 +41,8 @@ class Search(Handlers):
         return SEARCH_STATE
 
     def search_cas(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+        logger.info(f'search_cas({chat_id})')
 
         text = update.message.text
         if is_CAS_number(text):
@@ -64,10 +68,12 @@ class Search(Handlers):
 
         return SEARCH_STATE
 
-    def cancel(self, update: Update, context: CallbackContext) -> int:
+    def exit(self, update: Update, context: CallbackContext) -> int:
         """
         Выход из ветки диалога "поиск"
         """
+        chat_id = update.message.chat_id
+        logger.info(f'search.exit({chat_id})')
 
         # необходимо согласно мануалу ответить на query
         query = update.callback_query
@@ -94,15 +100,16 @@ class Search(Handlers):
 
     def register_handler(self, dispatcher):
 
-        self.conversation_handler = ConversationHandler(
+        conv_search = ConversationHandler(
             entry_points=[CommandHandler('search', self.search),],
             states={
                 SEARCH_STATE: [
-                    CallbackQueryHandler(self.cancel, pattern='^SEARCH:CANCEL$'),
+                    CallbackQueryHandler(self.exit, pattern=CANCEL_CALLBACK),
                     MessageHandler(Filters.text & ~Filters.command, self.search_cas, run_async=True)
                 ],
             },
-            fallbacks=[MessageHandler(Filters.regex(CANCEL_REGEXP), self.cancel)],
+            fallbacks=[MessageHandler(Filters.command, self.exit),
+                       MessageHandler(Filters.text, self.exit)],
         )
 
-        dispatcher.add_handler(self.conversation_handler, 1)
+        dispatcher.add_handler(conv_search, CONV_SEARCH)

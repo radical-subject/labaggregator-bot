@@ -31,7 +31,7 @@ def is_admin(func):
     def wrapped(self, update, context, *args, **kwargs):
         user_id = update.effective_user.id
         if not is_admin_chat(user_id):
-            print("Unauthorized access denied for {}.".format(user_id))
+            log.error(f"Unauthorized access denied for {user_id}.")
             return
         return func(self, update, context, *args, **kwargs)
     return wrapped
