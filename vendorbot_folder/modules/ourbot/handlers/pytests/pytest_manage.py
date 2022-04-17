@@ -6,6 +6,8 @@ FILES_DIR = os.path.join(os.path.dirname(__file__), 'files')
 def test_manage(purge_users_collection: None,  # очищаем БД
                 bot, user, admin):
 
+    user.init_dialog()
+    admin.init_dialog()
     # чтобы создаем пользователя в БД
     user.send_command('/start')
     message = user.get_message()  # убираем из очереди приветственное сообщение

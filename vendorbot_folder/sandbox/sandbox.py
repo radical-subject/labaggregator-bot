@@ -3,6 +3,8 @@
 
 
 from typing import List, Tuple
+import requests
+
 
 
 def banch_cas_to_smiles(cas_list: List[str]):

@@ -1,17 +1,14 @@
 
-from telegram import Update, InlineKeyboardMarkup, ParseMode
+from telegram import Update, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.helpers import get_txt_content
 
 from modules.db.dbmodel import users_collection
-from modules.db import dbschema, dbmodel
+from modules.db import dbschema
 from modules.ourbot.logger import logger
-from modules.ourbot.handlers.helpers import bot_commands_text
-from modules.ourbot.handlers.decorators import log_errors
-
-UPLOAD_STATE = range(1)
+from modules.ourbot.handlers.helpers import bot_commands_text, CONV_MANAGE, UPLOAD_STATE
 
 
 class Manage(Handlers):
@@ -29,7 +26,9 @@ class Manage(Handlers):
         """
         super().__init__(db_instances)
 
-    def manage_entrypoint(self, update: Update, context: CallbackContext):
+    def manage(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+        logger.info(f'manage({chat_id})')
         update.message.reply_text('Отправьте мне .txt файл со списком CAS-номеров столбиком, '
                                   'следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\n'
                                   'Send cas list in .txt format.',
@@ -38,10 +37,10 @@ class Manage(Handlers):
         return UPLOAD_STATE
 
     def getting_file(self, update: Update, context: CallbackContext):
-
         chat_id = update.message.chat_id
         user_id = update.message.from_user.id
         user_info = update.message.from_user
+        logger.info(f'getting_file({chat_id})')
 
         update.message.reply_text(f'Ожидайте: список обрабатывается.\nBe patient; it may take a while...')
 
@@ -102,6 +101,7 @@ class Manage(Handlers):
         handler for terminating all dialog sequences
         """
         chat_id = update.message.chat_id
+        logger.info(f'manage.exit({chat_id})')
         update.message.reply_text(bot_commands_text(chat_id))
 
         context.chat_data.clear()
@@ -110,18 +110,16 @@ class Manage(Handlers):
         return ConversationHandler.END
 
     def register_handler(self, dispatcher):
-        dispatcher.add_handler(CommandHandler('end', self.exit))
 
-        self.manage_dialog = ConversationHandler(
-            entry_points=[CommandHandler('manage', self.manage_entrypoint)],
+        conv_manage = ConversationHandler(
+            entry_points=[CommandHandler('manage', self.manage)],
             states={
                     UPLOAD_STATE: [
                         MessageHandler(Filters.attachment, self.getting_file, run_async=True)
                     ]
                 },
-            fallbacks=[
-                    MessageHandler(Filters.regex('^Done$'), self.exit)
-                ]
+            fallbacks=[MessageHandler(Filters.command, self.exit),
+                       MessageHandler(Filters.text, self.exit)],
         )
 
-        dispatcher.add_handler(self.manage_dialog, 1)
+        dispatcher.add_handler(conv_manage, CONV_MANAGE)

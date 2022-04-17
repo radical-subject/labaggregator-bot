@@ -8,7 +8,7 @@ from .core import core
 
 
 u = UserBase()
-chat = ChatBase()
+chat = ChatBase(u)
 
 
 @pytest.fixture(scope='session')

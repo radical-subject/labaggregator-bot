@@ -1,28 +1,14 @@
 
-import json
-from bson import ObjectId
-import pandas as pd
-
 from modules.ourbot.logger import logger
 from telegram import (ReplyKeyboardMarkup, KeyboardButton, ParseMode)
 
-from telegram import Update, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, MessageHandler, Filters
 
-from modules.db.dbschema import UserReagents
-        
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.handlers.helpers import is_admin_chat, bot_commands_text
+from modules.ourbot.handlers.helpers import bot_commands_text, CONV_START, REQ_CONTACT_STATE
 from modules.db.dbmodel import users_collection
 
-
-class JSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, ObjectId):
-            return str(o)
-        return json.JSONEncoder.default(self, o)
-
-REQUESTED_CONTACT_STATE = "INITIAL:GET_CONTACT"
 
 class Inital(Handlers):
 
@@ -43,6 +29,7 @@ class Inital(Handlers):
         """
         user_info = update.message.from_user
         chat_id = update.message.chat.id
+        logger.info(f'start({chat_id})')
 
         # приветственное сообщение юзеру
         text = f"""Привет, {user_info.first_name}! 👩🏻‍💻 
@@ -51,15 +38,13 @@ class Inital(Handlers):
 
         update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
-        #TODO А давай писать, если не заполнено user_info.username, то и поиском пользоваться нельзя?
-        # иначе мы только по номеру диалога будем знать чей реактив, либо по номеру мобилки
-
-        if user_info.username == None:
-        
+        #
+        if not user_info.username:
+            logger.info(f'no username({chat_id})')
             reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]])
             self.bot.sendMessage(chat_id, 'You havent set up your username. You will not be able to use sharing. Please share your contact to proceed:', reply_markup=reply_markup)
 
-            return REQUESTED_CONTACT_STATE
+            return REQ_CONTACT_STATE
 
         # запись данных юзера в БД
         userdata = {
@@ -79,20 +64,30 @@ class Inital(Handlers):
         context.chat_data.clear()
         context.user_data.clear()
 
-        return -1
+        return ConversationHandler.END
 
     def get_contact(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
+        logger.info(f'get_contact({chat_id})')
+
         phone_number = update.message.contact.phone_number
         logger.info(phone_number)
         
         reply_markup = ReplyKeyboardMarkup([])
         self.bot.sendMessage(chat_id, 'Thanks.', reply_markup=reply_markup)
-        
-        return -1
+
+        return ConversationHandler.END
+
+    def exit(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+        logger.info(f'start.exit({chat_id})')
+        return ConversationHandler.END
 
     def help_command(self, update: Update, context: CallbackContext):
         """Send a message when the command /help is issued."""
+        chat_id = update.message.chat_id
+        logger.info(f'help({chat_id})')
+
         update.message.reply_text("""
 Добро пожаловать в альфа-версию бота для обмена реактивов. 
 Чтобы получить доступ к системе обмена необходимо поделиться своим списком. 
@@ -107,13 +102,14 @@ class Inital(Handlers):
         dispatcher.add_handler(CommandHandler('help', self.help_command))
 
         self.conversation_handler = ConversationHandler(
-            entry_points=[CommandHandler('start', self.start),],
+            entry_points=[CommandHandler('start', self.start)],
             states={
-                REQUESTED_CONTACT_STATE: [
+                REQ_CONTACT_STATE: [
                     MessageHandler(Filters.contact, self.get_contact)
                 ],
             },
-            fallbacks=[MessageHandler(Filters.regex("CANCEL_REGEXP"), self.help_command)],
+            fallbacks=[MessageHandler(Filters.command, self.exit),
+                       MessageHandler(Filters.text, self.exit)],
         )
         
-        dispatcher.add_handler(self.conversation_handler, 1)
+        dispatcher.add_handler(self.conversation_handler, CONV_START)

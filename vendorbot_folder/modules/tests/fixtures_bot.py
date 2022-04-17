@@ -34,7 +34,7 @@ def bot(telegram_server):
 def admin() -> Tester:
 
     admin = UserBase(LIST_OF_ADMINS[0])
-    admin_chat = ChatBase(LIST_OF_ADMINS[0])
+    admin_chat = ChatBase(admin)
 
     admin = Tester(core, admin, admin_chat)
     return admin
