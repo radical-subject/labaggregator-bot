@@ -48,8 +48,6 @@ class Append(Handlers):
         user_info = update.message.from_user
         logger.info(f"getting_file({chat_id})")
 
-        update.message.reply_text(f"Ожидайте: список обрабатывается.\nBe patient; it may take a while...")
-
         try:
             # Достаем из базы весь объект пользователя с реагентами
             # Пользователь должен быть
@@ -58,7 +56,7 @@ class Append(Handlers):
                 update.message.reply_text("Это почему тебя нет в БД?! Тыкни /start")
                 return ConversationHandler.END
 
-            user_reagents_object = UserReagents(**user)
+            update.message.reply_text(f"Ожидайте: список обрабатывается.\nBe patient; it may take a while...")
 
             cas_list = get_txt_content(update, context)
 
@@ -69,6 +67,8 @@ class Append(Handlers):
                 return APPEND_STATE
 
             reagents, text_report = parse_cas_list(cas_list, contact)
+
+            user_reagents_object = UserReagents(**user)
 
             user_reagents_object.user_reagents += reagents  # добавляем
 
