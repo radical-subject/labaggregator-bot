@@ -15,7 +15,8 @@ def get_cas_smiles(cas: str, delay: float = 0.2):
     try:
         smiles = cas_to_smiles(cas)
         time.sleep(delay)  # чтобы не грузить сервер
-        return cas, smiles
+        if smiles:
+            return cas, smiles
     except Exception as err:
         logger.error(err)
 
@@ -41,6 +42,7 @@ def cirpy_smiles_resolve(cas: str):
 
 def pubchempy_get_smileses(name: str):
     """
+    dontsovcmc: я взял и накатал функцию... но возможно она не то возвращает)
     :param name: reagent name (eng)
     :return: list of smiles values
     """
@@ -90,21 +92,26 @@ def pubchempy_smiles_resolve(cas: str):
     return pubchem_response[0].isomeric_smiles
 
 
-def cas_to_smiles(cas: str):
+def cas_to_smiles(cas):
     """
-    param: cas name. example: "1-1-1"
-    return: SMILES
+    {
+        "reagent_internal_id": uuid.uuid4().hex,
+        "CAS": CAS_number
+    }
     """
     try:
-        res = cirpy_smiles_resolve(cas)
-        if not res:
-            return pubchempy_smiles_resolve(cas)
-        return res
-    except Exception as err:
+        res = cirpy.resolve(cas, "smiles")
+        if res is None:
+            pubchem_response = pubchempy.get_compounds(cas, "name")
+            res = pubchem_response[0].isomeric_smiles
+    except:
         try:
-            return pubchempy_smiles_resolve(cas)
-        except Exception as err:
-            return pubchempy_get_smiles(cas)
+            pubchem_response = pubchempy.get_compounds(cas, "name")
+            res = pubchem_response[0].isomeric_smiles
+        except:
+            logger.warning(f"CAS: {cas} not found")
+
+    return res
 
 
 def parse_lines(lines: List[str]):

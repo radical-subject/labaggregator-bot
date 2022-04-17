@@ -60,6 +60,7 @@ class BlackList:
 
         res = similarity.SimSearchAggregate(mol, self.molecules, self.mfp_counts, 0.1)
 
+        logger.debug(f"{smiles} similarity ret = {len(res)}")
         if res is None or res[0] is None:
             raise Exception(f"incorrect result: {str(res)}")
 
