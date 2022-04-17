@@ -8,6 +8,7 @@ from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, M
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.helpers import bot_commands_text, CONV_START, REQ_CONTACT_STATE
 from modules.db.dbmodel import users_collection
+from modules.db.dbschema import UserReagents
 
 
 class Inital(Handlers):
@@ -33,20 +34,35 @@ class Inital(Handlers):
 
         # приветственное сообщение юзеру
         text = f"""Привет, {user_info.first_name}! 👩🏻‍💻 
-Рады тебя видеть, мхехе.
+Рады тебя видеть. Этот бот помогает ученым делиться друг с другом образцами химреактивов.
 {bot_commands_text(chat_id)}"""
 
         update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
-        #
+        # проверка на наличие юзернейма, если его не предоставлено - идет запрос контакта (телефонного номера)
         if not user_info.username:
             logger.info(f'no username({chat_id})')
-            reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]])
-            self.bot.sendMessage(chat_id, 'You havent set up your username. You will not be able to use sharing. Please share your contact to proceed:', reply_markup=reply_markup)
+            
+            if not users_collection.get_user(user_info.id):
+                logger.info(f'no user record at all ({chat_id})')
+                reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
+                self.bot.sendMessage(chat_id, 'You havent set up your username. You will not be able to use sharing. Please share your contact to proceed any further:', reply_markup=reply_markup)
+                return REQ_CONTACT_STATE
 
-            return REQ_CONTACT_STATE
+            elif "phone_number" not in users_collection.get_user(user_info.id).keys():
+                logger.info(f'User record exists, yet no telephone number found ({chat_id})')
+                reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
+                self.bot.sendMessage(chat_id, 'You havent set up your username. You will not be able to use sharing. Please share your contact to proceed:', reply_markup=reply_markup)
+                return REQ_CONTACT_STATE
 
-        # запись данных юзера в БД
+            else:
+                logger.info("User already exists: skipping insertion of userdata in DB")
+                # associated with user chat and context stored data should be cleaned up to prevent mess
+                context.chat_data.clear()
+                context.user_data.clear()
+                return ConversationHandler.END
+
+        # запись данных юзера в БД произойдет сразу, если у юзера есть юзернейм
         userdata = {
             "_id": user_info.id,
             "user_id": user_info.id,
@@ -68,13 +84,36 @@ class Inital(Handlers):
 
     def get_contact(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
+        user_info = update.message.from_user
         logger.info(f'get_contact({chat_id})')
 
         phone_number = update.message.contact.phone_number
         logger.info(phone_number)
+
+
+        userdata = {
+            "_id": user_info.id,
+            "user_id": user_info.id,
+            "username": "@{}".format(user_info.username),
+            "firstname": user_info.first_name,
+            "lastname": user_info.last_name,
+            "phone_number": phone_number
+        }
+
         
-        reply_markup = ReplyKeyboardMarkup([])
-        self.bot.sendMessage(chat_id, 'Thanks.', reply_markup=reply_markup)
+        if not users_collection.get_user(user_info.id):
+            users_collection.add_user(userdata)
+        else:
+            initial_entry_object = users_collection.get_user(user_info.id)
+            userdata = UserReagents(**initial_entry_object)
+            userdata.add_phone_number(phone_number)
+            users_collection.update_user(user_info.id, userdata.export())
+
+        self.bot.sendMessage(chat_id, 'Thanks for sharing your contact. Now you will be able to upload your list of reagents. /manage')
+
+        # associated with user chat and context stored data should be cleaned up to prevent mess
+        context.chat_data.clear()
+        context.user_data.clear()
 
         return ConversationHandler.END
 
