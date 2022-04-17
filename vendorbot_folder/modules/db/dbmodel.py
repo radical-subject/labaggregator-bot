@@ -7,10 +7,11 @@ class UsersCollection:
 
     def __init__(self, client, db):
         self.collection = client[db]['users_collection']
+        self.client = client
         self.db = db
 
     def drop_db(self):
-        self.db.command("dropDatabase")
+        self.client[self.db].command("dropDatabase")
         logger.info(f"users_collection dropped")
 
     def get_user(self, user_id: int):
