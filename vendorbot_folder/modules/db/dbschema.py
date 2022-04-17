@@ -3,7 +3,8 @@ from typing import Text, List, Tuple
 import uuid
 import time
 
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 
 from modules.ourbot.service.helpers import is_cas_number
 

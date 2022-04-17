@@ -5,7 +5,8 @@ from telegram import Bot
 from telegram.ext import Updater
 from telegram.utils.request import Request
 
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 from modules.ourbot.handlers.initial import Inital
 from modules.ourbot.handlers.admin import Admin
 from modules.ourbot.handlers.search_dialog import Search

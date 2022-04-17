@@ -1,6 +1,7 @@
 import pytest
 
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE, MONGO_TEST_DB
 from modules.db.dbmodel import UsersCollection
 

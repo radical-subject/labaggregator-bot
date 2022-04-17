@@ -1,7 +1,8 @@
 import os
 from datetime import date
 
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 def dump_database(MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD):
