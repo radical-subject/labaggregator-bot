@@ -31,7 +31,7 @@ def bot_commands_text(chat_id):
     return text
 
 
-LIST_OF_ADMINS = [12]  # tg id's 336091411, 122267418, 588927967, 47390523
+LIST_OF_ADMINS = [336091411, 122267418, 588927967, 47390523]  # tg id's 336091411, 122267418, 588927967, 47390523
 
 
 def is_admin_chat(chat_id):
