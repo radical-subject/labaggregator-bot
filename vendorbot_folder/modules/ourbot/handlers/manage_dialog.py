@@ -8,10 +8,8 @@ from modules.ourbot.handlers.helpers import get_txt_content
 from modules.db.dbmodel import users_collection
 from modules.db import dbschema
 from modules.ourbot.logger import logger
-from modules.ourbot.handlers.helpers import bot_commands_text, CONV_MANAGE
+from modules.ourbot.handlers.helpers import bot_commands_text, CONV_MANAGE, UPLOAD_STATE
 
-
-UPLOAD_STATE = range(1)
 
 
 class Manage(Handlers):

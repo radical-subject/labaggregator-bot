@@ -6,11 +6,8 @@ from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, MessageHandler, Filters
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.handlers.helpers import bot_commands_text, CONV_START
+from modules.ourbot.handlers.helpers import bot_commands_text, CONV_START, REQ_CONTACT_STATE
 from modules.db.dbmodel import users_collection
-
-
-REQ_CONTACT_STATE = range(1)
 
 
 class Inital(Handlers):

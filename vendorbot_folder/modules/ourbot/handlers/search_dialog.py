@@ -4,7 +4,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardR
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
     RegexHandler, MessageHandler, CallbackQueryHandler, Filters
 
-from modules.ourbot.handlers.helpers import CONV_SEARCH
+from modules.ourbot.handlers.helpers import CONV_SEARCH, SEARCH_STATE
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.helpers import is_CAS_number
 from modules.ourbot.logger import logger
@@ -13,7 +13,6 @@ from modules.db import dbschema
 from modules.db.dbmodel import users_collection
 
 
-SEARCH_STATE = range(1)
 CANCEL_CALLBACK = str('SEARCH:CANCEL')
 
 cancel_keyboard = [
