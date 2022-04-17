@@ -1,0 +1,18 @@
+version: '3.7'
+
+services:
+  vendorbot_service:
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MONGO_VENDORBOT_DATABASE=test_db
+      - BOT_TOKEN=${BOT_TOKEN}
+    tty: false
+    restart: "no"
+    command:  conda run -n vendorbot_env pytest
+
+  mongodb_api:
+    restart: "no"
+
+volumes:
+    mongodb_api:
+    mongo_dumps:

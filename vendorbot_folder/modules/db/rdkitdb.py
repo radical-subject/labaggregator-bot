@@ -1,7 +1,8 @@
 
-import os, logging
-from modules.ourbot.service.decorators import log_errors
-logger = logging.getLogger(__name__)
+import os
+from modules.ourbot.handlers.decorators import log_errors
+from modules.ourbot.logger import logger
+
 
 # ----------------------------------------------------------
 # ----------------------------------------------------------
@@ -9,22 +10,18 @@ logger = logging.getLogger(__name__)
 # ----------------------------------------------------------
 # ----------------------------------------------------------
 
-#RDKIT IMPORTS
-import rdkit
-from rdkit import Chem
-from rdkit.Chem import PandasTools
-from rdkit.Chem import rdmolfiles, AllChem
-from rdkit.Chem import rdDepictor
-from rdkit.Chem.Draw import rdMolDraw2D
-from IPython.display import SVG
-# for similarity search need mongo-rdkit
-from mongordkit.Search import similarity, substructure, utils
-from mongordkit import Search
-from mongordkit.Database import create, write
+try:
+    import rdkit
+    from rdkit import Chem
+    from rdkit.Chem import PandasTools
+    # for similarity search need mongo-rdkit
+    from mongordkit.Search import similarity, substructure
+    from mongordkit.Database import write
+except:
+    logger.error('rdkit not found')
 
 
 @log_errors
-
 def update_rdkit_with_sialdrich (client, db_instance):
     # Disable rdkit warnings
     rdkit.RDLogger.DisableLog('rdApp.*')

@@ -1,15 +1,15 @@
-import logging, os
-
+import os
+import traceback
+from io import BytesIO
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler
-from telegram.ext.dispatcher import run_async
 
+from modules.ourbot.logger import logger
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors, restricted
+from modules.ourbot.handlers.decorators import is_admin
 from modules.ourbot.service import mongoDumpModule
-from modules.db import dbconfig, dbmodel, rdkitdb, dbschema
-
-logger = logging.getLogger(__name__)
+from modules.db.dbmodel import users_collection
+from modules.db import dbconfig, rdkitdb, dbschema
 
 
 class Admin(Handlers):
@@ -17,13 +17,9 @@ class Admin(Handlers):
         super().__init__(db_instances)
         # чтобы использовать модуль bot из пакета telegram здесь, 
         # нужно его передать при инициализации инстанса этого класса в OurBot.
-        self.bot=bot
-        self.collection = "users_collection"
-    
+        self.bot = bot
 
-    @log_errors
-    @restricted
-    # @run_async # deprecated way of async running # sometimes this may break! not now but configuration is dangerous overall
+    @is_admin
     def purge_handler(self, update: Update, context: CallbackContext):
         button_list = [
             [
@@ -36,79 +32,90 @@ class Admin(Handlers):
             "👩🏻‍🦰 Do you really want to purge the database?",
             reply_markup=reply_markup
         )
-        return
-    
 
-    @log_errors
-    @restricted
+    @is_admin
     def update_rdkit_db_blacklist_handler(self, update: Update, context: CallbackContext):
         """
+        Загружает sdf файл со списком веществ в базу данных blacklist при помощи rdkit.
         updates blacklist with srs/Narkotiki_test.sdf
         """
         reply = rdkitdb.update_rdkit_db_blacklist(self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
         update.message.reply_text(f"{reply} molecules successfully imported. nice!")
         reply = rdkitdb.update_blacklist_with_pandas (self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
-        logging.info(f"{reply} molecules successfully imported with metadata in separate collection. nice!")
-        return
+        logger.info(f"{reply} molecules successfully imported with metadata in separate collection. nice!")
 
-
-    @log_errors
-    @restricted
-    def prepare_digest(self, update: Update, context: CallbackContext):
+    @is_admin
+    def digest(self, update: Update, context: CallbackContext):
         """
-        produces digest
+        Возвращает 2 файла:
+        digest.txt – список shared компонентов в виде CAS и username пользователя
+        digest_cas.txt - список всех shared компонентов в виде CAS
         """
-        
-        # retrieving data from user message
-        # ищем запись относящуюся к пользователю
-        user_id = update.message.from_user.id
-        mongo_query = {"user_id": user_id}
-        user_info = update.message.from_user
-        chat_id = update.message.chat.id
+        chat_id = update.message.chat_id
 
-        update.message.reply_text(f'Ожидайте: список обрабатывается.\nBe patient; it may take a while...')
-        # Достаем из базы весь объект пользователя с реагентами
-        # Если такого пользователя нет - функция на лету его создает и не плюется ошибками
-        all_entries = dbmodel.iterate_over_collection_of_users(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection)
-        logger.info(f"len all_entries = {len(all_entries)}")
-        didgest = None
-        for entry in all_entries:
-            user_reagents_object = dbschema.UserReagents(**entry)
-            logger.info(len(user_reagents_object.user_reagents))
-            # user_reagents_object = dbmodel.get_user_reagents_object(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, user_info)
-            # logger.info(user_reagents_object.export())
-            didgest = user_reagents_object.get_digest_shared_reagents(didgest)
-            logger.info(f"length = {len(didgest)}")
-        
-        logger.info(f"final length = {len(didgest)}")
+        update.message.reply_text(f'Ожидайте: список обрабатывается...')
 
-        return 
-        
+        users = users_collection.get_all_users()
+        logger.info(f"users {len(users)}")
 
-    @log_errors
-    @restricted
+        digest = {}
+        for user in users:
+            for r in dbschema.get_shared_reagents(user):
+                name = dbschema.reagent_name(r)
+                contact = dbschema.reagent_contact(user, r)
+                if name and name not in digest:
+                    digest[name] = []
+
+                if contact not in digest[name]:   # если у пользователя 2 реактива, то будет повторяться contact
+                    digest[name].append(contact)
+
+        logger.info(f"digest length = {len(digest.keys())}")
+        update.message.reply_text(f'Всего {len(digest.keys())} CAS')
+
+        if digest:
+            cas_list = list(digest.keys())
+            cas_list = sorted(cas_list)
+
+            digest_cas_txt = '\n'.join(cas_list)
+
+            f = BytesIO(bytes(digest_cas_txt, 'utf-8'))
+            f.name = 'digest_cas.txt'
+            f.seek(0)
+
+            context.bot.send_document(chat_id, f)
+
+            digest_txt = ''
+            for cas in cas_list:
+                digest_txt += f'{cas} : {", ".join(digest[cas])}\n'
+
+            f = BytesIO(bytes(digest_txt, 'utf-8'))
+            f.name = 'digest.txt'
+            f.seek(0)
+
+            context.bot.send_document(chat_id, f)
+
+    @is_admin
     def dump(self, update: Update, context: CallbackContext):
         """
         dumps whole db, archives it, and sends user .zip archive with data
         """
         chat_id = update.message.chat.id
         path = mongoDumpModule.dump_database(dbconfig.MONGO_INITDB_ROOT_USERNAME, dbconfig.MONGO_INITDB_ROOT_PASSWORD)[1]
-        logging.info(f'{path}')
+        logger.info(f'{path}')
         files = os.listdir("./mongodumps")
-        logging.info(f'{files}')
+        logger.info(f'{files}')
         # this bot cannot send more than 50 mb
         try:
-            self.bot.sendDocument(chat_id=chat_id, document=open(f'{path}.zip', 'rb'), timeout=1000)
+            context.bot.sendDocument(chat_id=chat_id, document=open(f'{path}.zip', 'rb'), timeout=1000)
             result = 'Гена, помнишь ты просил меня принести тебе бекап базы данных, я пошел и принес, вот оно. Гена на.'
             update.message.reply_text(result)
-        except:
+        except Exception as err:
+            tb = traceback.format_exc()
             update.message.reply_text("что-то не так. скорее всего база данных слишком большая и тебе нужно наладить закачку на гуглодиск.")
-        return
+            update.message.reply_text(f"ошибка: {tb}")
 
-    @log_errors
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
         dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=True))
         dispatcher.add_handler(CommandHandler('blacklist_update', self.update_rdkit_db_blacklist_handler, run_async=True))
-        dispatcher.add_handler(CommandHandler('didgest', self.prepare_digest, run_async=True))
-
+        dispatcher.add_handler(CommandHandler('digest', self.digest, run_async=True))

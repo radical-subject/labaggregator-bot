@@ -1,34 +1,13 @@
-import logging
-import pymongo
 
-from telegram import (Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton)
-from telegram.ext import (Updater, CommandHandler, CallbackContext, ConversationHandler, InlineQueryHandler,
-                          CallbackQueryHandler)
+from modules.ourbot.logger import logger
+from telegram import (ReplyKeyboardMarkup, KeyboardButton, ParseMode)
 
-from telegram import Update, InlineKeyboardMarkup
-from telegram.ext import CallbackContext, CommandHandler, ConversationHandler
-from telegram.ext.dispatcher import run_async
-
-
-import sys,os
-import pandas as pd
-sys.path.append("..")
-from modules.db.dbschema import UserReagents
-        
+from telegram import Update
+from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, MessageHandler, Filters
 
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.decorators import log_errors
-from modules.db import dbmodel, dbschema
-import json
-from bson import ObjectId
-
-logger = logging.getLogger(__name__)
-
-class JSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, ObjectId):
-            return str(o)
-        return json.JSONEncoder.default(self, o)
+from modules.ourbot.handlers.helpers import bot_commands_text, CONV_START, REQ_CONTACT_STATE
+from modules.db.dbmodel import users_collection
 
 
 class Inital(Handlers):
@@ -41,35 +20,34 @@ class Inital(Handlers):
 
     def __init__(self, bot, db_instances):
         super().__init__(db_instances)
-        self.bot=bot
-        self.collection = "users_collection"
-        self.collection_2 = "timer_data_collection"
+        self.bot = bot
 
-    @log_errors
-    def start_msg(self, update: Update, context: CallbackContext):
+    def start(self, update: Update, context: CallbackContext):
         """
+        Стартовая точка общения с ботом.
         welcome message and initialization of user by inserting his data into DB
         """
-        # retrieving data from user message
         user_info = update.message.from_user
         chat_id = update.message.chat.id
+        logger.info(f'start({chat_id})')
 
         # приветственное сообщение юзеру
-        update.message.reply_text(
-            """Привет, {}! 👩🏻‍💻 
+        text = f"""Привет, {user_info.first_name}! 👩🏻‍💻 
 Рады тебя видеть, мхехе.
-Доступны следующие команды:
-/start - приветствие 
-/purge_handler - очистка бд (только админам)
-/help - инструкции по пользованию
-/dump - дамп базы данных (присылает в лс зип-дамп)
-/blacklist_update - заполнение базы блеклиста и обсчет. команда выполняется асинхронно
-/manage - диалог управления своими списками реагентов
-/choose_lab - выбираем лабораторию
-/my_lab - показывает выбранную лабораторию. осторожно с переменными состояния хранящимися в контексте - там уже адская путаница. к тому же некоторые команды норовят переменные состояния сбросить .clear(). """.format(user_info.first_name), parse_mode='HTML')
+{bot_commands_text(chat_id)}"""
+
+        update.message.reply_text(text, parse_mode=ParseMode.HTML)
+
+        #
+        if not user_info.username:
+            logger.info(f'no username({chat_id})')
+            reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]])
+            self.bot.sendMessage(chat_id, 'You havent set up your username. You will not be able to use sharing. Please share your contact to proceed:', reply_markup=reply_markup)
+
+            return REQ_CONTACT_STATE
 
         # запись данных юзера в БД
-        userdata_dict = {
+        userdata = {
             "_id": user_info.id,
             "user_id": user_info.id,
             "username": "@{}".format(user_info.username),
@@ -77,161 +55,61 @@ class Inital(Handlers):
             "lastname": user_info.last_name
         }
 
-
-        try:
-
-            # logger.info(f"{self.vendorbot_db_client}, {self.db_instances['vendorbot_db']}, {self.collection}, {userdata_dict}")
-            dbmodel.add_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, userdata_dict)
-            logger.info('user initialized by /start command.')
-            raise Exception("TEST FUCKING TEST")
-
-        except Exception as e:
-        
-        # pymongo.errors.DuplicateKeyError:
-        
-            print(f"{e}, HELLO MR MUSLIM MERRY FUCKING CHRISTMAS")
-            logger.info(e)
+        if not users_collection.get_user(user_info.id):
+            users_collection.add_user(userdata)
+        else:
             logger.info("User already exists: skipping insertion of userdata in DB")
-        
+
         # associated with user chat and context stored data should be cleaned up to prevent mess
         context.chat_data.clear()
-        user_data = context.user_data
-        user_data.clear()
-
-        return self.INITIAL
-
-    def exit_command(self, update: Update, context: CallbackContext):
-        """
-        hadler for terminating all dialog sequences
-        """
-        try:
-            query = update.callback_query
-            if query != None:
-                reply_markup = InlineKeyboardMarkup([])
-                query.edit_message_text(
-                    text="You cancelled db removal. Да поможет тебе святой Януарий!",
-                    reply_markup=reply_markup
-                )
-            else:
-                update.message.reply_text(f"""Выход из диалога. Да поможет тебе святой Антоний.""")
-        except:
-            update.message.reply_text(f"""Выход из диалога. Да поможет тебе святой Антоний.""")
-            pass
-        # now clear all cached data
-        # clear assosiated with user data and custom context variables
-        context.chat_data.clear()
         context.user_data.clear()
-        # equivalent of return ConversationHandler.END
-        return -1
 
-    def my_lab(self, update: Update, context: CallbackContext):
-        current_lab = context.user_data.get('current_lab')
-        result = 'None' if current_lab is None else JSONEncoder().encode(current_lab)
-        update.message.reply_text(result, parse_mode='HTML')
+        return ConversationHandler.END
+
+    def get_contact(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+        logger.info(f'get_contact({chat_id})')
+
+        phone_number = update.message.contact.phone_number
+        logger.info(phone_number)
+        
+        reply_markup = ReplyKeyboardMarkup([])
+        self.bot.sendMessage(chat_id, 'Thanks.', reply_markup=reply_markup)
+
+        return ConversationHandler.END
+
+    def exit(self, update: Update, context: CallbackContext):
+        chat_id = update.message.chat_id
+        logger.info(f'start.exit({chat_id})')
+        return ConversationHandler.END
 
     def help_command(self, update: Update, context: CallbackContext):
         """Send a message when the command /help is issued."""
-        update.message.reply_text(
-        """
+        chat_id = update.message.chat_id
+        logger.info(f'help({chat_id})')
+
+        update.message.reply_text("""
 Добро пожаловать в альфа-версию бота для обмена реактивов. 
 Чтобы получить доступ к системе обмена необходимо поделиться своим списком. 
 /manage - Загрузить свой список реагентов можно в виде .txt файла с CAS номерами в столбик. 
-/search - В разработке. Текстовый поиск произвольного формата по базе общественных реагентов.
+/search - Поиск по CAS по базе реагентов присланных для обмена.
 
-пока /search в разработке, общественные списки будут публиковаться дайджестами в канале лабаггрегатора.
-        """,
-        parse_mode='HTML'
-        )
-        return self.INITIAL
+Общественные списки также публикуются дайджестами в канале Лабаггрегатора @labaggregator.
+        """, parse_mode=ParseMode.HTML)
 
-
-    @log_errors
-    def today_stats(self, update: Update, context: CallbackContext):
-        """Send information about work entries for today"""
-        user_info = update.message.from_user
-        user_id = user_info.id
-        # ищем запись относящуюся к пользователю
-        mongo_query = {"user_id": user_id}
-        previous_records=dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection_2, mongo_query)
-        # logger.info(previous_records[0])
-        timer_object = dbschema.TimerData(
-            **previous_records[0]
-        )
-        # logger.info(timer_object.export())
-
-        try:
-            data = timer_object.export()
-        except:
-            data = "No records"
-        try:
-            time_netto_today = timer_object.get_netto_today()
-            logger.info(f"time netto today = {timer_object.get_netto_today()} minutes")
-        except:
-            time_netto_today = 0
-
-        # пересчет в красивый формат
-        time_netto_today_hours = time_netto_today // 60
-        time_netto_today_minutes = time_netto_today % 60
-        logger.info(data)
-
-        str_line = ''
-        for i in (list(item.items()) for item in data['timerdata']):
-            str_line += "\n".join([': '.join(map(str, tuple_item)) for tuple_item in i])
-            str_line += "\n\n" 
-        entries = str_line.rstrip("\n")
-
-        update.message.reply_text(f"===================\n{entries}\n===================\n\nTime brutto today == 10 hours.\nthis is temporarily hardcoded.\n\ntime_netto_today = {time_netto_today_hours:.0f} h. {time_netto_today_minutes:.2f} min.")
-        
-        return self.INITIAL
-
-    @log_errors
-    # @run_async
-    def resolve_tests(self, update: Update, context: CallbackContext):
-
-        input_txt_file_path = "./srs/user_reagent_lists_import/Chusov_1.txt"
-        import_CAS_df = pd.read_csv(input_txt_file_path, header = None)
-        CAS_list = import_CAS_df[0].tolist()
-
-        # retrieving data from user message
-        # ищем запись относящуюся к пользователю
-        user_id = update.message.from_user.id
-        mongo_query = {"user_id": user_id}
-        logger.info(f"mongo_query: {mongo_query}")
-        user_info = update.message.from_user
-        chat_id = update.message.chat.id
-
-        initial_record = dbmodel.get_records(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query)
-        logger.info(f"initial_record: {initial_record}")
-        user_reagents_object = UserReagents(**initial_record[0])
-        
-        # импорт листа реагентов с фильтрациями
-        user_reagents_object.add_list_of_reagents(user_info.id, user_info.username, self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"], CAS_list)
-        # экспорт JSON - не работает с pymongo! нужен dict
-        data = user_reagents_object.export()
-        # записываем в базу объект 
-        dbmodel.update_record(self.vendorbot_db_client, self.db_instances["vendorbot_db"], self.collection, mongo_query, data)
-        update.message.reply_text(f"{user_reagents_object.get_user_shared_reagents()[0]}")
-
-    @log_errors
-    def capture_contact(self, update: Update, context: CallbackContext):
-        # retrieving data from user message
-        user_info = update.message.from_user
-        chat_id = update.message.chat.id
-
-        reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]])
-        self.bot.sendMessage(chat_id, 'Example', reply_markup=reply_markup)
-
-    @log_errors
-    def set_tag(self, update: Update, context: CallbackContext):
-        """set tag for timerdata"""
-        pass
-
-    @log_errors
     def register_handler(self, dispatcher):
-        dispatcher.add_handler(CommandHandler('start', self.start_msg))
-        dispatcher.add_handler(CommandHandler('my_lab', self.my_lab))
-        dispatcher.add_handler(CommandHandler('end', self.exit_command))
+        
         dispatcher.add_handler(CommandHandler('help', self.help_command))
-        dispatcher.add_handler(CommandHandler('today', self.today_stats))
-        dispatcher.add_handler(CommandHandler('resolve_tests', self.resolve_tests))
-        dispatcher.add_handler(CommandHandler('capture_contact', self.capture_contact))
+
+        self.conversation_handler = ConversationHandler(
+            entry_points=[CommandHandler('start', self.start)],
+            states={
+                REQ_CONTACT_STATE: [
+                    MessageHandler(Filters.contact, self.get_contact)
+                ],
+            },
+            fallbacks=[MessageHandler(Filters.command, self.exit),
+                       MessageHandler(Filters.text, self.exit)],
+        )
+        
+        dispatcher.add_handler(self.conversation_handler, CONV_START)

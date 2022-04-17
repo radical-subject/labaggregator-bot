@@ -1,12 +1,11 @@
-# FROM alpine:3.7
-# --no-capture-output supported only since anaconda 4.9, miniconda doesnt work yet
+
 FROM continuumio/miniconda3
 WORKDIR /vendorbot_container
 
-# WORKDIR /home/$SETUSER
-# Create the environment:
 COPY env.yml .
+
 RUN conda update -n base -c defaults conda
+
 # install main bot dependencies
 RUN conda env create -f env.yml
 
@@ -16,6 +15,7 @@ RUN apt-get update -y \
   && curl -sL https://deb.nodesource.com/setup_16.x | bash - \
   && apt-get install -y nodejs \
   && curl -L https://www.npmjs.com/install.sh | sh
+
 COPY package*.json ./
 RUN npm install
 
@@ -27,7 +27,6 @@ RUN apt-get update -y \
 RUN ln -T /bin/true /usr/bin/systemctl && apt-get update && apt-get install -y mongodb-org && rm /usr/bin/systemctl
 
 RUN apt-get install -y zip unzip
-
 
 
 # RUN conda update -n base -c defaults conda

@@ -1,12 +1,54 @@
-## Launch Instructions
-### Windows
-prod:
+## Setup
 
-_docker-compose up --build_
+Установить docker
 
-dev:
+## Launch 
 
-_docker-compose -f docker-compose.yml -f docker-compose.development.yml up --build_
+### Development: Windows & MacOs & Linux
+
+```
+docker-compose -f docker-compose.yml -f docker-compose.development.yml up --build
+```
+or
+
+```
+make env_dev
+```
+
+### Production: Windows & MacOs & Linux
+
+```
+docker-compose -f up --build
+```
+
+or 
+
+```
+make env_prod
+```
+
+### Файл окружения
+
+.env файл в корне
+
+Содержание:
+
+```
+BOT_TOKEN=<token>
+```
+
+## Запуск юниттестов
+
+```
+docker-compose -f docker-compose.yml -f docker-compose.pytest.yml up --build --abort-on-container-exit
+```
+
+or 
+
+```
+make env_test
+```
+
 
 #### overwriting env variables for docker-compose 
 may be done by prepending KEY=ARG to docker-compose command:
@@ -18,6 +60,7 @@ if you want to start bot locally with
 _secrets/token.secret_
 
 file, you may omit unnesessary _KEY=ARG_, then bot will fall to default behaviour, reading token from secret file.
+
 ### Linux
 for git cloning of private repo there should be ssh key added. 
 - add private key to /.ssh/ via ssh-add ~/.ssh/id_ed1231.
@@ -58,6 +101,12 @@ Also nginx will be needed for ssl/tls in future development.
 vendorbot_container is place where all chemoinformatics (except draw-input by ketcher) is done. For now it is done by mongo-rdkit chemoinformatics data cartridge. 
 
 We look forward to migrate to postgresql catridge published by Timur Madzhidov in nearest future: it is because our web application is based on Express+React+Postgresql.
+
+## gitflow
+1. берем задачу из трелло. 
+2. делаем форк основного репозитория от dev
+3. работаем у себя локально, когда доделали задачу - оформляем pull request
+4. владелец репозитория мерджит пул реквест в дев. 
+
 ## Further Info
 - look into DEVNOTES.md for raw details and notes on development process
-- also look into gitflow-README.md to get aqcuainted with command development rules

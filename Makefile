@@ -2,6 +2,8 @@ THIS_FILE := $(lastword $(MAKEFILE_LIST))
 MONGOD_STARTED := $(shell systemctl is-active mongod)
 DOCKER_COMPOSE_CMD := docker-compose -f docker-compose.yml
 DOCKER_COMPOSE_DEV_CMD := docker-compose -f docker-compose.yml -f docker-compose.development.yml
+DOCKER_COMPOSE_TEST_CMD := docker-compose -f docker-compose.pytest.yml
+
 #  COLORS
 GREEN  := $(shell tput -Txterm setaf 2)
 YELLOW := $(shell tput -Txterm setaf 3)
@@ -17,6 +19,7 @@ HELP_TARGET_MAX_CHAR_NUM=20
 	hepl \
 	env_dev \
 	env_prod \
+	env_test \
 	goto_app_src \
 	build \
 	up \
@@ -67,11 +70,15 @@ goto_app_src:
 
 #  Run development environment
 env_dev:
-	-BOT_TOKEN=${DEV_BOT_TOKEN} $(DOCKER_COMPOSE_DEV_CMD) up --build $(c)
+	-BOT_TOKEN=${DEVELOPMENT_BOT_TOKEN} $(DOCKER_COMPOSE_DEV_CMD) up --build $(c)
 
 #  Builds docker compose file in this directory with prod token and launches bot
 env_prod: mongod_stop goto_app_src pull
 	-BOT_TOKEN=${PRODUCTION_BOT_TOKEN} $(DOCKER_COMPOSE_CMD) up --build -d $(c)
+
+#  Run development environment
+env_test: 
+	-BOT_TOKEN=${DEVELOPMENT_BOT_TOKEN} $(DOCKER_COMPOSE_TEST_CMD) up --build --abort-on-container-exit -d $(c)
 
 #  Builds docker compose file in this directory with prod token, after git scrip (git pull) command is triggered by github actions
 prod_remote: mongod_stop goto_app_src stop

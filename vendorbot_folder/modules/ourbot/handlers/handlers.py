@@ -1,13 +1,7 @@
-import logging
-logger = logging.getLogger(__name__)
 
+
+# TODO удалить после удаления blacklist_rdkit_db_client
 class Handlers:
-    INITIAL = 1
-    ADMIN = 1
-    LABS = 2
-    WISHLIST = 2
-    CATEGORIES = 2
-
     def __init__(self, db_instances):
         self.db_instances=db_instances
         self.db_clients={}
@@ -18,4 +12,3 @@ class Handlers:
             for key, value in self.db_clients.items():
                 setattr(self, key, value)
         self.collection = None
-        

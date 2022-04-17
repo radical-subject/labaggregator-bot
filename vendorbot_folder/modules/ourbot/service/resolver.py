@@ -2,14 +2,13 @@ from multiprocessing import Pool
 import pandas as pd
 import cirpy, pubchempy
 import re
-from modules.ourbot.service.timer import Timer
 
 
 def get_SMILES(request_query):
     try:
         pubchem_response = pubchempy.get_compounds(request_query, "name")
         return pubchem_response[0].isomeric_smiles
-    except:
+    except Exception as err:
         return cirpy.resolve("{}".format(request_query), 'smiles')
 
 
@@ -45,12 +44,9 @@ def batch_SMILES_resolve(reagents_without_SMILES_list):
     # import_CAS_df = pd.read_csv(input_txt_file_path, header = None)
     # CAS_list = import_CAS_df[0].tolist()
     
-    timer = Timer()
-    timer.start()
     n = 50
     with Pool(processes=n) as pool:
         result = pool.map(CIRPY_resolve, reagents_without_SMILES_list)
-    timer.stop()
 
     result_object_list = result # if i[0]!="resolver_error"
     
@@ -59,7 +55,7 @@ def batch_SMILES_resolve(reagents_without_SMILES_list):
     # # remove all error indications - this gives clean SMILES list
     # SMILES_list = list(filter(("resolver_error").__ne__, SMILES_list))
     
-    return (result_object_list, errors_list)
+    return result_object_list, errors_list
 
 
 

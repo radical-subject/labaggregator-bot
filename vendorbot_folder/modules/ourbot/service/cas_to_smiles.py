@@ -4,6 +4,7 @@ import argparse
 import csv
 import cirpy, pubchempy
 import re
+import requests
 
 
 def cirpy_smiles_resolve(cas: str):
@@ -11,6 +12,29 @@ def cirpy_smiles_resolve(cas: str):
     param: cas - line 1-1-1
     """
     return cirpy.resolve(cas, 'smiles')
+
+
+def pubchempy_get_smileses(name: str):
+    r = requests.post('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/JSON',
+                      data=f'name={name}')
+    assert r.ok
+
+    j = r.json()
+
+    smiles = []
+    pc_compounds = j['PC_Compounds']
+    for compound in pc_compounds:
+        for prop in compound['props']:
+            if prop['urn']['label'] == 'SMILES':
+                smiles.append(prop['value']['sval'])
+
+    smiles = list(set(smiles))  # удалим дубликаты
+
+    return smiles
+
+
+def pubchempy_get_smiles(name: str):
+    return pubchempy_get_smileses(name)[0]
 
 
 def pubchempy_smiles_resolve(cas: str):
@@ -28,10 +52,10 @@ def cas_to_smiles(cas: str):
     try:
         # log.info(f'Processing... {cas}')
         res = cirpy_smiles_resolve(cas)
-        if res == None:
+        if not res:
             return pubchempy_smiles_resolve(cas)
-        else:
-            return res
+
+        return res
     except Exception as err:
         # log.error(f'{cas}: cirpy_smiles_resolve error: {err}')
         return pubchempy_smiles_resolve(cas)
