@@ -6,6 +6,10 @@ from modules.db.blacklist import blacklist_engine
 from modules.ourbot.service.helpers import is_cas_number
 from modules.ourbot.service.cas_to_smiles import banch_cas_to_smiles
 
+import logging
+import traceback
+logger = logging.getLogger(__name__)
+
 
 def get_shared_reagents(user):
     if 'user_reagents' in user:
@@ -50,8 +54,14 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
     failed_cas = [r for r in cas_list if not is_cas_number(r)]
     cas_smiles_list = banch_cas_to_smiles(valid_cas_list)
 
-    cas_smiles_whitelist = [cas_smile for cas_smile in cas_smiles_list if
-                            not blacklist_engine.is_similar(cas_smile[1])]
+    cas_smiles_whitelist = []
+    for cs in cas_smiles_list:
+        try:
+            if not blacklist_engine.is_similar(cs[1]):
+                cas_smiles_whitelist.append(cs)
+        except Exception as err:
+            tb = traceback.format_exc()
+            logger.error(f"is_similar failed for ({cs}). Error: {tb}")
 
     reagents = []
 
