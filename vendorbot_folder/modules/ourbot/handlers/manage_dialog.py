@@ -26,6 +26,7 @@ def get_contact_from_cas_file(cas_list: List[str], user_info) -> Tuple[str, List
     if cas_list and cas_list[0] and cas_list[0].startswith("reagents_contact:"):
         contact = cas_list[0].split(":")[1]
         cas_list = cas_list[1:]
+        return contact, cas_list
     else:
         if not user_info.username:
             return None, cas_list

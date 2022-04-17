@@ -41,7 +41,7 @@ class Append(Handlers):
 
         return APPEND_STATE
 
-    def getting_file(self, update: Update, context: CallbackContext):
+    def append_getting_file(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
         user_id = update.message.from_user.id
         user_info = update.message.from_user
@@ -93,7 +93,7 @@ class Append(Handlers):
         handler for terminating all dialog sequences
         """
         chat_id = update.message.chat_id
-        logger.info(f"manage.exit({chat_id})")
+        logger.info(f"append.exit({chat_id})")
         update.message.reply_text(bot_commands_text(chat_id))
 
         context.chat_data.clear()
@@ -103,15 +103,15 @@ class Append(Handlers):
 
     def register_handler(self, dispatcher):
 
-        conv_manage = ConversationHandler(
+        conv_append = ConversationHandler(
             entry_points=[CommandHandler("append", self.append)],
             states={
                 APPEND_STATE: [
-                    MessageHandler(Filters.attachment, self.getting_file, run_async=True)
+                    MessageHandler(Filters.attachment, self.append_getting_file, run_async=True)
                 ]
             },
             fallbacks=[MessageHandler(Filters.command, self.exit),
                        MessageHandler(Filters.text, self.exit)],
         )
 
-        dispatcher.add_handler(conv_manage, CONV_APPEND)
+        dispatcher.add_handler(conv_append, CONV_APPEND)
