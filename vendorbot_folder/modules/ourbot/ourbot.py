@@ -5,11 +5,13 @@ from telegram import Bot
 from telegram.ext import Updater
 from telegram.utils.request import Request
 
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 from modules.ourbot.handlers.initial import Inital
 from modules.ourbot.handlers.admin import Admin
 from modules.ourbot.handlers.search_dialog import Search
 from modules.ourbot.handlers.manage_dialog import Manage
+from modules.ourbot.handlers.append_dialog import Append
 
 
 #def error_callback(update, context):
@@ -37,6 +39,7 @@ class BotObject:
         self.admin = Admin(self.bot, self.db_instances)
         self.search_dialog = Search(self.bot, self.db_instances)
         self.manage_dialog = Manage(self.bot, self.db_instances)
+        self.append_dialog = Append(self.bot, self.db_instances)
 
         logger.info('Bot initialization complete.')
 
@@ -53,3 +56,4 @@ class BotObject:
         self.admin.register_handler(self.dispatcher)
         self.search_dialog.register_handler(self.dispatcher)
         self.manage_dialog.register_handler(self.dispatcher)
+        self.append_dialog.register_handler(self.dispatcher)

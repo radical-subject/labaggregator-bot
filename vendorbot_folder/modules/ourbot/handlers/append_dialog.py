@@ -1,6 +1,4 @@
 
-from typing import List, Tuple
-
 from telegram import Update, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
@@ -9,58 +7,42 @@ from modules.ourbot.handlers.helpers import get_txt_content
 
 from modules.db.dbmodel import users_collection
 from modules.db.dbschema import UserReagents, parse_cas_list
-from modules.ourbot.handlers.helpers import bot_commands_text, CONV_MANAGE, UPLOAD_STATE
+from modules.ourbot.handlers.helpers import bot_commands_text, CONV_APPEND, APPEND_STATE
+
+from .manage_dialog import get_contact_from_cas_file
 
 import logging
 import traceback
 logger = logging.getLogger(__name__)
 
 
-def get_contact_from_cas_file(cas_list: List[str], user_info) -> Tuple[str, List[str]]:
+class Append(Handlers):
     """
-    # оставляю возможность хардкодить вручную контакт, прописывая первую строку импортируемого файла руками:
-    # в формате reagents_contact:+79265776746
-    :param cas_list: содержимое файла
-    :param user_info:
-    :return:
-    """
-    if cas_list and cas_list[0] and cas_list[0].startswith("reagents_contact:"):
-        contact = cas_list[0].split(":")[1]
-        cas_list = cas_list[1:]
-        return contact, cas_list
-    else:
-        if not user_info.username:
-            return None, cas_list
-        else:
-            return f"@{user_info.username}", cas_list
-
-
-class Manage(Handlers):
-    """
-    В этом диалоговом хендлере пользователь добавляет свой список реагентов. 
+    В этом диалоговом хендлере админ добавляет новые реагенты в свой список реагентов.
     Присылается текстовый файл с CAS номерами.
     В качестве контакта обратной связи устанавливается контакт, который указан в шапке файла.
     Eсли не указан в шапке файла - то в качестве контакта используется username.
 
-    Если у пользователя нет username - тогда все плохо. надо обработать этот момент. 
+    Если у пользователя нет username - тогда все плохо. надо обработать этот момент.
     """
+
     def __init__(self, bot, db_instances):
         """
         передаем коллекции, с которыми по умолчанию работает этот хендлер
         """
         super().__init__(db_instances)
 
-    def manage(self, update: Update, context: CallbackContext):
+    def append(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
-        logger.info(f"manage({chat_id})")
+        logger.info(f"append({chat_id})")
         update.message.reply_text("Отправьте мне .txt файл со списком CAS-номеров столбиком, "
                                   "следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\n"
                                   "Send cas list in .txt format.",
                                   parse_mode=ParseMode.HTML)
 
-        return UPLOAD_STATE
+        return APPEND_STATE
 
-    def getting_file(self, update: Update, context: CallbackContext):
+    def append_getting_file(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
         user_id = update.message.from_user.id
         user_info = update.message.from_user
@@ -69,7 +51,6 @@ class Manage(Handlers):
         update.message.reply_text(f"Ожидайте: список обрабатывается.\nBe patient; it may take a while...")
 
         try:
-
             # Достаем из базы весь объект пользователя с реагентами
             # Пользователь должен быть
             user = users_collection.get_user(user_id)
@@ -85,18 +66,18 @@ class Manage(Handlers):
             if not contact:
                 update.message.reply_text("Добавьте первую строку 'reagents_contact:<телефон/почта>' "
                                           "или заполните свой username")
-                return UPLOAD_STATE
+                return APPEND_STATE
 
             reagents, text_report = parse_cas_list(cas_list, contact)
 
-            user_reagents_object.user_reagents = reagents  # перезаписываем
+            user_reagents_object.user_reagents += reagents  # добавляем
 
             data = user_reagents_object.export()
 
             users_collection.update_user(user_id, data)
 
-            sent_message = text_report + f"""Итого: База реагентов перезаписана. \
-                                             Содержит <b>{len(user_reagents_object.user_reagents)}</b> реагентов."""
+            sent_message = text_report + f"""Итого: импортировано в базу <b>{len(reagents)}</b> реагентов.\
+В вашей базе сейчас: <b>{len(user_reagents_object.user_reagents)}</b> реагентов."""
 
         except Exception as err:
             logger.error(traceback.format_exc())
@@ -113,7 +94,7 @@ class Manage(Handlers):
         handler for terminating all dialog sequences
         """
         chat_id = update.message.chat_id
-        logger.info(f"manage.exit({chat_id})")
+        logger.info(f"append.exit({chat_id})")
         update.message.reply_text(bot_commands_text(chat_id))
 
         context.chat_data.clear()
@@ -123,15 +104,15 @@ class Manage(Handlers):
 
     def register_handler(self, dispatcher):
 
-        conv_manage = ConversationHandler(
-            entry_points=[CommandHandler("manage", self.manage)],
+        conv_append = ConversationHandler(
+            entry_points=[CommandHandler("append", self.append)],
             states={
-                    UPLOAD_STATE: [
-                        MessageHandler(Filters.attachment, self.getting_file, run_async=True)
-                    ]
-                },
+                APPEND_STATE: [
+                    MessageHandler(Filters.attachment, self.append_getting_file, run_async=True)
+                ]
+            },
             fallbacks=[MessageHandler(Filters.command, self.exit),
                        MessageHandler(Filters.text, self.exit)],
         )
 
-        dispatcher.add_handler(conv_manage, CONV_MANAGE)
+        dispatcher.add_handler(conv_append, CONV_APPEND)

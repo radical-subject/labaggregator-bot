@@ -16,7 +16,7 @@ def test_start(bot, user, admin):
     assert message
     answer = message['text']
 
-    assert 'Рады тебя видеть, мхехе.' in answer, answer
+    assert 'Рады тебя видеть' in answer, answer
 
     for c in user_commands:
         assert c in answer
@@ -31,7 +31,7 @@ def test_start(bot, user, admin):
     assert message
     answer = message['text']
 
-    assert 'Рады тебя видеть, мхехе.' in answer, answer
+    assert 'Рады тебя видеть' in answer, answer
 
     for c in user_commands:
         assert c in answer

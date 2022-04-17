@@ -1,5 +1,6 @@
 
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 from telegram import (ReplyKeyboardMarkup, KeyboardButton, ParseMode)
 
 from telegram import Update
@@ -100,7 +101,6 @@ class Inital(Handlers):
             "phone_number": phone_number
         }
 
-        
         if not users_collection.get_user(user_info.id):
             users_collection.add_user(userdata)
         else:

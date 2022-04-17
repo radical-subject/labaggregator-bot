@@ -55,13 +55,23 @@ class BlackList:
 
     def is_similar(self, smiles: str, threshold: float = 0.75):
 
-        smiles = smiles.replace("|", "") # вертикальная черта в SMILES - непонятно что несёт, и RDKIT ее не понимает, убираем ее
+        smiles = smiles.replace("|", "")  # вертикальная черта в SMILES - непонятно что несёт, и RDKIT ее не понимает, убираем ее
         mol = Chem.MolFromSmiles(smiles)
 
         res = similarity.SimSearchAggregate(mol, self.molecules, self.mfp_counts, 0.1)
-        res = sorted(res, key=itemgetter(0), reverse=True)
 
-        logger.info(f"smiles ({smiles}) similarity = {res[0][0]}")
+        if not res or not res[0]:
+            logger.error(f"is_similar: {smiles} incorrect result: {str(res)}")
+            return True
+
+        else:
+            res = sorted(res, key=itemgetter(0), reverse=True)
+            if not res or not res[0]:
+                logger.error(f"is_similar: {smiles} incorrect sorted result: {str(res)}")
+                return True
+
+            logger.info(f"is_similar: {smiles} = {res[0][0]}")
+
         return res[0][0] > threshold
 
 

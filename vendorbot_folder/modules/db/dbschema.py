@@ -2,13 +2,9 @@
 from typing import Text, List, Tuple
 import uuid
 import time
-
-from modules.ourbot.logger import logger
-
+from modules.db.blacklist import blacklist_engine
 from modules.ourbot.service.helpers import is_cas_number
-
-from modules.db.rdkitdb import similarity_search, convert_to_smiles_and_get_additional_data
-from modules.ourbot.service.resolver import batch_SMILES_resolve
+from modules.ourbot.service.cas_to_smiles import banch_cas_to_smiles
 
 
 def get_shared_reagents(user):
@@ -41,6 +37,46 @@ def reagent_contact(user, reagent):
     elif 'username' in user and user['username']:
         return user['username']
     return user['user_id']   # хоть так
+
+
+def parse_cas_list(cas_list: List[str], contact: str = ''):
+    """
+    Фильтруем список CAS, ищем SMILES, удаляем прекурсоры, возвращаем список компонентов для БД и статистику
+    :param cas_list:
+    :param contact:
+    :return:
+    """
+    valid_cas_list = [r for r in cas_list if is_cas_number(r)]
+    failed_cas = [r for r in cas_list if not is_cas_number(r)]
+    cas_smiles_list = banch_cas_to_smiles(valid_cas_list)
+
+    cas_smiles_whitelist = [cas_smile for cas_smile in cas_smiles_list if
+                            not blacklist_engine.is_similar(cas_smile[1])]
+
+    reagents = []
+
+    now = time.strftime("%d.%m.%Y %H:%M", time.localtime())
+
+    for cas, smiles in cas_smiles_whitelist:
+        reagents.append({
+            "reagent_internal_id": uuid.uuid4().hex,
+            "CAS": cas,
+            "SMILES": smiles,
+            "contact": contact,
+            "sharing_status": "shared",
+            "timestamp": now
+        })
+
+    return reagents, f"""file was successfully parsed and uploaded.
+<b>import results</b>:
+Строк в вашем списке: <b>{len(cas_list)}</b>
+Правильных CAS-номеров: <b>{len(valid_cas_list)}</b>
+Опечатка в CAS: <b>{", ".join(failed_cas)}</b>
+Не найдено SMILES для: <b>{len(valid_cas_list) - len(cas_smiles_list)}</b> позиций
+Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов
+Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}</b>
+"""
+
 
 class UserReagents:
     """

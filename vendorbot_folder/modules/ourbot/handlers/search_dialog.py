@@ -8,7 +8,8 @@ from modules.ourbot.handlers.helpers import CONV_SEARCH, SEARCH_STATE
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.cas_to_smiles import pubchempy_get_smiles
 from modules.ourbot.service.helpers import is_cas_number
-from modules.ourbot.logger import logger
+import logging
+logger = logging.getLogger(__name__)
 
 from modules.db import dbschema
 from modules.db.dbmodel import users_collection
