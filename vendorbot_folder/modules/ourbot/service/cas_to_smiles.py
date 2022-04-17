@@ -99,6 +99,7 @@ def cas_to_smiles(cas):
         "CAS": CAS_number
     }
     """
+    res = None
     try:
         res = cirpy.resolve(cas, "smiles")
         if res is None:
@@ -122,9 +123,9 @@ def parse_lines(lines: List[str]):
         try:
             smiles = cas_to_smiles(cas)
             result.append((cas, smiles))
-            # log.info(f'{cas} - {smiles}')
+            logger.info(f'{cas} - {smiles}')
         except Exception as err:
-            # log.error(f'{cas}: {err}')
+            logger.error(f'{cas}: {err}')
             result.append((cas, 'resolver_error'))
 
     result_object_list = [{"CAS": i[0], "SMILES": i[1]} for i in result] # if i[0]!="resolver_error"
@@ -146,18 +147,17 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     if not args.inpath:
-        # log.error('no infile argument')
+        logger.error('no infile argument')
         sys.exit(0)
     else:
-        # log.info(f'Parse input file: {args.inpath}')
-        pass
+        logger.info(f'Parse input file: {args.inpath}')
 
     with open(args.inpath, 'r') as infile:
         lines = infile.readlines()
         out = parse_lines(lines)
         print(out)
         if args.outpath:
-            # log.info(f'Write output file: {args.outpath}')
+            logger.info(f'Write output file: {args.outpath}')
             with open(args.outpath, 'w') as outfile:
                 for cas, smiles in out:
                     outfile.write(f'{cas}\t{smiles}')

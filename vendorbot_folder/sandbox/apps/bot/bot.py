@@ -1,11 +1,8 @@
 import os
-import time
 
 from telegram import Update, ParseMode, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler,\
     MessageHandler, Filters
-
-from sandbox.apps.bot.logger import log
 
 
 def start(update: Update, context: CallbackContext) -> None:

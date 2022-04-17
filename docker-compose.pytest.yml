@@ -6,6 +6,7 @@ services:
       - PYTHONUNBUFFERED=1
       - MONGO_VENDORBOT_DATABASE=test_db
       - BOT_TOKEN=${BOT_TOKEN}
+      - LOG_LEVEL=DEBUG
     tty: false
     restart: "no"
     command:  conda run -n vendorbot_env pytest

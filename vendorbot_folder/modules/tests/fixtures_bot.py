@@ -1,5 +1,8 @@
 import pytest
-from modules.ourbot.logger import log
+
+import logging
+logger = logging.getLogger(__name__)
+
 from modules.db.dbconfig import vendorbot_db, blacklist_rdkit_db
 from modules.ourbot.ourbot import BotObject
 
@@ -18,16 +21,16 @@ def bot(telegram_server):
         blacklist_rdkit_db=blacklist_rdkit_db
     )
 
-    log.info('Starting Bot for unit-tests...')
+    logger.info('Starting Bot for unit-tests...')
     bot = BotObject(BOT_TOKEN, TELEGRAM_URL, **db_instances)
     bot.update_dispatcher()
     bot.updater.start_polling()
 
     yield bot
 
-    log.info('Bot stopping...')
+    logger.info('Bot stopping...')
     bot.updater.stop()
-    log.info('Bot stopped')
+    logger.info('Bot stopped')
 
 
 @pytest.fixture(scope='session')

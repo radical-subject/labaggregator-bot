@@ -1,6 +1,8 @@
 import traceback
+import logging
+logger = logging.getLogger(__name__)
+
 from functools import wraps
-from modules.ourbot.logger import log
 from modules.ourbot.handlers.helpers import is_admin_chat
 
 
@@ -16,7 +18,7 @@ def log_errors(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            log.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             raise e
     return inner
 
@@ -31,7 +33,7 @@ def is_admin(func):
     def wrapped(self, update, context, *args, **kwargs):
         user_id = update.effective_user.id
         if not is_admin_chat(user_id):
-            log.error(f"Unauthorized access denied for {user_id}.")
+            logger.error(f"Unauthorized access denied for {user_id}.")
             return
         return func(self, update, context, *args, **kwargs)
     return wrapped
