@@ -1,10 +1,35 @@
+from typing import List
 import sys
 import argparse
-# from logger import log
-import csv
-import cirpy, pubchempy
-import re
+import cirpy
+import pubchempy
 import requests
+from multiprocessing import Pool
+import time
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+def get_cas_smiles(cas: str, delay: float = 0.2):
+    try:
+        smiles = cas_to_smiles(cas)
+        time.sleep(delay)  # чтобы не грузить сервер
+        return cas, smiles
+    except Exception as err:
+        logger.error(err)
+
+
+def banch_cas_to_smiles(cas_list: List[str]):
+    """
+    :param cas_list: list of CAS numbers ['1-2-1', '14-1-5']
+    :return: list of tuples [('1-2-1', 'COC'), ('14-1-5', 'CCCC')]
+    """
+    n = 50
+    with Pool(processes=n) as pool:
+        out = pool.map(get_cas_smiles, cas_list)
+
+    return [cas_smile for cas_smile in out if cas_smile]  # очищаем пустые ответы
 
 
 def cirpy_smiles_resolve(cas: str):
@@ -15,8 +40,13 @@ def cirpy_smiles_resolve(cas: str):
 
 
 def pubchempy_get_smileses(name: str):
+    """
+    :param name: reagent name (eng)
+    :return: list of smiles values
+    """
     r = requests.post('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/JSON',
-                      data=f'name={name}')
+                      data=f'name={name}',
+                      timeout=10.0)
     assert r.ok
 
     j = r.json()
@@ -34,12 +64,18 @@ def pubchempy_get_smileses(name: str):
 
 
 def pubchempy_get_smiles(name: str):
+    """
+    :param name: reagent name (eng)
+    :return: first smiles value found
+    """
     return pubchempy_get_smileses(name)[0]
 
 
 def pubchempy_smiles_resolve(cas: str):
     """
-    param: cas - line 1-1-1
+    подходит для cas и для name.
+    param: cas name. example: "1-1-1"
+    TODO: кажется функция не работает. написал свою: pubchempy_get_smiles().
     """
     pubchem_response = pubchempy.get_compounds(cas, "name")
     return pubchem_response[0].isomeric_smiles
@@ -47,21 +83,22 @@ def pubchempy_smiles_resolve(cas: str):
 
 def cas_to_smiles(cas: str):
     """
-    param: cas - line 1-1-1
+    param: cas name. example: "1-1-1"
+    return: SMILES
     """
     try:
-        # log.info(f'Processing... {cas}')
         res = cirpy_smiles_resolve(cas)
         if not res:
             return pubchempy_smiles_resolve(cas)
-
         return res
     except Exception as err:
-        # log.error(f'{cas}: cirpy_smiles_resolve error: {err}')
-        return pubchempy_smiles_resolve(cas)
+        try:
+            return pubchempy_smiles_resolve(cas)
+        except Exception as err:
+            return pubchempy_get_smiles(cas)
 
 
-def parse_lines(lines: str):
+def parse_lines(lines: List[str]):
 
     result = []
     for cas in lines:
@@ -81,7 +118,7 @@ def parse_lines(lines: str):
     # # remove all error indications - this gives clean SMILES list
     # SMILES_list = list(filter(("resolver_error").__ne__, SMILES_list))
     
-    return (result_object_list, errors_CAS_list)
+    return result_object_list, errors_CAS_list
 
 
 if __name__ == "__main__":

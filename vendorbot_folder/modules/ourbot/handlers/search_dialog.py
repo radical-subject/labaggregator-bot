@@ -7,7 +7,7 @@ from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
 from modules.ourbot.handlers.helpers import CONV_SEARCH, SEARCH_STATE
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.cas_to_smiles import pubchempy_get_smiles
-from modules.ourbot.service.helpers import is_CAS_number
+from modules.ourbot.service.helpers import is_cas_number
 from modules.ourbot.logger import logger
 
 from modules.db import dbschema
@@ -46,7 +46,7 @@ class Search(Handlers):
         contacts = []
 
         text = update.message.text
-        if is_CAS_number(text):
+        if is_cas_number(text):
             update.message.reply_text('Ищем CAS в базе шеринга...')
 
             users = users_collection.get_users_by_cas(text)

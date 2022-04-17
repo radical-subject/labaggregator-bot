@@ -4,7 +4,7 @@ import re
 CAS_REGEXP = "^[1-9][0-9]{1,6}\\-[0-9]{2}\\-[0-9]$"
 
 
-def is_CAS_number(cas: str) -> bool:
+def is_cas_number(cas: str) -> bool:
     """
     Функция работает грамотно, проверено кровью, ее, сука, не трогать!
     """

@@ -21,6 +21,13 @@ db_client = pymongo.MongoClient(MONGO_URL,
                                 connectTimeoutMS=5)
 
 
+root_client = pymongo.MongoClient(MONGO_URL,
+                                  username=MONGO_INITDB_ROOT_USERNAME,
+                                  password=MONGO_INITDB_ROOT_PASSWORD,
+                                  authSource="admin",
+                                  connectTimeoutMS=5)
+
+
 vendorbot_db = MongoDriver(MONGO_URL, MONGO_BOT_USERNAME, MONGO_BOT_PASSWORD, MONGO_VENDORBOT_DATABASE)
 
 #vendorbot_collections = ("users_collection", "vendors_collection", "crude_vendors_data", "laboratories")

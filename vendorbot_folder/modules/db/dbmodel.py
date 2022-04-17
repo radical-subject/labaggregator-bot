@@ -6,13 +6,9 @@ from modules.ourbot.logger import logger
 class UsersCollection:
 
     def __init__(self, client, db):
-        self.collection = client[db]['users_collection']
+        self.name = 'users_collection'
+        self.collection = client[db][self.name]
         self.client = client
-        self.db = db
-
-    def drop_db(self):
-        self.client[self.db].command("dropDatabase")
-        logger.info(f"users_collection dropped")
 
     def get_user(self, user_id: int):
         return self.collection.find_one({"user_id": user_id})
@@ -24,7 +20,7 @@ class UsersCollection:
         return list(self.collection.find({}))
 
     def update_user(self, user_id: int, user_data):
-        logger.info(f"user {user_id} update data: {user_data}")
+        logger.info(f"user {user_id} update data")
         if '_id' in user_data:
             del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
         result = self.collection.update_one({"user_id": user_id}, {"$set": user_data}, upsert=True)

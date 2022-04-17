@@ -5,11 +5,12 @@ from io import BytesIO
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
 
+from modules.db.dbconfig import MONGO_VENDORBOT_DATABASE, root_client
 from modules.ourbot.logger import logger
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import is_admin
 from modules.ourbot.service import mongoDumpModule
-from modules.db.dbmodel import users_collection, purge
+from modules.db.dbmodel import users_collection
 from modules.db import dbconfig, rdkitdb, dbschema
 
 
@@ -61,9 +62,8 @@ class Admin(Handlers):
         timerbot_client is not authorized on db to drop it.
         only root can. so, root_client and root instance is transferred as arguments to dbmodel.
         """
-        users_collection.drop_db() # self.root_client, self.db_instances["vendorbot_db"]
-
-
+        root_client[MONGO_VENDORBOT_DATABASE].command("dropDatabase")
+        logger.info(f"database {MONGO_VENDORBOT_DATABASE} dropped.")
 
     @is_admin
     def update_rdkit_db_blacklist_handler(self, update: Update, context: CallbackContext):
