@@ -7,10 +7,10 @@ from telegram.ext import CallbackContext
 from telegram import Update
 
 # у каждого conversational handler должна быть своя группа
-CONV_START, CONV_MANAGE, CONV_SEARCH = range(3)
+CONV_START, CONV_MANAGE, CONV_SEARCH, CONV_APPEND = range(4)
 
 # у всех conversational handler состояний должен быть свой номер. кажется проблема с асинхронными хэндлерами
-UPLOAD_STATE, REQ_CONTACT_STATE, SEARCH_STATE = range(3)
+UPLOAD_STATE, REQ_CONTACT_STATE, SEARCH_STATE, APPEND_STATE = range(4)
 
 
 def bot_commands_text(chat_id):
@@ -23,6 +23,7 @@ def bot_commands_text(chat_id):
 """
     if is_admin_chat(chat_id):
         text += """\n== Админам ==
+/append - добавить новые компоненты в список
 /digest - загрузить все shared
 /purge_handler - очистка бд (только админам)
 /dump - дамп базы данных (присылает в лс зип-дамп)
