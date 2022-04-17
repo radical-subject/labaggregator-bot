@@ -35,7 +35,18 @@ jobs:
         script: |    # 1я переменная с >, остальные с >>
           cd ./labaggregator2022
           touch .env
-          echo BOT_TOKEN=${{ secrets.DUMMY_BOT_TOKEN }} > .env
+          echo BOT_TOKEN=${{ secrets.PRODUCTION_BOT_TOKEN }} > .env
+
+#    - name: Docker-compose pytest
+#      uses: appleboy/ssh-action@master
+#      with:
+#        host: ${{ secrets.DEVELOPMENT_HOST }}
+#        username: ${{ secrets.DEVELOPMENT_USERNAME }}
+#        key: ${{ secrets.DEVELOPMENT_SSHKEY }}
+#        script_stop: true
+#        script: |
+#          cd ./labaggregator2022
+#          docker-compose -f docker-compose.yml -f docker-compose.pytest.yml up --build --abort-on-container-exit
 
     - name: Docker-compose build & up
       uses: appleboy/ssh-action@master
@@ -46,5 +57,4 @@ jobs:
         script_stop: true
         script: |
           cd ./labaggregator2022
-          docker-compose build
-          docker-compose up -d
+          docker-compose up -d --build
