@@ -15,22 +15,22 @@ def get_cas_smiles(cas: str, delay: float = 0.2):
     try:
         smiles = cas_to_smiles(cas)
         time.sleep(delay)  # чтобы не грузить сервер
-        if smiles:
-            return cas, smiles
+        return cas, smiles
     except Exception as err:
         logger.error(err)
+
+    return cas, None
 
 
 def banch_cas_to_smiles(cas_list: List[str]):
     """
     :param cas_list: list of CAS numbers ['1-2-1', '14-1-5']
-    :return: list of tuples [('1-2-1', 'COC'), ('14-1-5', 'CCCC')]
+    :return: list of tuples [('1-2-1', 'COC'), ('14-1-5', None)]
     """
     n = 50
     with Pool(processes=n) as pool:
         out = pool.map(get_cas_smiles, cas_list)
-
-    return [cas_smile for cas_smile in out if cas_smile]  # очищаем пустые ответы
+    return out
 
 
 def cirpy_smiles_resolve(cas: str):

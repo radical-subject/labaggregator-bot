@@ -54,7 +54,12 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
     failed_cas = [r for r in cas_list if not is_cas_number(r)]
     cas_smiles_list = banch_cas_to_smiles(valid_cas_list)
 
+    no_smiles_list = [cas_smiles[0] for cas_smiles in cas_smiles_list if not cas_smiles[1]]
+
+    cas_smiles_list = [cas_smiles for cas_smiles in cas_smiles_list if cas_smiles[1]]
+
     cas_smiles_whitelist = []
+    errors = []
     for cs in cas_smiles_list:
         try:
             if not blacklist_engine.is_similar(cs[1]):
@@ -62,6 +67,7 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
         except Exception as err:
             tb = traceback.format_exc()
             logger.error(f"is_similar failed for ({cs}). Error: {tb}")
+            errors.append(cs)
 
     reagents = []
 
@@ -82,7 +88,8 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
 Строк в вашем списке: <b>{len(cas_list)}</b>
 Правильных CAS-номеров: <b>{len(valid_cas_list)}</b>
 Опечатка в CAS: <b>{", ".join(failed_cas)}</b>
-Не найдено SMILES для: <b>{len(valid_cas_list) - len(cas_smiles_list)}</b> позиций
+Не найдено SMILES для: <b>{len(no_smiles_list)}</b> позиций\n{", ".join(no_smiles_list)}\n
+Ошибка обработки SMILES: <b>{len(errors)}</b> позиций\n{", ".join(errors)}\n
 Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов
 Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}</b>
 """
