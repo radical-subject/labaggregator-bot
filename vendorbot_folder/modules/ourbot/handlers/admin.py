@@ -61,7 +61,7 @@ class Admin(Handlers):
         timerbot_client is not authorized on db to drop it.
         only root can. so, root_client and root instance is transferred as arguments to dbmodel.
         """
-        purge(self.root_client, self.db_instances["vendorbot_db"])
+        users_collection.drop_db() # self.root_client, self.db_instances["vendorbot_db"]
 
 
 
