@@ -11,6 +11,7 @@ from modules.ourbot.service.helpers import is_cas_number
 import logging
 logger = logging.getLogger(__name__)
 
+from modules.ourbot.handlers.helpers import is_admin_chat
 from modules.db import dbschema
 from modules.db.dbmodel import users_collection
 
@@ -21,6 +22,8 @@ cancel_keyboard = [
         InlineKeyboardButton("CANCEL SEARCH", callback_data=CANCEL_CALLBACK)
     ]
 ]
+
+DBSIZE_OPEN_SEARCH = 10
 
 
 class Search(Handlers):
@@ -34,6 +37,15 @@ class Search(Handlers):
         """
         chat_id = update.message.chat_id
         logger.info(f'search({chat_id})')
+
+        user_id = update.message.from_user.id
+        count = len(users_collection.get_reagents(user_id))
+
+        if count < DBSIZE_OPEN_SEARCH:  #  and not is_admin_chat(chat_id)
+            update.message.reply_text(f"Чтобы разблокировать шеринг, вам необходимо загрузить "
+                                      f"в базу не менее {DBSIZE_OPEN_SEARCH} ваших позиций. /manage")
+            return ConversationHandler.END
+
         reply_markup = InlineKeyboardMarkup(cancel_keyboard)
         update.message.reply_text("🙋🏻‍♀️ Enter query (name or CAS):\n\n"
                                   "🖋 Пришли интересующий CAS-номер:",

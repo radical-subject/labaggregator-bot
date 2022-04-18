@@ -58,6 +58,9 @@ class BlackList:
         smiles = smiles.replace("|", "")  # вертикальная черта в SMILES - непонятно что несёт, и RDKIT ее не понимает, убираем ее
         mol = Chem.MolFromSmiles(smiles)
 
+        if not mol:
+            raise Exception("MolFromSmiles returned None")
+
         res = similarity.SimSearchAggregate(mol, self.molecules, self.mfp_counts, 0.1)
 
         logger.debug(f"{smiles} similarity ret = {len(res)}")

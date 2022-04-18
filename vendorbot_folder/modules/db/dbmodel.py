@@ -17,6 +17,9 @@ class UsersCollection:
     def add_user(self, data):
         return self.collection.insert_one(data)
 
+    def get_reagents(self, user_id: int):
+        return self.get_user(user_id)["user_reagents"]
+
     def get_all_users(self):
         return list(self.collection.find({}))
 
