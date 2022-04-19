@@ -71,6 +71,7 @@ class Inital(Handlers):
             "firstname": user_info.first_name,
             "lastname": user_info.last_name
         }
+        logger.info(f"userdata({userdata})")
 
         if not users_collection.get_user(user_info.id):
             users_collection.add_user(userdata)

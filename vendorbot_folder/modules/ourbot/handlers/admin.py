@@ -85,6 +85,7 @@ class Admin(Handlers):
         digest_cas.txt - список всех shared компонентов в виде CAS
         """
         chat_id = update.message.chat_id
+        logger.info(f"digest({chat_id})")
 
         update.message.reply_text(f'Ожидайте: список обрабатывается...')
 
@@ -103,7 +104,7 @@ class Admin(Handlers):
                     digest[name].append(contact)
 
         logger.info(f"digest length = {len(digest.keys())}")
-        update.message.reply_text(f'Всего {len(digest.keys())} CAS')
+        update.message.reply_text(f"Всего {len(digest.keys())} CAS")
 
         if digest:
             cas_list = list(digest.keys())
@@ -111,18 +112,18 @@ class Admin(Handlers):
 
             digest_cas_txt = '\n'.join(cas_list)
 
-            f = BytesIO(bytes(digest_cas_txt, 'utf-8'))
-            f.name = 'digest_cas.txt'
+            f = BytesIO(bytes(digest_cas_txt, "utf-8"))
+            f.name = "digest_cas.txt"
             f.seek(0)
 
             context.bot.send_document(chat_id, f)
 
-            digest_txt = ''
+            digest_txt = ""
             for cas in cas_list:
                 digest_txt += f'{cas} : {", ".join(digest[cas])}\n'
 
             f = BytesIO(bytes(digest_txt, 'utf-8'))
-            f.name = 'digest.txt'
+            f.name = "digest.txt"
             f.seek(0)
 
             context.bot.send_document(chat_id, f)
@@ -133,6 +134,8 @@ class Admin(Handlers):
         dumps whole db, archives it, and sends user .zip archive with data
         """
         chat_id = update.message.chat.id
+        logger.info(f'dump({chat_id})')
+
         path = mongoDumpModule.dump_database(dbconfig.MONGO_INITDB_ROOT_USERNAME, dbconfig.MONGO_INITDB_ROOT_PASSWORD)[1]
         logger.info(f'{path}')
         files = os.listdir("./mongodumps")

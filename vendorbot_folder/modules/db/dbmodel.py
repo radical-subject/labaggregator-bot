@@ -18,7 +18,10 @@ class UsersCollection:
         return self.collection.insert_one(data)
 
     def get_reagents(self, user_id: int):
-        return self.get_user(user_id)["user_reagents"]
+        user = self.get_user(user_id)
+        if "user_reagents" in user:
+            return user["user_reagents"]
+        return []
 
     def get_all_users(self):
         return list(self.collection.find({}))

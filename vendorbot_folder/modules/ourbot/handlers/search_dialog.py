@@ -1,4 +1,5 @@
 
+import traceback
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, \
     InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
@@ -36,7 +37,7 @@ class Search(Handlers):
         Старт ветки диалога "поиск"
         """
         chat_id = update.message.chat_id
-        logger.info(f'search({chat_id})')
+        logger.info(f"search({chat_id})")
 
         user_id = update.message.from_user.id
         count = len(users_collection.get_reagents(user_id))
@@ -54,45 +55,51 @@ class Search(Handlers):
 
     def search_cas(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
-        logger.info(f'search_cas({chat_id})')
-
-        contacts = []
-
         text = update.message.text
-        if is_cas_number(text):
-            update.message.reply_text('Ищем CAS в базе шеринга...')
 
-            users = users_collection.get_users_by_cas(text)
+        logger.info(f"search_cas({chat_id}): {text}")
 
-            for user in users:
-                user_reagents_object = dbschema.UserReagents(**user)
+        try:
+            contacts = []
 
-                for contact in user_reagents_object.get_contacts_for_reagent(text):
-                    if contact not in contacts:
-                        contacts.append(contact)
+            if is_cas_number(text):
+                update.message.reply_text("Ищем CAS в базе шеринга...")
 
-        else:
-            update.message.reply_text('Не похоже на CAS. Сейчас поищем по названию...')
-            try:
-                smiles = pubchempy_get_smiles(text)
-                update.message.reply_text(f'Ищем по пользователям SMILES={smiles}')
-
-                users = users_collection.get_users_by_smiles(smiles)
+                users = users_collection.get_users_by_cas(text)
 
                 for user in users:
                     user_reagents_object = dbschema.UserReagents(**user)
 
-                    for contact in user_reagents_object.get_contacts_for_reagent(smiles):
+                    for contact in user_reagents_object.get_contacts_for_reagent(text):
                         if contact not in contacts:
                             contacts.append(contact)
 
-            except Exception as err:
-                logger.error(err)
+            else:
+                update.message.reply_text('Не похоже на CAS. Сейчас поищем по названию...')
+                try:
+                    smiles = pubchempy_get_smiles(text)
+                    update.message.reply_text(f'Ищем по пользователям SMILES={smiles}')
 
-        if contacts:
-            update.message.reply_text(f'Реагентом могут поделиться эти контакты: {", ".join(contacts)}')
-        else:
-            update.message.reply_text('Реагентом пока никто не готов поделиться.')
+                    users = users_collection.get_users_by_smiles(smiles)
+
+                    for user in users:
+                        user_reagents_object = dbschema.UserReagents(**user)
+
+                        for contact in user_reagents_object.get_contacts_for_reagent(smiles):
+                            if contact not in contacts:
+                                contacts.append(contact)
+
+                except Exception as err:
+                    logger.error(traceback.format_exc())
+
+            if contacts:
+                update.message.reply_text(f'Реагентом могут поделиться эти контакты: {", ".join(contacts)}')
+            else:
+                update.message.reply_text("Реагентом пока никто не готов поделиться.")
+
+        except Exception as err:
+            logger.error(traceback.format_exc())
+            update.message.reply_text("Ошибка поиска. Похвастайтесь админу, что сломали бот.")
 
         return SEARCH_STATE
 
