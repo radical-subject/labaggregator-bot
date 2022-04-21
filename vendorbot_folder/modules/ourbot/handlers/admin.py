@@ -5,15 +5,16 @@ from io import BytesIO
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
 
-from modules.db.dbconfig import MONGO_VENDORBOT_DATABASE, root_client
+from modules.db.dbconfig import MONGO_VENDORBOT_DATABASE, root_client, MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD
 import logging
-logger = logging.getLogger(__name__)
+
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import is_admin
-from modules.ourbot.service import mongoDumpModule
 from modules.db.dbmodel import users_collection
-from modules.db import dbconfig, rdkitdb, dbschema
+from modules.db import rdkitdb, dbschema
+from modules.db.mongodb import dump_database
 
+logger = logging.getLogger(__name__)
 
 class Admin(Handlers):
     def __init__(self, bot, db_instances):
@@ -141,7 +142,7 @@ class Admin(Handlers):
         chat_id = update.message.chat.id
         logger.info(f'dump({chat_id})')
 
-        path = mongoDumpModule.dump_database(dbconfig.MONGO_INITDB_ROOT_USERNAME, dbconfig.MONGO_INITDB_ROOT_PASSWORD)[1]
+        response, path = dump_database(MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD)
         logger.info(f'{path}')
         files = os.listdir("./mongodumps")
         logger.info(f'{files}')

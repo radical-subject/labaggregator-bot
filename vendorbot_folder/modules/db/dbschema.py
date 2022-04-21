@@ -4,7 +4,7 @@ import uuid
 import time
 from modules.db.blacklist import blacklist_engine
 from modules.ourbot.service.helpers import is_cas_number
-from modules.ourbot.service.cas_to_smiles import banch_cas_to_smiles
+from modules.ourbot.service import batch
 
 import logging
 import traceback
@@ -49,6 +49,15 @@ def reagent_contact(user, reagent):
         return get_contact(user)
 
 
+def find_reagent(user, value):
+    reagents = []
+    if 'user_reagents' in user:
+        for reagent in user['user_reagents']:
+            if value in reagent.values():
+                reagents.append(reagent)
+    return reagents
+
+
 def parse_cas_list(cas_list: List[str], contact: str = ''):
     """
     Фильтруем список CAS, ищем SMILES, удаляем прекурсоры, возвращаем список компонентов для БД и статистику
@@ -58,7 +67,7 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
     """
     valid_cas_list = [r for r in cas_list if is_cas_number(r)]
     failed_cas = [r for r in cas_list if not is_cas_number(r)]
-    cas_smiles_list = banch_cas_to_smiles(valid_cas_list)
+    cas_smiles_list = batch.batch_cas_to_smiles(valid_cas_list)
 
     no_smiles_list = [cas_smiles[0] for cas_smiles in cas_smiles_list if not cas_smiles[1]]
 
@@ -103,7 +112,7 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
     if errors:
         message += "\n".join(errors) + "\n"
     message += f"Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов\n"
-    message += f"Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}\n</b>"
+    message += f"Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}</b>\n"
 
     return reagents, message
 

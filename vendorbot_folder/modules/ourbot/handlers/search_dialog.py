@@ -7,7 +7,7 @@ from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
 
 from modules.ourbot.handlers.helpers import CONV_SEARCH, SEARCH_STATE
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.cas_to_smiles import pubchempy_get_smiles
+from modules.ourbot.service.cas_to_smiles import pubchempy_smiles_resolve, cirpy_cas_resolve
 from modules.ourbot.service.helpers import is_cas_number
 import logging
 logger = logging.getLogger(__name__)
@@ -61,36 +61,42 @@ class Search(Handlers):
 
         try:
             contacts = []
+            users = []
 
             if is_cas_number(text):
                 update.message.reply_text("Ищем CAS в базе шеринга...")
 
-                users = users_collection.get_users_by_cas(text)
-
-                for user in users:
-                    user_reagents_object = dbschema.UserReagents(**user)
-
-                    for contact in user_reagents_object.get_contacts_for_reagent(text):
-                        if contact not in contacts:
-                            contacts.append(contact)
+                users.extend(users_collection.get_users_by_cas(text))
 
             else:
                 update.message.reply_text('Не похоже на CAS. Сейчас поищем по названию...')
+
                 try:
-                    smiles = pubchempy_get_smiles(text)
-                    update.message.reply_text(f'Ищем по пользователям SMILES={smiles}')
+                    smiles = pubchempy_smiles_resolve(text)
+                    if smiles:
+                        update.message.reply_text(f'Ищем по пользователям SMILES={smiles}')
 
-                    users = users_collection.get_users_by_smiles(smiles)
+                        users.extend(users_collection.get_users_by_smiles(smiles))
 
-                    for user in users:
-                        user_reagents_object = dbschema.UserReagents(**user)
-
-                        for contact in user_reagents_object.get_contacts_for_reagent(smiles):
-                            if contact not in contacts:
-                                contacts.append(contact)
+                        cas = cirpy_cas_resolve(smiles)
+                        if cas:
+                            update.message.reply_text(f'Ищем по пользователям CAS={cas}')
+                            users.extend(users_collection.get_users_by_cas(cas))
+                        else:
+                            update.message.reply_text(f'Не смогли определить CAS')
 
                 except Exception as err:
                     logger.error(traceback.format_exc())
+                    update.message.reply_text(f'Не смогли определить SMILES')
+                    return SEARCH_STATE
+
+            for user in users:
+                reagents = dbschema.find_reagent(user, text)
+                for r in reagents:
+                    contact = dbschema.reagent_contact(user, r)
+                    if contact:
+                        if contact not in contacts:
+                            contacts.append(contact)
 
             if contacts:
                 update.message.reply_text(f'Реагентом могут поделиться эти контакты: {", ".join(contacts)}')

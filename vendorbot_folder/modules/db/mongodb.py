@@ -1,3 +1,5 @@
+import os
+from datetime import date
 import pymongo
 import logging
 logger = logging.getLogger(__name__)
@@ -27,3 +29,30 @@ class MongoDriver:
         except Exception as e:
             logger.info("[-] Database connection error!")
             raise e
+
+
+def dump_database(username, password):
+    """
+    function for dumping the database. needs root access
+    """
+    today = date.today()
+    # dd.mm.YY
+    current_date = today.strftime("%d.%m.%Y")
+    path = os.getcwd()
+    path = os.path.join(path, "mongodumps", "{}".format(current_date))
+    logger.info(path)
+    # exec_into_docker_command = "docker exec -it mongodb bash"
+    # logging.info(os.system(exec_into_docker_command))
+
+    # запуск команды по дампу
+    command = "mongodump --host {} -u {} -p {} --authenticationDatabase admin -o={}"\
+        .format("mongodb_api", username, password, path)
+    response = os.system(command)
+    logger.info(response)
+
+    # запуск команды архивирования
+    command = f"zip -r {path}.zip {path}"
+    response = os.system(command)
+    logger.info(response)
+
+    return response, path

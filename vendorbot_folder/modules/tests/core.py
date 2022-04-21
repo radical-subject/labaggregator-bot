@@ -106,7 +106,7 @@ class TelegramCore:
             try:
                 message = self.income[chat_id].get(timeout=0.1)
 
-                out = f'chat_id: {chat_id}'
+                out = f'chat_id: {chat_id}\n'
 
                 while message:
                     try:

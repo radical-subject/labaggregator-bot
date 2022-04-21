@@ -61,6 +61,7 @@ def update_rdkit_with_sialdrich (client, db_instance):
 
     return result
 
+
 def similarity_search(DB_rdkit_connection, SMILES_input):
 
     mol_input = Chem.MolFromSmiles(SMILES_input)
