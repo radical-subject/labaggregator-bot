@@ -36,6 +36,16 @@ sudo systemctl enable docker.service
 sudo systemctl enable containerd.service
 ```
 
+### Настройка GitHub
+
+Вручную клонируем репозиторий
+
+dev:
+git clone git@github.com:radicalsubject/labaggregator2022.git labaggregator2022-dev
+
+prod:
+git clone git@github.com:radicalsubject/labaggregator2022.git labaggregator2022
+
 
 ## Настройка GitHub Actions
 
