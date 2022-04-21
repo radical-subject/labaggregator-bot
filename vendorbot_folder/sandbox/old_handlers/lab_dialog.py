@@ -7,7 +7,7 @@ from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler, 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import log_errors
 from modules.db import dbmodel
-
+from sandbox import resolver
 
 logger = logging.getLogger(__name__)
 

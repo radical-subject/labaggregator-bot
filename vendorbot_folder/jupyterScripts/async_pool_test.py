@@ -1,9 +1,10 @@
 from multiprocessing import Pool
-import sys,os
+import sys
+
 sys.path.append("..")
 import pandas as pd
 
-from modules.ourbot.service.resolver import resolve
+from sandbox.resolver import resolve
 from modules.ourbot.service.timer import Timer
 
 timer = Timer()
