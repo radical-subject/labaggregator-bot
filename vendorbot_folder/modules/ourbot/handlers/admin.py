@@ -89,44 +89,49 @@ class Admin(Handlers):
 
         update.message.reply_text(f'Ожидайте: список обрабатывается...')
 
-        users = users_collection.get_all_users()
-        logger.info(f"users {len(users)}")
+        try:
+            users = users_collection.get_all_users()
+            logger.info(f"users {len(users)}")
 
-        digest = {}
-        for user in users:
-            for r in dbschema.get_shared_reagents(user):
-                name = dbschema.reagent_name(r)
-                contact = dbschema.reagent_contact(user, r)
-                if name and name not in digest:
-                    digest[name] = []
+            digest = {}
+            for user in users:
+                for r in dbschema.get_shared_reagents(user):
+                    name = dbschema.reagent_name(r)
+                    contact = dbschema.reagent_contact(user, r)
+                    if name and name not in digest:
+                        digest[name] = []
 
-                if contact not in digest[name]:   # если у пользователя 2 реактива, то будет повторяться contact
-                    digest[name].append(contact)
+                    if contact not in digest[name]:   # если у пользователя 2 реактива, то будет повторяться contact
+                        digest[name].append(contact)
 
-        logger.info(f"digest length = {len(digest.keys())}")
-        update.message.reply_text(f"Всего {len(digest.keys())} CAS")
+            logger.info(f"digest length = {len(digest.keys())}")
+            update.message.reply_text(f"Всего {len(digest.keys())} CAS")
 
-        if digest:
-            cas_list = list(digest.keys())
-            cas_list = sorted(cas_list)
+            if digest:
+                cas_list = list(digest.keys())
+                cas_list = sorted(cas_list)
 
-            digest_cas_txt = '\n'.join(cas_list)
+                digest_cas_txt = '\n'.join(cas_list)
 
-            f = BytesIO(bytes(digest_cas_txt, "utf-8"))
-            f.name = "digest_cas.txt"
-            f.seek(0)
+                f = BytesIO(bytes(digest_cas_txt, "utf-8"))
+                f.name = "digest_cas.txt"
+                f.seek(0)
 
-            context.bot.send_document(chat_id, f)
+                context.bot.send_document(chat_id, f)
 
-            digest_txt = ""
-            for cas in cas_list:
-                digest_txt += f'{cas} : {", ".join(digest[cas])}\n'
+                digest_txt = ""
+                for cas in cas_list:
+                    digest_txt += f'{cas} : {", ".join(digest[cas])}\n'
 
-            f = BytesIO(bytes(digest_txt, 'utf-8'))
-            f.name = "digest.txt"
-            f.seek(0)
+                f = BytesIO(bytes(digest_txt, 'utf-8'))
+                f.name = "digest.txt"
+                f.seek(0)
 
-            context.bot.send_document(chat_id, f)
+                context.bot.send_document(chat_id, f)
+
+        except Exception as err:
+            logger.error(traceback.format_exc())
+            update.message.reply_text(f'Ошибка формирования дайджеста...')
 
     @is_admin
     def dump(self, update: Update, context: CallbackContext):

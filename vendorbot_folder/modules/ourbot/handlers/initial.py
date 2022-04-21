@@ -12,7 +12,18 @@ from modules.db.dbmodel import users_collection
 from modules.db.dbschema import UserReagents
 
 
-class Inital(Handlers):
+def user_from_user_info(user_info, phone_number: str = ""):
+    return {
+        "_id": user_info.id,
+        "user_id": user_info.id,
+        "username": user_info.username,
+        "firstname": user_info.first_name,
+        "lastname": user_info.last_name,
+        "phone_number": phone_number
+    }
+
+
+class Initial(Handlers):
 
     """
     класс содержащий в себе стартовые функции хендлеры. наследует класс Handlers,
@@ -40,43 +51,28 @@ class Inital(Handlers):
 
         update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
-        # проверка на наличие юзернейма, если его не предоставлено - идет запрос контакта (телефонного номера)
-        if not user_info.username:
-            logger.info(f'no username({chat_id})')
-            
-            if not users_collection.get_user(user_info.id):
-                logger.info(f'no user record at all ({chat_id})')
-                reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
-                self.bot.sendMessage(chat_id, 'You havent set up your username. You will not be able to use sharing. Please share your contact to proceed any further:', reply_markup=reply_markup)
-                return REQ_CONTACT_STATE
-
-            elif "phone_number" not in users_collection.get_user(user_info.id).keys():
-                logger.info(f'User record exists, yet no telephone number found ({chat_id})')
-                reply_markup = ReplyKeyboardMarkup([[KeyboardButton('Share contact', request_contact=True)]], resize_keyboard=True, one_time_keyboard=True)
-                self.bot.sendMessage(chat_id, 'You havent set up your username. You will not be able to use sharing. Please share your contact to proceed:', reply_markup=reply_markup)
-                return REQ_CONTACT_STATE
-
-            else:
-                logger.info("User already exists: skipping insertion of userdata in DB")
-                # associated with user chat and context stored data should be cleaned up to prevent mess
-                context.chat_data.clear()
-                context.user_data.clear()
-                return ConversationHandler.END
-
-        # запись данных юзера в БД произойдет сразу, если у юзера есть юзернейм
-        userdata = {
-            "_id": user_info.id,
-            "user_id": user_info.id,
-            "username": "@{}".format(user_info.username),
-            "firstname": user_info.first_name,
-            "lastname": user_info.last_name
-        }
-        logger.info(f"userdata({userdata})")
-
-        if not users_collection.get_user(user_info.id):
-            users_collection.add_user(userdata)
+        user = users_collection.get_user(user_info.id)
+        if not user:
+            # запись данных юзера в БД произойдет сразу, если у юзера есть юзернейм
+            user = user_from_user_info(user_info)
+            users_collection.add_user(user)
+            logger.info(f"user added")
         else:
-            logger.info("User already exists: skipping insertion of userdata in DB")
+            logger.info(f"User ({user_info.id}) exists")
+
+        logger.info(f"userdata({user})")
+
+        # проверка на наличие юзернейма, если его не предоставлено - идет запрос контакта (телефонного номера)
+        if not user["username"] and ("phone_number" not in user or not user["phone_number"]):
+            logger.info(f"no username or no phone ({chat_id})")
+
+            reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Share contact", request_contact=True)]],
+                                               resize_keyboard=True, one_time_keyboard=True)
+
+            self.bot.sendMessage(chat_id, "You haven\'t setup your username. You will not be able to use sharing. "
+                                          "Please share your contact to proceed any further:",
+                                 reply_markup=reply_markup)
+            return REQ_CONTACT_STATE
 
         # associated with user chat and context stored data should be cleaned up to prevent mess
         context.chat_data.clear()
@@ -87,40 +83,33 @@ class Inital(Handlers):
     def get_contact(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
         user_info = update.message.from_user
-        logger.info(f'get_contact({chat_id})')
+        logger.info(f"get_contact({chat_id})")
 
         phone_number = update.message.contact.phone_number
-        logger.info(phone_number)
+        logger.info(f"get_contact phone={phone_number}")
 
-
-        userdata = {
-            "_id": user_info.id,
-            "user_id": user_info.id,
-            "username": "@{}".format(user_info.username),
-            "firstname": user_info.first_name,
-            "lastname": user_info.last_name,
-            "phone_number": phone_number
-        }
-
-        if not users_collection.get_user(user_info.id):
-            users_collection.add_user(userdata)
+        user = users_collection.get_user(user_info.id)
+        if not user:
+            logger.error("user должен был быть создан в /start. проверить!")
+            user = user_from_user_info(user_info, phone_number=phone_number)
+            users_collection.add_user(user)
         else:
-            initial_entry_object = users_collection.get_user(user_info.id)
-            userdata = UserReagents(**initial_entry_object)
-            userdata.add_phone_number(phone_number)
-            users_collection.update_user(user_info.id, userdata.export())
+            user["phone_number"] = phone_number
+            users_collection.update_user(user_info.id, user)
 
-        self.bot.sendMessage(chat_id, 'Thanks for sharing your contact. Now you will be able to upload your list of reagents. /manage')
+        self.bot.sendMessage(chat_id, "Thanks for sharing your contact. "
+                                      "Now you will be able to upload your list of reagents. /manage")
 
-        # associated with user chat and context stored data should be cleaned up to prevent mess
         context.chat_data.clear()
         context.user_data.clear()
-
         return ConversationHandler.END
 
     def exit(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
-        logger.info(f'start.exit({chat_id})')
+        logger.info(f"start.exit({chat_id})")
+
+        context.chat_data.clear()
+        context.user_data.clear()
         return ConversationHandler.END
 
     def help_command(self, update: Update, context: CallbackContext):

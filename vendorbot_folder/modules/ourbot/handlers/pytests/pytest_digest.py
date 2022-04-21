@@ -2,13 +2,10 @@
 
 def test_digest(purge_users_collection: None,  # очищаем БД
                 bot, user, admin):
-    user.init_dialog()
-    admin.init_dialog()
 
     user.send_command('/digest')
 
-    message = user.get_message()
-    assert not message, f'/digest только для администраторов, {message}'
+    user.assert_message("digest только для администраторов")
 
     admin.send_command('/digest')
 

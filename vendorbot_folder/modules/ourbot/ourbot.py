@@ -7,7 +7,7 @@ from telegram.utils.request import Request
 
 import logging
 logger = logging.getLogger(__name__)
-from modules.ourbot.handlers.initial import Inital
+from modules.ourbot.handlers.initial import Initial
 from modules.ourbot.handlers.admin import Admin
 from modules.ourbot.handlers.search_dialog import Search
 from modules.ourbot.handlers.manage_dialog import Manage
@@ -35,7 +35,7 @@ class BotObject:
         self.dispatcher = self.updater.dispatcher
         self.db_instances = db_instances
 
-        self.initial = Inital(self.bot, self.db_instances)
+        self.initial = Initial(self.bot, self.db_instances)
         self.admin = Admin(self.bot, self.db_instances)
         self.search_dialog = Search(self.bot, self.db_instances)
         self.manage_dialog = Manage(self.bot, self.db_instances)

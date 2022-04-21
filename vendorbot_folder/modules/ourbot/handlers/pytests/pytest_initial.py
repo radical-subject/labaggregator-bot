@@ -1,11 +1,8 @@
 
-def test_start(bot, user, admin):
+def test_start_message(bot, user, admin):
     """
     Проверим какие команды показываются обычному юзеру, а какие админу
     """
-    user.init_dialog()
-    admin.init_dialog()
-
     user_commands = ['/start', '/help', '/manage', '/search']
     admin_commands = ['/digest', '/dump', '/purge_handler', '/blacklist_update']
 
@@ -40,8 +37,25 @@ def test_start(bot, user, admin):
         assert a in answer
 
 
+def test_start_no_username(purge_users_collection: None,  # очищаем БД
+                           bot, user, anonim):
+
+    anonim.send_command('/start')
+
+    message = anonim.get_message()
+    assert 'Привет' in message['text']
+
+    anonim.assert_get_keyboard('Please share your contact',
+                               'Share contact',
+                               request_contact=True)
+
+    anonim.send_contact()
+
+    message = anonim.get_message()
+    assert 'Thanks for sharing your contact' in message['text']
+
+
 def test_help(bot, user):
-    user.init_dialog()
 
     user.send_command('/help')
 

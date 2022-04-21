@@ -87,6 +87,8 @@ class Append(Handlers):
 
         update.message.reply_text(bot_commands_text(chat_id))
 
+        context.chat_data.clear()
+        context.user_data.clear()
         return ConversationHandler.END
 
     def exit(self, update: Update, context: CallbackContext):
@@ -99,7 +101,6 @@ class Append(Handlers):
 
         context.chat_data.clear()
         context.user_data.clear()
-
         return ConversationHandler.END
 
     def register_handler(self, dispatcher):

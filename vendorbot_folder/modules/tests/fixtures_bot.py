@@ -41,3 +41,18 @@ def admin() -> Tester:
 
     admin = Tester(core, admin, admin_chat)
     return admin
+
+
+@pytest.fixture(scope='session')
+def anonim() -> Tester:
+    """
+    User without username to test Share contact
+    :return: Tester
+    """
+    u = UserBase()
+    u.username = None
+
+    chat = ChatBase(u)
+
+    unknown_user = Tester(core, u, chat)
+    return unknown_user

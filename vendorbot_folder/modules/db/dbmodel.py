@@ -15,7 +15,8 @@ class UsersCollection:
         return self.collection.find_one({"user_id": user_id})
 
     def add_user(self, data):
-        return self.collection.insert_one(data)
+        result = self.collection.insert_one(data)
+        #assert result.modified_count == 1
 
     def get_reagents(self, user_id: int):
         user = self.get_user(user_id)
@@ -32,7 +33,8 @@ class UsersCollection:
             del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
         result = self.collection.update_one({"user_id": user_id}, {"$set": user_data}, upsert=True)
         logger.info(f"user {user_id} updated")
-        return result
+        #return result
+        #assert result.modified_count == 1
 
     def get_users_by_cas(self, cas: str):
         return self.collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}})

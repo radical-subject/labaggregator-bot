@@ -1,5 +1,5 @@
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from telegram import Update, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
@@ -8,7 +8,7 @@ from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.helpers import get_txt_content
 
 from modules.db.dbmodel import users_collection
-from modules.db.dbschema import UserReagents, parse_cas_list
+from modules.db.dbschema import UserReagents, parse_cas_list, get_contact
 from modules.ourbot.handlers.helpers import bot_commands_text, CONV_MANAGE, UPLOAD_STATE
 
 import logging
@@ -16,7 +16,7 @@ import traceback
 logger = logging.getLogger(__name__)
 
 
-def get_contact_from_cas_file(cas_list: List[str], user_info) -> Tuple[str, List[str]]:
+def get_contact_from_cas_file(cas_list: List[str]) -> Tuple[Optional[str], List[str]]:
     """
     # оставляю возможность хардкодить вручную контакт, прописывая первую строку импортируемого файла руками:
     # в формате reagents_contact:+79265776746
@@ -29,10 +29,7 @@ def get_contact_from_cas_file(cas_list: List[str], user_info) -> Tuple[str, List
         cas_list = cas_list[1:]
         return contact, cas_list
     else:
-        if not user_info.username:
-            return None, cas_list
-        else:
-            return f"@{user_info.username}", cas_list
+        return None, cas_list
 
 
 class Manage(Handlers):
@@ -53,17 +50,26 @@ class Manage(Handlers):
     def manage(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
         logger.info(f"manage({chat_id})")
+
+        user_id = update.message.from_user.id
+        user = users_collection.get_user(user_id)
+        if not user:
+            update.message.reply_text("Это почему тебя нет в БД?! Тыкни /start")
+            return ConversationHandler.END
+
+        if not get_contact(user):
+            update.message.reply_text("У нас нет твоих контактов. Тыкни /start")
+            return ConversationHandler.END
+
         update.message.reply_text("Отправьте мне .txt файл со списком CAS-номеров столбиком, "
                                   "следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\n"
                                   "Send cas list in .txt format.",
                                   parse_mode=ParseMode.HTML)
-
         return UPLOAD_STATE
 
     def getting_file(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
         user_id = update.message.from_user.id
-        user_info = update.message.from_user
         logger.info(f"getting_file({chat_id})")
 
         try:
@@ -75,15 +81,17 @@ class Manage(Handlers):
                 update.message.reply_text("Это почему тебя нет в БД?! Тыкни /start")
                 return ConversationHandler.END
 
+            if not get_contact(user):
+                update.message.reply_text("У нас нет твоих контактов. Тыкни /start")
+                return ConversationHandler.END
+
             update.message.reply_text(f"Ожидайте: список обрабатывается.\nBe patient; it may take a while...")
 
             cas_list = get_txt_content(update, context)
 
-            contact, cas_list = get_contact_from_cas_file(cas_list, user_info)
-            if not contact:
-                update.message.reply_text("Добавьте первую строку 'reagents_contact:<телефон/почта>' "
-                                          "или заполните свой username")
-                return UPLOAD_STATE
+            contact, cas_list = get_contact_from_cas_file(cas_list)
+            if contact:
+                logger.info(f"getting_file({chat_id}): found contact in file {contact}")
 
             reagents, text_report = parse_cas_list(cas_list, contact)
 
@@ -106,6 +114,8 @@ class Manage(Handlers):
 
         update.message.reply_text(bot_commands_text(chat_id))
 
+        context.chat_data.clear()
+        context.user_data.clear()
         return ConversationHandler.END
 
     def exit(self, update: Update, context: CallbackContext):
@@ -118,7 +128,6 @@ class Manage(Handlers):
 
         context.chat_data.clear()
         context.user_data.clear()
-
         return ConversationHandler.END
 
     def register_handler(self, dispatcher):

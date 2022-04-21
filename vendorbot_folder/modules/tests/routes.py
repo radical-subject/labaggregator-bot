@@ -2,6 +2,7 @@ import logging
 import json
 import threading
 import waitress
+import werkzeug
 from typing import List, Dict
 from flask import Flask, request, make_response, send_file
 from flask import json
@@ -16,6 +17,15 @@ app = Flask(__name__)
 HOST = '127.0.0.1'
 PORT = 5555
 TELEGRAM_URL = f'http://{HOST}:{PORT}/'
+
+
+@app.errorhandler(werkzeug.exceptions.BadRequest)
+def handle_bad_request(e):
+    logger.error('Server error: ' + str(e))
+    return 'bad request!', 500
+
+
+app.register_error_handler(500, handle_bad_request)
 
 
 def result_ok(result: List, ok: bool = True) -> Dict:

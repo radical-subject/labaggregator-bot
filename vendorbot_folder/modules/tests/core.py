@@ -2,6 +2,9 @@ from typing import List, Dict
 from datetime import datetime
 from queue import Empty, Queue
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 # online telegram-bot-sdk
 # https://telegram-bot-sdk.readme.io/reference/getupdates
@@ -22,58 +25,58 @@ class TelegramCore:
         self.income = {}
 
     def init_queue(self, id) -> None:
+        """
+        Initialize message queue
+        :param id: chat_id
+        :return:
+        """
         if id not in self.income:
             self.income[id] = Queue()
 
-    def user_send(self, bot_id, user_from, chat, text: str = None, document = None) -> Dict:
-
+    def send(self, receiver_id, sender, chat, **kwargs) -> Dict:
+        """
+        Message from User to Bot
+        :param receiver_id:
+        :param sender:
+        :param chat:
+        :param kwargs: text, document, entities, contact
+        :return:
+        """
         self._message_counter += 1
         message = {'message_id': self._message_counter,
-                   'from': user_from,
+                   'from': sender,
                    'chat': chat,
                    'date': now()
                    }
-        if text:
-            message.update({'text': text})
 
-        if document:
-            message.update({'document': document})
+        for i in kwargs.keys():
+            message.update({i: kwargs.get(i)})
 
-        self.init_queue(bot_id)
-        self.income[bot_id].put(message)
+        self.init_queue(receiver_id)
+        self.income[receiver_id].put(message)
         return message
 
-    def user_send_command(self, bot_id: int, user_from, chat, command) -> None:
+    def send_command(self, bot_id: int, sender, chat, command: str) -> None:
+        """
+        Command message from User to Bot
+        :param bot_id:
+        :param user_from:
+        :param chat:
+        :param command:
+        :return:
+        """
+        entities = [
+            {
+                "offset": 0,
+                "length": len(command),  # TODO ?
+                "type": "bot_command"
+            }
+        ]
+        return self.send(bot_id, sender, chat, text=command, entities=entities)
 
-        self._message_counter += 1
-        message = {'message_id': self._message_counter,
-                   'from': user_from,
-                   'chat': chat,
-                   'date': now(),
-                   'text': command,
-                   "entities": [
-                       {
-                           "offset": 0,
-                           "length": len(command),  # TODO ?
-                           "type": "bot_command"
-                       }]
-                   }
+    def bot_send(self, bot_from, chat, text: str) -> Dict:
 
-        self.init_queue(bot_id)
-        self.income[bot_id].put(message)
-
-    def bot_send(self, bot_from, chat, text) -> Dict:
-
-        self._message_counter += 1
-        message = {'message_id': self._message_counter,
-                   'from': bot_from,
-                   'chat': chat,
-                   'date': now(),
-                   'text': text}
-
-        self.init_queue(chat['id'])
-        self.income[chat['id']].put(message)
-        return message
+        return self.send(chat['id'], bot_from, chat, text=text)
 
     def get_updates(self, chat_id: int, timeout: float = 2.0) -> List[Dict]:
 
@@ -93,6 +96,29 @@ class TelegramCore:
             pass
 
         return ret
+
+    def print_queues(self, ):
+        """
+        Print messages in queue if exist when turn off.
+        """
+        for chat_id, queue in self.income.items():
+
+            try:
+                message = self.income[chat_id].get(timeout=0.1)
+
+                out = f'chat_id: {chat_id}'
+
+                while message:
+                    try:
+                        out += str(message) + '\n'
+                        message = self.income[chat_id].get(timeout=0.1)
+                    except Empty:
+                        break
+
+                if out:
+                    logger.info(out)
+            except Empty:
+                pass
 
 
 core = TelegramCore()

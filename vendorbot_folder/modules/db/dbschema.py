@@ -35,12 +35,18 @@ def reagent_CAS(r):
         return r['CAS']
 
 
+def get_contact(user):
+    if user["username"]:
+        return user["username"]
+    elif user["phone_number"]:
+        return user["phone_number"]
+
+
 def reagent_contact(user, reagent):
     if 'contact' in reagent and reagent['contact']:
         return reagent['contact']
-    elif 'username' in user and user['username']:
-        return user['username']
-    return user['user_id']   # хоть так
+    else:
+        return get_contact(user)
 
 
 def parse_cas_list(cas_list: List[str], contact: str = ''):
@@ -74,14 +80,16 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
     now = time.strftime("%d.%m.%Y %H:%M", time.localtime())
 
     for cas, smiles in cas_smiles_whitelist:
-        reagents.append({
+        r = {
             "reagent_internal_id": uuid.uuid4().hex,
             "CAS": cas,
             "SMILES": smiles,
-            "contact": contact,
             "sharing_status": "shared",
             "timestamp": now
-        })
+        }
+        if contact:
+            r["contact"] = contact
+        reagents.append(r)
 
     message = f"file was successfully parsed and uploaded.\n"
     message += f"<b>import results</b>:\n"
@@ -128,8 +136,9 @@ class UserReagents:
             {
                 CAS: "50-00-0",
                 SMILES: "???",
-                reagent_name: "something 4-something"
-                sharing_status: "shared"
+                #reagent_name: "something 4-something"
+                sharing_status: "shared",
+                contact: "" # если админ добавил
             }
         ]
     }
@@ -168,9 +177,6 @@ class UserReagents:
                 if reagent["contact"] not in contacts:
                     contacts.append(reagent["contact"])
         return contacts
-
-    def add_phone_number (self, phone_number):
-        self.phone_number = phone_number
 
     def export(self):
         """

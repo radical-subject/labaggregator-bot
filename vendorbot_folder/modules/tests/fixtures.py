@@ -1,10 +1,12 @@
 
 import pytest
 import logging
-logger = logging.getLogger(__name__)
+
 from .routes import start_server, shutdown_server
 from .user import Tester, UserBase, ChatBase
 from .core import core
+
+logger = logging.getLogger(__name__)
 
 
 u = UserBase()
@@ -17,10 +19,16 @@ def user() -> Tester:
     return user
 
 
+@pytest.fixture
+def user_id(user: Tester) -> int:
+    return user.user.id
+
+
 @pytest.fixture(scope='session')
 def telegram_server():
     s, t = start_server()
     logger.info('telegram server started')
     yield
+    core.print_queues()
     logger.info('telegram server shutdown begin')
     shutdown_server(s, t)
