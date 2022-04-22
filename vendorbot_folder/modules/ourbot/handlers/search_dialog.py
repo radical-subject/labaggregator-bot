@@ -119,6 +119,7 @@ class Search(Handlers):
                         if contact not in contacts:
                             contacts.append(contact)
 
+            contacts = list(set(contacts))
             if contacts:
                 update.message.reply_text(f'Реагентом могут поделиться эти контакты: {", ".join(contacts)}')
             else:
