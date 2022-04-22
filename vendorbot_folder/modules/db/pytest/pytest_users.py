@@ -50,8 +50,7 @@ def test_add_user(purge_users_collection: None,
 
 def test_update_user(purge_users_collection: None,
                      users_collection: UsersCollection,
-                     dbuser: Dict,
-                     user_id: int):
+                     dbuser: Dict, user):
 
     dbuser["user_reagents"] = [
         {
@@ -61,18 +60,18 @@ def test_update_user(purge_users_collection: None,
             "CAS": "2-2-2"
         }
     ]
-    users_collection.update_user(user_id, dbuser)
-    dbuser = users_collection.get_user(user_id)
+    users_collection.update_user(user.id, dbuser)
+    dbuser = users_collection.get_user(user.id)
 
-    assert len(users_collection.get_reagents(user_id)) == 2
+    assert len(users_collection.get_reagents(user.id)) == 2
 
     dbuser["phone_number"] = "1"
-    users_collection.update_user(user_id, dbuser)
+    users_collection.update_user(user.id, dbuser)
 
-    dbuser = users_collection.get_user(user_id)
+    dbuser = users_collection.get_user(user.id)
     assert dbuser["phone_number"] == "1"
 
-    assert len(users_collection.get_reagents(user_id)) == 2
+    assert len(users_collection.get_reagents(user.id)) == 2
 
     dbuser["user_reagents"] = [
         {
@@ -86,5 +85,5 @@ def test_update_user(purge_users_collection: None,
         }
     ]
 
-    users_collection.update_user(user_id, dbuser)
-    assert len(users_collection.get_reagents(user_id)) == 3
+    users_collection.update_user(user.id, dbuser)
+    assert len(users_collection.get_reagents(user.id)) == 3

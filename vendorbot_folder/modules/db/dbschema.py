@@ -39,7 +39,7 @@ def get_contact(user):
     if user["username"]:
         return user["username"]
     elif user["phone_number"]:
-        return user["phone_number"]
+        return user["phone_number"]  # TODO добавить + если 7
 
 
 def reagent_contact(user, reagent):

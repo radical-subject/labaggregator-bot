@@ -43,7 +43,7 @@ def test_cas_to_smiles():
             assert cirpy_patched.call_count == 1
             assert pubchempy_patched.call_count == 1
 
-    with patch("cirpy.resolve", side_effect=[Exception("test")]) as cirpy_patched:
+    with patch("cirpy.resolve", side_effect=[Exception("it's OK test exception")]) as cirpy_patched:
         with patch("pubchempy.get_compounds",
                    side_effect=[[PubChempyComponent("2")]]) as pubchempy_patched:
 
@@ -51,7 +51,7 @@ def test_cas_to_smiles():
             assert cirpy_patched.call_count == 1
             assert pubchempy_patched.call_count == 1
 
-    with patch("cirpy.resolve", side_effect=[Exception("test")]) as cirpy_patched:
+    with patch("cirpy.resolve", side_effect=[Exception("it's OK test exception")]) as cirpy_patched:
         with patch("pubchempy.get_compounds",
                    side_effect=[Exception("test")]) as pubchempy_patched:
 

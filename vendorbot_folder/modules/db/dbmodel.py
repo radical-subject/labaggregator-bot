@@ -37,10 +37,10 @@ class UsersCollection:
         #assert result.modified_count == 1
 
     def get_users_by_cas(self, cas: str):
-        return self.collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}})
+        return list(self.collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}}))
 
     def get_users_by_smiles(self, smiles: str):
-        return self.collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}})
+        return list(self.collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}}))
 
 
 users_collection = UsersCollection(db_client, MONGO_VENDORBOT_DATABASE)

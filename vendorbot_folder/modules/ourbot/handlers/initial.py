@@ -74,10 +74,6 @@ class Initial(Handlers):
                                  reply_markup=reply_markup)
             return REQ_CONTACT_STATE
 
-        # associated with user chat and context stored data should be cleaned up to prevent mess
-        context.chat_data.clear()
-        context.user_data.clear()
-
         return ConversationHandler.END
 
     def get_contact(self, update: Update, context: CallbackContext):
@@ -100,16 +96,12 @@ class Initial(Handlers):
         self.bot.sendMessage(chat_id, "Thanks for sharing your contact. "
                                       "Now you will be able to upload your list of reagents. /manage")
 
-        context.chat_data.clear()
-        context.user_data.clear()
         return ConversationHandler.END
 
     def exit(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
         logger.info(f"start.exit({chat_id})")
 
-        context.chat_data.clear()
-        context.user_data.clear()
         return ConversationHandler.END
 
     def help_command(self, update: Update, context: CallbackContext):

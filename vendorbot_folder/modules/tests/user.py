@@ -80,6 +80,10 @@ class Tester:
         self.chat = chat
         self.contact = contact if contact else ContactBase(user)
 
+    @property
+    def id(self):
+        return self.user.id
+
     def clean_dialog(self):
         while self.get_message(timeout=0.5):
             pass
@@ -118,9 +122,11 @@ class Tester:
             raise LessMessages(f"Received {len(messages)} messages. Wait {count}")
         return [m['message'] for m in messages]
 
-    def get_message(self, timeout=2.0) -> Dict:
-        messages = self.get_messages(1, timeout)
-        return messages[0]
+    def get_message(self, timeout=5.0) -> Dict:
+        return self.get_messages(1, timeout)[0]
+
+    def get_message_text(self, timeout=5.0) -> str:
+        return self.get_messages(1, timeout)[0]['text']
 
     def send_file(self, dir: str, file_name: str) -> None:
 

@@ -49,15 +49,6 @@ or
 make env_test
 ```
 
-## Сервер
-
-команда для очистки неиспользуемых контейнеров:
-```
-docker system prune -f
-```
-кажется после каждой смены conda env.yml собирается новый образ на 3.5Гб
-
-
 
 #### overwriting env variables for docker-compose 
 may be done by prepending KEY=ARG to docker-compose command:

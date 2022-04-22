@@ -19,11 +19,6 @@ def user() -> Tester:
     return user
 
 
-@pytest.fixture
-def user_id(user: Tester) -> int:
-    return user.user.id
-
-
 @pytest.fixture(scope='session')
 def telegram_server():
     s, t = start_server()

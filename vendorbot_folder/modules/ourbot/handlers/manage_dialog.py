@@ -114,8 +114,6 @@ class Manage(Handlers):
 
         update.message.reply_text(bot_commands_text(chat_id))
 
-        context.chat_data.clear()
-        context.user_data.clear()
         return ConversationHandler.END
 
     def exit(self, update: Update, context: CallbackContext):
@@ -126,8 +124,6 @@ class Manage(Handlers):
         logger.info(f"manage.exit({chat_id})")
         update.message.reply_text(bot_commands_text(chat_id))
 
-        context.chat_data.clear()
-        context.user_data.clear()
         return ConversationHandler.END
 
     def register_handler(self, dispatcher):

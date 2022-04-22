@@ -1,30 +1,25 @@
-
+import os
 import traceback
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, \
-    InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, ParseMode
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
-    RegexHandler, MessageHandler, CallbackQueryHandler, Filters
+    MessageHandler, Filters
 
 from modules.ourbot.handlers.helpers import CONV_SEARCH, SEARCH_STATE
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.service.cas_to_smiles import pubchempy_smiles_resolve, cirpy_cas_resolve
 from modules.ourbot.service.helpers import is_cas_number
 import logging
-logger = logging.getLogger(__name__)
 
-from modules.ourbot.handlers.helpers import is_admin_chat
 from modules.db import dbschema
 from modules.db.dbmodel import users_collection
 
-CANCEL_CALLBACK = str('SEARCH:CANCEL')
+logger = logging.getLogger(__name__)
 
-cancel_keyboard = [
-    [
-        InlineKeyboardButton("CANCEL SEARCH", callback_data=CANCEL_CALLBACK)
-    ]
-]
+CANCEL_SEARCH = 'Завершить поиск'
+cancel_keyboard = [[KeyboardButton(CANCEL_SEARCH)]]
 
-DBSIZE_OPEN_SEARCH = 10
+
+DBSIZE_OPEN_SEARCH = int(os.getenv('DBSIZE_OPEN_SEARCH', 10))
 
 
 class Search(Handlers):
@@ -47,10 +42,11 @@ class Search(Handlers):
                                       f"в базу не менее {DBSIZE_OPEN_SEARCH} ваших позиций. /manage")
             return ConversationHandler.END
 
-        reply_markup = InlineKeyboardMarkup(cancel_keyboard)
+        reply_markup = ReplyKeyboardMarkup(cancel_keyboard, resize_keyboard=True)
         update.message.reply_text("🙋🏻‍♀️ Enter query (name or CAS):\n\n"
                                   "🖋 Пришли интересующий CAS-номер:",
                                   reply_markup=reply_markup)
+
         return SEARCH_STATE
 
     def search_cas(self, update: Update, context: CallbackContext):
@@ -60,34 +56,59 @@ class Search(Handlers):
         logger.info(f"search_cas({chat_id}): {text}")
 
         try:
+            def get_reagent_contact(users, text):
+                ret = []
+                if users:
+                    for user in users:
+                        reagents = dbschema.find_reagent(user, text)
+                        for r in reagents:
+                            contact = dbschema.reagent_contact(user, r)
+                            if contact:
+                                if contact not in contacts:
+                                    ret.append(contact)
+                return ret
+
             contacts = []
-            users = []
 
             if is_cas_number(text):
                 update.message.reply_text("Ищем CAS в базе шеринга...")
 
-                users.extend(users_collection.get_users_by_cas(text))
+                users = users_collection.get_users_by_cas(text)
+                if users:
+                    contacts.extend(get_reagent_contact(users, text))
 
             else:
-                update.message.reply_text('Не похоже на CAS. Сейчас поищем по названию...')
+                update.message.reply_text("Не похоже на CAS. Сейчас поищем по названию...")
 
                 try:
-                    smiles = pubchempy_smiles_resolve(text)
+                    users = users_collection.get_users_by_smiles(text)  # вдруг это smiles
+                    if users:
+                        contacts.extend(get_reagent_contact(users, text))
+
+                    smiles = pubchempy_smiles_resolve(text)  # возвращает None на smiles
                     if smiles:
-                        update.message.reply_text(f'Ищем по пользователям SMILES={smiles}')
+                        update.message.reply_text(f"Ищем по пользователям SMILES={smiles}")
 
                         users.extend(users_collection.get_users_by_smiles(smiles))
+                        if users:
+                            contacts.extend(get_reagent_contact(users, smiles))
 
                         cas = cirpy_cas_resolve(smiles)
                         if cas:
-                            update.message.reply_text(f'Ищем по пользователям CAS={cas}')
-                            users.extend(users_collection.get_users_by_cas(cas))
+                            if isinstance(cas, str):  # TODO переписать cirpy_cas_resolve чтоыб всегда list возвращал
+                                cas = [cas]
+
+                            for c in cas:
+                                update.message.reply_text(f"Ищем по пользователям CAS={c}")
+                                users = users_collection.get_users_by_cas(c)
+                                if users:
+                                    contacts.extend(get_reagent_contact(users, c))
                         else:
-                            update.message.reply_text(f'Не смогли определить CAS')
+                            update.message.reply_text(f"Не смогли определить CAS")
 
                 except Exception as err:
                     logger.error(traceback.format_exc())
-                    update.message.reply_text(f'Не смогли определить SMILES')
+                    update.message.reply_text(f"Не смогли определить SMILES")
                     return SEARCH_STATE
 
             for user in users:
@@ -109,37 +130,13 @@ class Search(Handlers):
 
         return SEARCH_STATE
 
-    def exit_callback(self, update: Update, context: CallbackContext) -> int:
-        """
-        Выход из ветки диалога "поиск"
-        """
-        # необходимо согласно мануалу ответить на query
-        query = update.callback_query
-        query.answer()
-
-        # берем последнее сообщение бота
-        sent_message = update.callback_query.message
-
-        # редактируем его меняя текст и убирая кнопку. диалог завершен.
-        context.bot.edit_message_text(
-            text=f'STOPPED',  #sent_message.text TODO я думаю тут нужно оставлять прежнее сообщение, нужно просто кнопку убрать.
-            chat_id=sent_message.chat_id,
-            message_id=sent_message.message_id,
-            reply_markup=None,
-            parse_mode=ParseMode.MARKDOWN
-        )
-        
-        # now clear all cached data
-        # clear assosiated with user data and custom context variables
-        context.chat_data.clear()
-        context.user_data.clear()
-
-        return ConversationHandler.END
-
     def exit(self, update: Update, context: CallbackContext) -> int:
 
         chat_id = update.message.chat_id
         logger.info(f'search.exit({chat_id})')
+
+        update.message.reply_text("Поиск завершен",
+                                  reply_markup=ReplyKeyboardRemove())
 
         return ConversationHandler.END
 
@@ -149,7 +146,7 @@ class Search(Handlers):
             entry_points=[CommandHandler('search', self.search),],
             states={
                 SEARCH_STATE: [
-                    CallbackQueryHandler(self.exit_callback, pattern=CANCEL_CALLBACK),
+                    MessageHandler(Filters.regex(CANCEL_SEARCH), self.exit),
                     MessageHandler(Filters.text & ~Filters.command, self.search_cas, run_async=True)
                 ],
             },

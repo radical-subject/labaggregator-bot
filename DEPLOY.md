@@ -101,3 +101,12 @@ err: The command '/bin/sh -c conda env create -f env.yml' returned a non-zero co
 err: Service 'vendorbot_service' failed to build : Build failed
 ```
 - не хватает памяти. нужно сделать swap файл. я сделал на 4Гб. Возможно и 2Гб хватит.
+
+
+# Заметки
+
+команда для очистки неиспользуемых контейнеров:
+```
+docker system prune -f
+```
+кажется после каждой смены conda env.yml собирается новый образ на 3.5Гб

@@ -18,3 +18,9 @@ def mock_cirpy_resolve() -> None:
 def mock_is_similar() -> None:
     with mock.patch("modules.db.blacklist.BlackList.is_similar") as mocker:
         yield mocker
+
+
+@pytest.fixture(autouse=True)
+def mock_pubchempy_get_compounds() -> None:
+    with mock.patch("pubchempy.get_compounds") as mocker:
+        yield mocker

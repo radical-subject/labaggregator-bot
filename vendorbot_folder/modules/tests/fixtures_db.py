@@ -23,20 +23,20 @@ def users_collection() -> UsersCollection:
 
 
 @pytest.fixture
-def dbuser(user_id: int,
+def dbuser(user,
            users_collection: UsersCollection) -> Dict:
 
-    user = users_collection.get_user(user_id)
-    if not user:
+    dbuser = users_collection.get_user(user.id)
+    if not dbuser:
         userdata = {
-            "_id": user_id,
-            "user_id": user_id,
+            "_id": user.id,
+            "user_id": user.id,
             "username": "@username",
             "firstname": "first_name",
             "lastname": "last_name",
             "phone_number": ""
         }
         users_collection.add_user(userdata)
-        user = users_collection.get_user(user_id)
-        
-    return user
+        dbuser = users_collection.get_user(user.id)
+
+    return dbuser

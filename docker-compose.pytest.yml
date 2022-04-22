@@ -7,6 +7,7 @@ services:
       - MONGO_VENDORBOT_DATABASE=test_db
       - BOT_TOKEN=${BOT_TOKEN}
       - LOG_LEVEL=DEBUG
+      - DBSIZE_OPEN_SEARCH=0
     tty: false
     restart: "no"
     command:  conda run -n vendorbot_env pytest

@@ -90,7 +90,7 @@ def test_parse_cas_list_fail_smiles(mock_batch_cas_to_smiles,
 
 
 def test_parse_cas_list_precursor(mock_batch_cas_to_smiles,
-                                    mock_is_similar):
+                                  mock_is_similar):
 
     cas_list = ["15243-33-1"]
 
