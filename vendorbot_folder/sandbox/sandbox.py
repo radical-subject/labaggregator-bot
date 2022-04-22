@@ -21,10 +21,19 @@ from modules.ourbot.service.cas_to_smiles import pubchempy_smiles_resolve
 #ret = pubchempy_smiles_resolve('O=C(CC(=O)c1ccccc1)c2ccccc2')
 #
 
+def cas_to_name(cas):
+    smiles = cirpy.resolve(cas, 'smiles')
+    pp.pprint(smiles)
+    ret = cirpy.resolve(smiles, 'names')
+    pp.pprint(ret)
 
-smiles = pubchempy_smiles_resolve('Dibenzoylmethane')
+cas_to_name('75-64-9')
 
-pp.pprint(smiles)
+
+
+#smiles = pubchempy_smiles_resolve('Dibenzoylmethane')
+
+#pp.pprint(smiles)
 #pubchem_response = pubchempy.get_compounds('3-bromoprop-1-ene', "name")
 #smiles = pubchem_response[0].isomeric_smiles
 
@@ -32,9 +41,9 @@ pp.pprint(smiles)
 
 #pp.pprint(pubchem_response[0].to_dict())
 
-ret = cirpy.resolve(smiles, 'cas')
+#ret = cirpy.resolve(smiles, 'cas')
 
-pp.pprint(ret)
+#pp.pprint(ret)
 
 #ret = cirpy.resolve('Allyl bromide', 'names')
 
