@@ -37,16 +37,16 @@ jobs:
           touch .env
           echo BOT_TOKEN=${{ secrets.DEVELOPMENT_BOT_TOKEN }} > .env
 
-#    - name: Docker-compose pytest
-#      uses: appleboy/ssh-action@master
-#      with:
-#        host: ${{ secrets.DEVELOPMENT_HOST }}
-#        username: ${{ secrets.DEVELOPMENT_USERNAME }}
-#        key: ${{ secrets.DEVELOPMENT_SSHKEY }}
-#        script_stop: true
-#        script: |
-#          cd ./labaggregator2022-dev
-#          docker-compose -f docker-compose.yml -f docker-compose.pytest.yml up --build --abort-on-container-exit
+    - name: Docker-compose pytest
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.DEVELOPMENT_HOST }}
+        username: ${{ secrets.DEVELOPMENT_USERNAME }}
+        key: ${{ secrets.DEVELOPMENT_SSHKEY }}
+        script_stop: true
+        script: |
+          cd ./labaggregator2022-dev
+          docker-compose -f docker-compose.yml -f docker-compose.pytest.yml up --build --abort-on-container-exit
 
     - name: Docker-compose up
       uses: appleboy/ssh-action@master

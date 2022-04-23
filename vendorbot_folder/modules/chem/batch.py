@@ -3,6 +3,7 @@ from multiprocessing import Pool
 from .cas_to_smiles import get_cas_smiles
 
 
+# нужна отдельно, чтобы мокать в pytest
 def batch_cas_to_smiles(cas_list: List[str]):
     """
     :param cas_list: list of CAS numbers ['1-2-1', '14-1-5']
