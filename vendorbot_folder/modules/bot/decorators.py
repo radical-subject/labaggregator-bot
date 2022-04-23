@@ -3,7 +3,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from functools import wraps
-from modules.ourbot.handlers.helpers import is_admin_chat
+from .helpers import is_admin_chat
 
 
 def log_errors(f):

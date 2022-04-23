@@ -1,8 +1,8 @@
 
 import time
-from modules.db.dbmodel import users_collection
-from modules.ourbot.handlers.search_dialog import CANCEL_SEARCH
-from modules.ourbot.service.pytests.pytest_cas_to_smiles import PubChempyComponent
+from modules.db.users import users_collection
+from modules.bot.search_dialog import CANCEL_SEARCH
+from modules.chem.pytests import PubChempyComponent
 
 
 reagents1 = [{'reagent_internal_id': '1', 'CAS': '2749-11-3', 'SMILES': 'C[C@H]([NH3+])CO',

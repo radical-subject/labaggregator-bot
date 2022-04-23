@@ -5,9 +5,9 @@ from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackConte
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import log_errors
-from modules.db import dbmodel
+from modules.db import users
 
-from modules.db.dbmodel import get_timerdata_object
+from modules.db.users import get_timerdata_object
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class EditEntriesDialog(Handlers):
         context.chat_data["timerdata_entry_id"] = timerdata_entry_id
 
         # достаем нужную запись таймера сразу из базы маскированием посредством projection query
-        result = dbmodel.get_records(
+        result = users.get_records(
             self.timerbot_db_client,
             self.db_instances["timerbot_db"], 
             self.collection, 
@@ -213,7 +213,7 @@ class EditEntriesDialog(Handlers):
         result.edit_timestamp(timerdata_entry_id, user_input)
         data = result.export()
         # записываем экспортированный в словарь объект в базу
-        dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
+        users.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
 
 
         '''
@@ -221,7 +221,7 @@ class EditEntriesDialog(Handlers):
         '''
 
         # достаем нужную запись таймера сразу из базы маскированием посредством projection query
-        result = dbmodel.get_records(
+        result = users.get_records(
             self.timerbot_db_client,
             self.db_instances["timerbot_db"], 
             self.collection, 
@@ -282,7 +282,7 @@ class EditEntriesDialog(Handlers):
         result.edit_elapsed_time(timerdata_entry_id, user_input)
         data = result.export()
         # записываем экспортированный в словарь объект в базу
-        dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
+        users.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
 
 
 
@@ -291,7 +291,7 @@ class EditEntriesDialog(Handlers):
         '''
 
         # достаем нужную запись таймера сразу из базы маскированием посредством projection query
-        result = dbmodel.get_records(
+        result = users.get_records(
             self.timerbot_db_client,
             self.db_instances["timerbot_db"], 
             self.collection, 
@@ -382,14 +382,14 @@ class EditEntriesDialog(Handlers):
 
         data = result.export()
         # записываем экспортированный в словарь объект в базу
-        dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
+        users.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
 
         '''
         далее идет целый фрагмент функции select_action
         '''
 
         # достаем нужную запись таймера сразу из базы маскированием посредством projection query
-        result = dbmodel.get_records(
+        result = users.get_records(
             self.timerbot_db_client,
             self.db_instances["timerbot_db"], 
             self.collection, 
@@ -441,7 +441,7 @@ class EditEntriesDialog(Handlers):
         sent_message = update.callback_query.message
 
         user_id = update.callback_query.from_user.id
-        result = dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"user_id": user_id})
+        result = users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"user_id": user_id})
         
         '''
         собираем лист со всеми категориями - только активные
@@ -515,14 +515,14 @@ class EditEntriesDialog(Handlers):
 
         data = result.export()
         # записываем экспортированный в словарь объект в базу
-        dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
+        users.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
 
         '''
         далее идет целый фрагмент функции select_action
         '''
 
         # достаем нужную запись таймера сразу из базы маскированием посредством projection query
-        result = dbmodel.get_records(
+        result = users.get_records(
             self.timerbot_db_client,
             self.db_instances["timerbot_db"], 
             self.collection, 

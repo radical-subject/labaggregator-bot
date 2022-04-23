@@ -1,10 +1,10 @@
 
-from typing import Text, List, Tuple
+from typing import List
 import uuid
 import time
 from modules.db.blacklist import blacklist_engine
-from modules.ourbot.service.cas_to_smiles import is_cas_number
-from modules.ourbot.service import batch
+from modules.chem.cas_to_smiles import is_cas_number
+from modules.chem import batch
 
 import logging
 import traceback

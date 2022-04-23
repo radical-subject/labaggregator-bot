@@ -1,34 +1,7 @@
 import os
 from datetime import date
-import pymongo
 import logging
 logger = logging.getLogger(__name__)
-
-
-class MongoDriver:
-    client = None
-
-    def __init__(self, host, username, password, name):
-        try:
-            self.DATABASE_HOST = host
-            self.DATABASE_ADMIN_USERNAME = username
-            self.DATABASE_ADMIN_PASSWORD = password
-            logger.info(f"connect to: {self.DATABASE_ADMIN_USERNAME}, {self.DATABASE_ADMIN_PASSWORD}, {self.DATABASE_HOST}")
-
-            self.client = pymongo.MongoClient(self.DATABASE_HOST,
-                                              username=self.DATABASE_ADMIN_USERNAME,
-                                              password=self.DATABASE_ADMIN_PASSWORD,
-                                              authSource="admin")
-            # deprecated
-            # self.client_base = pymongo.MongoClient(self.DATABASE_HOST)
-            # self.client.admin.authenticate(self.DATABASE_ADMIN_USERNAME, self.DATABASE_ADMIN_PASSWORD)
-            # self.client = self.client_base(username=self.DATABASE_ADMIN_USERNAME, password=self.DATABASE_ADMIN_PASSWORD)
-
-            self.DATABASE_NAME = name
-            logger.info(f"[+] {self.DATABASE_NAME} database connected!")
-        except Exception as e:
-            logger.info("[-] Database connection error!")
-            raise e
 
 
 def dump_database(username, password):
@@ -56,3 +29,36 @@ def dump_database(username, password):
     logger.info(response)
 
     return response, path
+
+
+def purge(client, db_instance):
+    db_name = db_instance.DATABASE_NAME
+    db = client[db_name]
+    db.command("dropDatabase")
+    logger.info(f"database {db_name} dropped.")
+
+
+def add_records(client, db_instance, collection_name: str, data: dict):
+    db_name = db_instance.DATABASE_NAME
+    # logger.info(f"{client}, {db_instance}, {collection_name}, {data}")
+    collection = client[db_name][collection_name]
+    result = collection.insert_one(data)
+    logger.info(f"data inserted into {db_name}, {collection_name}")
+    return result
+
+
+def update_record(client, db_instance, collection_name: str, query: dict, data: dict):
+    db_name = db_instance.DATABASE_NAME
+    collection = client[db_name][collection_name]
+    # result = collection.insert_one(data)
+    result = collection.update(query, {"$set": data}, upsert=True)
+    logger.info(f"data upserted into {db_name}, {collection_name}")
+    return result
+
+
+def get_records(client, db_instance, collection_name: str, query: dict, *args):
+    db_name = db_instance.DATABASE_NAME
+    collection = client[db_name][collection_name]
+    search = list(collection.find(query, *args))
+    # logger.info(search)
+    return search

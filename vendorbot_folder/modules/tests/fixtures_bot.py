@@ -1,28 +1,34 @@
+import os
 import pytest
-
 import logging
-logger = logging.getLogger(__name__)
+from unittest import mock
 
-from modules.db.dbconfig import vendorbot_db, blacklist_rdkit_db
-from modules.ourbot.ourbot import BotObject
-
-from modules.ourbot.handlers.helpers import LIST_OF_ADMINS
+from modules.bot.bot import BotObject
+from modules.bot.helpers import LIST_OF_ADMINS
 
 from modules.tests.routes import TELEGRAM_URL
 from modules.tests.core import core
 from modules.tests.user import BOT_TOKEN, Tester, UserBase, ChatBase
 
+logger = logging.getLogger(__name__)
+
+
+@pytest.fixture(autouse=True, scope='session')
+def mock_async():
+    """
+    disable async handlers, cause pytest got error
+    :return:
+    """
+    with mock.patch.dict(os.environ, {"RUN_ASYNC": "false"}):
+        yield
+
 
 @pytest.fixture(scope='session')
-def bot(telegram_server):
-
-    db_instances = dict(
-        vendorbot_db=vendorbot_db,
-        blacklist_rdkit_db=blacklist_rdkit_db
-    )
+def bot(telegram_server,
+        mock_async):
 
     logger.info('Starting Bot for unit-tests...')
-    bot = BotObject(BOT_TOKEN, TELEGRAM_URL, **db_instances)
+    bot = BotObject(BOT_TOKEN, TELEGRAM_URL)
     bot.update_dispatcher()
     bot.updater.start_polling()
 

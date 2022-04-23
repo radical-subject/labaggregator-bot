@@ -2,7 +2,7 @@
 from typing import List
 
 import io
-from csv import reader, excel
+from csv import reader
 from telegram.ext import CallbackContext
 from telegram import Update
 
@@ -27,7 +27,7 @@ def bot_commands_text(chat_id):
 /digest - загрузить все shared
 /purge_handler - очистка бд (только админам)
 /dump - дамп базы данных (присылает в лс зип-дамп)
-/blacklist_update - заполнение базы блеклиста и обсчет. команда выполняется асинхронно
+/blacklist_reload - заполнение базы блеклиста и обсчет. команда выполняется асинхронно
 """
     return text
 

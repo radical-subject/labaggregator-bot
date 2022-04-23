@@ -1,16 +1,17 @@
 import os
 import traceback
+import logging
+
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
     MessageHandler, Filters
 
-from modules.ourbot.handlers.helpers import CONV_SEARCH, SEARCH_STATE
-from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.cas_to_smiles import what_reagent
-import logging
+from . import run_async
+from .helpers import CONV_SEARCH, SEARCH_STATE
+from modules.chem.cas_to_smiles import what_reagent
 
 from modules.db.dbschema import get_reagent_contacts
-from modules.db.dbmodel import users_collection
+from modules.db.users import users_collection
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,7 @@ cancel_keyboard = [[KeyboardButton(CANCEL_SEARCH)]]
 DBSIZE_OPEN_SEARCH = int(os.getenv('DBSIZE_OPEN_SEARCH', 10))
 
 
-class Search(Handlers):
-    def __init__(self, bot, db_instances):
-        super(Search, self).__init__(db_instances)
-        self.collection = "users_collection"
+class Search:
 
     def search(self, update: Update, context: CallbackContext):
         """
@@ -85,6 +83,7 @@ class Search(Handlers):
             logger.error(traceback.format_exc())
             update.message.reply_text("Ошибка поиска. Похвастайтесь админу, что сломали бот.")
 
+        logger.info(f"search_cas({chat_id}): {text} end")
         return SEARCH_STATE
 
     def exit(self, update: Update, context: CallbackContext) -> int:
@@ -104,7 +103,7 @@ class Search(Handlers):
             states={
                 SEARCH_STATE: [
                     MessageHandler(Filters.regex(CANCEL_SEARCH), self.exit),
-                    MessageHandler(Filters.text & ~Filters.command, self.search_cas, run_async=True)
+                    MessageHandler(Filters.text & ~Filters.command, self.search_cas, run_async=run_async())
                 ],
             },
             fallbacks=[MessageHandler(Filters.command, self.exit),

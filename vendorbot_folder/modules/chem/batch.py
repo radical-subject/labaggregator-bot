@@ -1,6 +1,6 @@
 from typing import List
 from multiprocessing import Pool
-from modules.ourbot.service.cas_to_smiles import get_cas_smiles
+from .cas_to_smiles import get_cas_smiles
 
 
 def batch_cas_to_smiles(cas_list: List[str]):

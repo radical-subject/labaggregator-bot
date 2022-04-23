@@ -1,17 +1,9 @@
 
-from modules.ourbot.service.cas_to_smiles import pubchempy_smiles_resolve, \
+from unittest.mock import patch
+from modules.chem.cas_to_smiles import pubchempy_smiles_resolve, \
     cirpy_smiles_resolve, cas_to_smiles, get_cas_smiles, is_cas_number, what_reagent
 
-from unittest.mock import patch
-
-
-class PubChempyComponent:
-    def __init__(self, isomeric_smiles):
-        self.isomeric_smiles = isomeric_smiles
-
-
-def pubchempy_smiles_return(ret):
-    return [PubChempyComponent(ret)]
+from . import pubchempy_smiles_return, PubChempyComponent
 
 
 @patch("pubchempy.get_compounds", side_effect=[pubchempy_smiles_return("1"), pubchempy_smiles_return("2")])
@@ -69,7 +61,7 @@ def test_cas_to_smiles(mock_pubchempy_get_compounds,
 
 def test_get_cas_smiles():
 
-    with patch("modules.ourbot.service.cas_to_smiles.cas_to_smiles",
+    with patch("modules.chem.cas_to_smiles.cas_to_smiles",
                side_effect=[None, "C", Exception("it's OK test exception")]) as patched:
 
         cas, smiles = get_cas_smiles("1")

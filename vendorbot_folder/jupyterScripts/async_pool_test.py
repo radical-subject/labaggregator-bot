@@ -5,7 +5,7 @@ sys.path.append("..")
 import pandas as pd
 
 from sandbox.resolver import resolve
-from modules.ourbot.service.timer import Timer
+from modules.service import Timer
 
 timer = Timer()
 

@@ -1,18 +1,16 @@
-
+import logging
+import traceback
 from typing import List, Tuple, Optional
 
 from telegram import Update, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
-from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.handlers.helpers import get_txt_content
-
-from modules.db.dbmodel import users_collection
+from modules.db.users import users_collection
 from modules.db.dbschema import UserReagents, parse_cas_list, get_contact
-from modules.ourbot.handlers.helpers import bot_commands_text, CONV_MANAGE, UPLOAD_STATE
 
-import logging
-import traceback
+from . import run_async
+from .helpers import get_txt_content, bot_commands_text, CONV_MANAGE, UPLOAD_STATE
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,20 +30,11 @@ def get_contact_from_cas_file(cas_list: List[str]) -> Tuple[Optional[str], List[
         return None, cas_list
 
 
-class Manage(Handlers):
+class Manage:
     """
     В этом диалоговом хендлере пользователь добавляет свой список реагентов. 
     Присылается текстовый файл с CAS номерами.
-    В качестве контакта обратной связи устанавливается контакт, который указан в шапке файла.
-    Eсли не указан в шапке файла - то в качестве контакта используется username.
-
-    Если у пользователя нет username - тогда все плохо. надо обработать этот момент. 
     """
-    def __init__(self, bot, db_instances):
-        """
-        передаем коллекции, с которыми по умолчанию работает этот хендлер
-        """
-        super().__init__(db_instances)
 
     def manage(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
@@ -73,7 +62,6 @@ class Manage(Handlers):
         logger.info(f"getting_file({chat_id})")
 
         try:
-
             # Достаем из базы весь объект пользователя с реагентами
             # Пользователь должен быть
             user = users_collection.get_user(user_id)
@@ -132,7 +120,7 @@ class Manage(Handlers):
             entry_points=[CommandHandler("manage", self.manage)],
             states={
                     UPLOAD_STATE: [
-                        MessageHandler(Filters.attachment, self.getting_file, run_async=True)
+                        MessageHandler(Filters.attachment, self.getting_file, run_async=run_async())
                     ]
                 },
             fallbacks=[MessageHandler(Filters.command, self.exit),

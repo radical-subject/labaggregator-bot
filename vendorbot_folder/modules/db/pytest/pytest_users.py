@@ -1,7 +1,7 @@
 
 import pytest
 from typing import Dict
-from modules.db.dbmodel import UsersCollection
+from modules.db.users import UsersCollection
 
 
 def test_add_user(purge_users_collection: None,

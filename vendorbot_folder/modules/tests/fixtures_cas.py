@@ -4,7 +4,7 @@ from unittest import mock
 
 @pytest.fixture(autouse=True)
 def mock_batch_cas_to_smiles() -> None:
-    with mock.patch("modules.ourbot.service.batch.batch_cas_to_smiles") as mocker:
+    with mock.patch("modules.chem.batch.batch_cas_to_smiles") as mocker:
         yield mocker
 
 

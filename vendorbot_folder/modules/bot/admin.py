@@ -1,30 +1,33 @@
 import os
 import pymongo
 import traceback
+import logging
+
 from io import BytesIO
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
 
 from modules.db.dbconfig import MONGO_VENDORBOT_DATABASE, root_client, MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD
-import logging
 
-from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.handlers.decorators import is_admin
-from modules.db.dbmodel import users_collection
-from modules.db import rdkitdb, dbschema
+from modules.db.users import users_collection
+from modules.db import dbschema
+from modules.db.blacklist import blacklist_engine
 from modules.db.mongodb import dump_database
+
+from . import run_async
+from .decorators import is_admin
 
 logger = logging.getLogger(__name__)
 
-class Admin(Handlers):
-    def __init__(self, bot, db_instances):
-        super().__init__(db_instances)
-        # чтобы использовать модуль bot из пакета telegram здесь, 
-        # нужно его передать при инициализации инстанса этого класса в OurBot.
-        self.bot = bot
+
+class Admin:
 
     @is_admin
     def purge_handler(self, update: Update, context: CallbackContext):
+
+        chat_id = update.message.chat_id
+        logger.info(f"purge_handler({chat_id})")
+
         button_list = [
             [
                 InlineKeyboardButton("✅ Yup", callback_data='ADMIN:YUP'),
@@ -38,26 +41,24 @@ class Admin(Handlers):
         )
 
     def button_handler(self, update: Update, context: CallbackContext):
+
         query = update.callback_query
         query.answer()
 
-        if query.data.startswith('ADMIN'):
-            """
-            buttons for database purging are proceeded below
-            """
-            command = query.data.split(':')[1]
-            if command == 'YUP':
-                try:
-                    self.purge()
-                    query.edit_message_text(text=f"База очищена.\nДа поможет тебе святой Франциск!")
-                except pymongo.errors.OperationFailure:
-                    query.edit_message_text(text=f"Client is not authorized on db to drop it.")
+        logger.info(f"admin.button_handler(?) query data: {query.data}")
 
-            if command == 'NOPE':
-                query.edit_message_text(text=f"Блять нахуй я сюда пришёл... а, полотенце!")
+        if query.data == "ADMIN:YUP":
+            try:
+                self.purge()
+                query.edit_message_text(text=f"База очищена.\nДа поможет тебе святой Франциск!")
+            except pymongo.errors.OperationFailure:
+                query.edit_message_text(text=f"Client is not authorized on db to drop it.")
+
+        elif query.data == "ADMIN:NOPE":
+            query.edit_message_text(text=f"Блять нахуй я сюда пришёл... а, полотенце!")
+
         else:
-            # query.edit_message_text(text=f"Something wrong")
-            pass
+            pass  # сюда попадем из других callback, т.к. button_handler общий
 
     def purge(self):
         """
@@ -65,17 +66,22 @@ class Admin(Handlers):
         only root can. so, root_client and root instance is transferred as arguments to dbmodel.
         """
         root_client[MONGO_VENDORBOT_DATABASE].command("dropDatabase")
-        logger.info(f"database {MONGO_VENDORBOT_DATABASE} dropped.")
+        logger.info(f"database {MONGO_VENDORBOT_DATABASE} dropped")
 
     @is_admin
-    def update_rdkit_db_blacklist_handler(self, update: Update, context: CallbackContext):
+    def blacklist_reload(self, update: Update, context: CallbackContext):
         """
         Загружает sdf файл со списком веществ в базу данных blacklist при помощи rdkit.
         updates blacklist with srs/Narkotiki_test.sdf
         """
-        reply = rdkitdb.update_rdkit_db_blacklist(self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
+        chat_id = update.message.chat_id
+        logger.info(f"blacklist_reload({chat_id})")
+
+        update.message.reply_text("Wait reloading...")
+        reply = blacklist_engine.reload_rdkit()
         update.message.reply_text(f"{reply} molecules successfully imported. nice!")
-        reply = rdkitdb.update_blacklist_with_pandas (self.blacklist_rdkit_db_client, self.db_instances["blacklist_rdkit_db"])
+
+        reply = blacklist_engine.reload_pandas()
         logger.info(f"{reply} molecules successfully imported with metadata in separate collection. nice!")
 
     @is_admin
@@ -158,7 +164,7 @@ class Admin(Handlers):
 
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
-        dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=True))
-        dispatcher.add_handler(CommandHandler('blacklist_update', self.update_rdkit_db_blacklist_handler, run_async=True))
-        dispatcher.add_handler(CommandHandler('digest', self.digest, run_async=True))
+        dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=run_async()))
+        dispatcher.add_handler(CommandHandler('blacklist_reload', self.blacklist_reload, run_async=run_async()))
+        dispatcher.add_handler(CommandHandler('digest', self.digest, run_async=run_async()))
         dispatcher.add_handler(CallbackQueryHandler(self.button_handler))

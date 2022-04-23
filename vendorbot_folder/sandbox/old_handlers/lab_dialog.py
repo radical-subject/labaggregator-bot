@@ -6,7 +6,7 @@ from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler, 
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import log_errors
-from modules.db import dbmodel
+from modules.db import users
 from sandbox import resolver
 
 logger = logging.getLogger(__name__)
@@ -101,6 +101,6 @@ class LabDialog(Handlers):
     @log_errors
     def create_lab(self, lab_dict:dict):
         collection = 'laboratories'
-        record = dbmodel.add_records(self.timerbot_db_client, self.db_instances["timerbot_db"], collection, lab_dict)
-        lab = dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], collection, {"_id": record.inserted_id})
+        record = users.add_records(self.timerbot_db_client, self.db_instances["timerbot_db"], collection, lab_dict)
+        lab = users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], collection, {"_id": record.inserted_id})
         return lab

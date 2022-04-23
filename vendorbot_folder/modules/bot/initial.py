@@ -6,10 +6,8 @@ from telegram import (ReplyKeyboardMarkup, KeyboardButton, ParseMode)
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, MessageHandler, Filters
 
-from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.handlers.helpers import bot_commands_text, CONV_START, REQ_CONTACT_STATE
-from modules.db.dbmodel import users_collection
-from modules.db.dbschema import UserReagents
+from modules.db.users import users_collection
+from .helpers import bot_commands_text, CONV_START, REQ_CONTACT_STATE
 
 
 def user_from_user_info(user_info, phone_number: str = ""):
@@ -23,17 +21,13 @@ def user_from_user_info(user_info, phone_number: str = ""):
     }
 
 
-class Initial(Handlers):
+class Initial:
 
     """
     класс содержащий в себе стартовые функции хендлеры. наследует класс Handlers,
     в котором прописаны флаги СОСТОЯНИЯ (для диалогов?) и распаковка словаря **db_clients 
     содержащего в себе список подключений к базе данных.
     """
-
-    def __init__(self, bot, db_instances):
-        super().__init__(db_instances)
-        self.bot = bot
 
     def start(self, update: Update, context: CallbackContext):
         """
@@ -69,9 +63,9 @@ class Initial(Handlers):
             reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Share contact", request_contact=True)]],
                                                resize_keyboard=True, one_time_keyboard=True)
 
-            self.bot.sendMessage(chat_id, "You haven\'t setup your username. You will not be able to use sharing. "
-                                          "Please share your contact to proceed any further:",
-                                 reply_markup=reply_markup)
+            update.message.reply_text("You haven\'t setup your username. You will not be able to use sharing. "
+                                      "Please share your contact to proceed any further:",
+                                      reply_markup=reply_markup)
             return REQ_CONTACT_STATE
 
         return ConversationHandler.END
@@ -93,8 +87,8 @@ class Initial(Handlers):
             user["phone_number"] = phone_number
             users_collection.update_user(user_info.id, user)
 
-        self.bot.sendMessage(chat_id, "Thanks for sharing your contact. "
-                                      "Now you will be able to upload your list of reagents. /manage")
+        update.message.reply_text("Thanks for sharing your contact. "
+                                  "Now you will be able to upload your list of reagents. /manage")
 
         return ConversationHandler.END
 

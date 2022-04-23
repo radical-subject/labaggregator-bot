@@ -5,7 +5,7 @@ from telegram.ext import CallbackContext, CommandHandler
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import log_errors
-from modules.db import dbmodel
+from modules.db import users
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class Labs(Handlers):
 
     def choose_lab(self, update, context):
         user_id = update.message.from_user.id
-        result = dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"personal_list": user_id})
+        result = users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"personal_list": user_id})
         result = 'not data' if result is None else result
         menu = self.build_labs_menu(result)
         msg_text = '{:^50}'.format('<b>🔬 Labs:</b>')

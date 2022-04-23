@@ -2,15 +2,11 @@
 # место для мусора и игрищ
 
 
-from typing import List, Tuple
-import requests
-import pubchempy
 import pprint
 import cirpy
 
 pp = pprint.PrettyPrinter(indent=4)
 
-from modules.ourbot.service.cas_to_smiles import pubchempy_smiles_resolve
 
 #
 # convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']

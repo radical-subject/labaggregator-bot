@@ -1,8 +1,8 @@
 import os
 from typing import Dict
 from modules.db.dbschema import get_contact
-from modules.ourbot.handlers.manage_dialog import get_contact_from_cas_file
-from modules.db.dbmodel import users_collection
+from modules.bot.manage_dialog import get_contact_from_cas_file
+from modules.db.users import users_collection
 
 FILES_DIR = os.path.join(os.path.dirname(__file__), 'files')
 

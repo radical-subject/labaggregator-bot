@@ -2,13 +2,12 @@
 from telegram import Update, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
-from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.handlers.helpers import get_txt_content
+from .helpers import get_txt_content, bot_commands_text, CONV_APPEND, APPEND_STATE
 
-from modules.db.dbmodel import users_collection
+from modules.db.users import users_collection
 from modules.db.dbschema import UserReagents, parse_cas_list
-from modules.ourbot.handlers.helpers import bot_commands_text, CONV_APPEND, APPEND_STATE
 
+from . import run_async
 from .manage_dialog import get_contact_from_cas_file
 
 import logging
@@ -16,7 +15,7 @@ import traceback
 logger = logging.getLogger(__name__)
 
 
-class Append(Handlers):
+class Append:
     """
     В этом диалоговом хендлере админ добавляет новые реагенты в свой список реагентов.
     Присылается текстовый файл с CAS номерами.
@@ -25,12 +24,6 @@ class Append(Handlers):
 
     Если у пользователя нет username - тогда все плохо. надо обработать этот момент.
     """
-
-    def __init__(self, bot, db_instances):
-        """
-        передаем коллекции, с которыми по умолчанию работает этот хендлер
-        """
-        super().__init__(db_instances)
 
     def append(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
@@ -105,7 +98,7 @@ class Append(Handlers):
             entry_points=[CommandHandler("append", self.append)],
             states={
                 APPEND_STATE: [
-                    MessageHandler(Filters.attachment, self.append_getting_file, run_async=True)
+                    MessageHandler(Filters.attachment, self.append_getting_file, run_async=run_async())
                 ]
             },
             fallbacks=[MessageHandler(Filters.command, self.exit),

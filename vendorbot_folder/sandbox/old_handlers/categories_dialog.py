@@ -5,7 +5,7 @@ from telegram.ext import Filters, CallbackContext, CommandHandler, MessageHandle
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import log_errors
-from modules.db import dbmodel, dbschema
+from modules.db import users, dbschema
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class CategoriesDialog(Handlers):
     @log_errors
     def choose_category(self, update, context):
         user_id = update.message.from_user.id
-        result = dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"user_id": user_id})
+        result = users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"user_id": user_id})
         try:
             categories_list = result[0]['categories']
         except:
@@ -105,7 +105,7 @@ class CategoriesDialog(Handlers):
         """
         # находим интересующую нас запись в бд по id юзера
         mongo_query = {"user_id": user_id}
-        previous_records=dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query)
+        previous_records=users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query)
         
         # если ничего не нашлось по данному id пользователя в базе:
         if previous_records==[]:
@@ -117,10 +117,10 @@ class CategoriesDialog(Handlers):
             )
             timer_object.categories = [f"{input_text}"]
             data = timer_object.export()
-            record = dbmodel.add_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, data)
+            record = users.add_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, data)
             
             # выдаем последнюю записанную категорию
-            search_result = dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"_id": data["_id"]})
+            search_result = users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"_id": data["_id"]})
             last_category = search_result[0]['categories'][-1]
             return last_category
         
@@ -136,10 +136,10 @@ class CategoriesDialog(Handlers):
                 if f"{input_text}" not in timer_object.categories:
                     timer_object.categories.append(f"{input_text}")
                     data = timer_object.export()
-                    record = dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
+                    record = users.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
                     
                     # выдаем последнюю записанную категорию
-                    search_result = dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"_id": data["_id"]})
+                    search_result = users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"_id": data["_id"]})
                     last_category = search_result[0]['categories'][-1]
                     return last_category
                 else:
@@ -149,9 +149,9 @@ class CategoriesDialog(Handlers):
                 # если у объекта таймера вообще нет никаких категорий - а значит нет и аттрибута .categories
                 timer_object.categories = [f"{input_text}"]
                 data = timer_object.export()
-                record = dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
+                record = users.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
 
                 # выдаем послднюю записанную категорию
-                search_result = dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"_id": data["_id"]})
+                search_result = users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"_id": data["_id"]})
                 last_category = search_result[0]['categories'][-1]
                 return last_category

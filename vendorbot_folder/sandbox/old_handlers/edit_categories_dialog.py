@@ -5,10 +5,10 @@ from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, Call
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import log_errors
-from modules.db import dbmodel, dbschema
-from decimal import *
+from modules.db import users, dbschema
+#from decimal import *
 
-from modules.db.dbmodel import get_timerdata_object
+from modules.db.users import get_timerdata_object
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class EditCategoriesDialog(Handlers):
         delete, archive, unarchive
         '''
         user_id = update.message.from_user.id
-        result = dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"user_id": user_id})
+        result = users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, {"user_id": user_id})
         
         '''
         собираем лист со всеми категориями - сначала активные, потом - архивированные
@@ -100,7 +100,7 @@ class EditCategoriesDialog(Handlers):
         context.chat_data["category_name_manipulated"] = category_name
 
         # проверяем, в каком статусе находится категория - архивирована или нет? 
-        result = dbmodel.get_records(
+        result = users.get_records(
             self.timerbot_db_client,
             self.db_instances["timerbot_db"], 
             self.collection, 
@@ -194,7 +194,7 @@ class EditCategoriesDialog(Handlers):
 
         data = timerdata_object.export()
         # записываем экспортированный в словарь объект в базу
-        dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
+        users.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
 
 
         # достаем объект последнего отправленного ботом сообщения        
@@ -240,7 +240,7 @@ class EditCategoriesDialog(Handlers):
 
         data = timerdata_object.export()
         # записываем экспортированный в словарь объект в базу
-        dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
+        users.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
 
 
         # достаем объект последнего отправленного ботом сообщения        
@@ -299,7 +299,7 @@ class EditCategoriesDialog(Handlers):
 
         data = timerdata_object.export()
         # записываем экспортированный в словарь объект в базу
-        dbmodel.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
+        users.update_record(self.timerbot_db_client, self.db_instances["timerbot_db"], self.collection, mongo_query, data)
 
         # достаем объект последнего отправленного ботом сообщения        
         sent_message = update.callback_query.message

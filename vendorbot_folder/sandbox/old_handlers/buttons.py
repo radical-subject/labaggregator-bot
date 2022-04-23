@@ -6,7 +6,7 @@ from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
 
 from modules.ourbot.handlers.handlers import Handlers
 from modules.ourbot.handlers.decorators import log_errors
-from modules.db import dbmodel
+from modules.db import users
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class Buttons(Handlers):
                 return -1
             else:
                 id = ObjectId(lab_id)
-                result = dbmodel.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], collection, {"_id": id})
+                result = users.get_records(self.timerbot_db_client, self.db_instances["timerbot_db"], collection, {"_id": id})
                 context.user_data['current_lab'] = result
                 query.edit_message_text(text=f"Selected Lab: {result[0]}")
                 return 
@@ -91,7 +91,7 @@ class Buttons(Handlers):
         timerbot_client is not authorized on db to drop it.
         only root can. so, root_client and root instance is transferred as arguments to dbmodel.
         """
-        dbmodel.purge(self.root_client, self.db_instances["vendorbot_db"])
+        users.purge(self.root_client, self.db_instances["vendorbot_db"])
 
     @log_errors
     def register_handler(self, dispatcher):

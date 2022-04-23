@@ -6,15 +6,15 @@ from telegram.ext import Updater
 from telegram.utils.request import Request
 
 import logging
+from modules.bot.initial import Initial
+from modules.bot.admin import Admin
+from modules.bot.search_dialog import Search
+from modules.bot.manage_dialog import Manage
+from modules.bot.append_dialog import Append
+
 logger = logging.getLogger(__name__)
-from modules.ourbot.handlers.initial import Initial
-from modules.ourbot.handlers.admin import Admin
-from modules.ourbot.handlers.search_dialog import Search
-from modules.ourbot.handlers.manage_dialog import Manage
-from modules.ourbot.handlers.append_dialog import Append
 
-
-#def error_callback(update, context):
+# def error_callback(update, context):
 #    """
 #    Унылый диалог - просто выводит сообщение и строку ошибки без трейслога
 #    """
@@ -23,7 +23,7 @@ from modules.ourbot.handlers.append_dialog import Append
 
 class BotObject:
 
-    def __init__(self, token: str, base_url: str = None, **db_instances):
+    def __init__(self, token: str, base_url: str = None):
         logger.info('Bot initialization... __init__ in BotObject...')
         self.token = token
 
@@ -33,13 +33,12 @@ class BotObject:
         self.updater = Updater(bot=self.bot, workers=num_threads)
 
         self.dispatcher = self.updater.dispatcher
-        self.db_instances = db_instances
 
-        self.initial = Initial(self.bot, self.db_instances)
-        self.admin = Admin(self.bot, self.db_instances)
-        self.search_dialog = Search(self.bot, self.db_instances)
-        self.manage_dialog = Manage(self.bot, self.db_instances)
-        self.append_dialog = Append(self.bot, self.db_instances)
+        self.initial = Initial()
+        self.admin = Admin()
+        self.search_dialog = Search()
+        self.manage_dialog = Manage()
+        self.append_dialog = Append()
 
         logger.info('Bot initialization complete.')
 

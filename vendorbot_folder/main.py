@@ -3,8 +3,7 @@ import sys
 from logging import getLogger, getLevelName, root, Formatter, StreamHandler
 
 from modules.token_extractor import token
-from modules.db.dbconfig import vendorbot_db, blacklist_rdkit_db
-from modules.ourbot.ourbot import BotObject
+from modules.bot.bot import BotObject
 
 logger = getLogger()
 
@@ -26,12 +25,7 @@ def setup_logger():
 def main():
 
     setup_logger()
-    db_instances = dict(
-        vendorbot_db=vendorbot_db,
-        blacklist_rdkit_db=blacklist_rdkit_db
-        )
-        
-    bot = BotObject(token, **db_instances)
+    bot = BotObject(token)
     bot.start()
 
 
