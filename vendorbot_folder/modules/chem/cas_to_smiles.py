@@ -41,7 +41,6 @@ def get_cas_smiles(cas: str, delay: float = 0.2):
         return cas, smiles
     except Exception as err:
         logger.error(err)
-
     return cas, None
 
 
@@ -93,7 +92,9 @@ def cas_to_smiles(cas):
     res = cirpy_smiles_resolve(cas)
     if not res:
         logger.warning(f"cirpy: CAS({cas}) not found")
-        return pubchempy_smiles_resolve(cas)
+        res = pubchempy_smiles_resolve(cas)
+        if not res:
+            logger.warning(f"pubchempy: CAS({cas}) not found")
     return res
 
 
