@@ -31,7 +31,7 @@ class TelegramCore:
         :return:
         """
         if id not in self.income:
-            self.income[id] = Queue()
+            self.income[id] = Queue(100)
 
     def send(self, receiver_id, sender, chat, **kwargs) -> Dict:
         """
@@ -53,7 +53,7 @@ class TelegramCore:
             message.update({i: kwargs.get(i)})
 
         self.init_queue(receiver_id)
-        self.income[receiver_id].put(message)
+        self.income[receiver_id].put(message, block=False)
         return message
 
     def send_command(self, bot_id: int, sender, chat, command: str) -> None:
@@ -104,14 +104,14 @@ class TelegramCore:
         for chat_id, queue in self.income.items():
 
             try:
-                message = self.income[chat_id].get(timeout=0.1)
+                message = self.income[chat_id].get_nowait()
 
                 out = f'chat_id: {chat_id}\n'
 
                 while message:
                     try:
                         out += str(message) + '\n'
-                        message = self.income[chat_id].get(timeout=0.1)
+                        message = self.income[chat_id].get_nowait()
                     except Empty:
                         break
 
