@@ -59,24 +59,27 @@ class Search(Handlers):
 
             cas_list, smiles_list = what_reagent(text)
 
-            text = "Ищем по пользователям:"
-            if cas_list:
-                text += f"\nCAS: {' ,'.join(cas_list)}"
-            if smiles_list:
-                text += f"\nSMILES: {' ,'.join(smiles_list)}"
-            update.message.reply_text(text)
+            if cas_list or smiles_list:
+                text = "Ищем по пользователям:"
+                if cas_list:
+                    text += f"\nCAS: {' ,'.join(cas_list)}"
+                if smiles_list:
+                    text += f"\nSMILES: {' ,'.join(smiles_list)}"
+                update.message.reply_text(text)
 
-            for cas in cas_list:
-                contacts.extend(get_reagent_contacts(users_collection.get_users_by_cas(cas), cas))
+                for cas in cas_list:
+                    contacts.extend(get_reagent_contacts(users_collection.get_users_by_cas(cas), cas))
 
-            for smiles in smiles_list:
-                contacts.extend(get_reagent_contacts(users_collection.get_users_by_smiles(smiles), smiles))
+                for smiles in smiles_list:
+                    contacts.extend(get_reagent_contacts(users_collection.get_users_by_smiles(smiles), smiles))
 
-            contacts = list(set(contacts))
-            if contacts:
-                update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
+                contacts = list(set(contacts))
+                if contacts:
+                    update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
+                else:
+                    update.message.reply_text("Реагентом пока никто не готов поделиться")
             else:
-                update.message.reply_text("Реагентом пока никто не готов поделиться.")
+                update.message.reply_text("Реагент не определен")
 
         except Exception as err:
             logger.error(traceback.format_exc())

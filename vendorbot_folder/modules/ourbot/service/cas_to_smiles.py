@@ -63,9 +63,11 @@ def cirpy_cas_resolve(smiles_or_name: str):
     """
     try:
         ret = cirpy.resolve(smiles_or_name, "cas")
-        return [ret] if isinstance(ret, str) else ret
+        if ret:
+            return [ret] if isinstance(ret, str) else ret
     except Exception as err:
         logger.warning(traceback.format_exc())   # посмотрим сетевые ошибки
+    return []
 
 
 def pubchempy_smiles_resolve(cas_or_name: str):
@@ -110,15 +112,19 @@ def what_reagent(text):
         smiles_list.append(cirpy_smiles_resolve(text))  # name2smiles
         smiles_list.append(pubchempy_smiles_resolve(text))  # name2smiles
 
-        for smiles in smiles_list:
+        smiles_list = list(filter(None, smiles_list))
+        for smiles in smiles_list:  # TODO если передали SMILES, нужен ли поиск по CAS?
             cas_list.extend(cirpy_cas_resolve(smiles))  # smiles2cas
 
-        cas_list.extend(cirpy_cas_resolve(text))  # name2cas
+        if smiles_list and text not in smiles_list:
+            cas_list.extend(cirpy_cas_resolve(text))  # name2cas
 
-    cas_list = list(set(cas_list))   # remove dublicates
-    smiles_list = list(set(smiles_list))
+    if cas_list:
+        cas_list = list(set(cas_list))   # remove dublicates
+        cas_list = list(filter(None, cas_list))  # remove None
 
-    cas_list = list(filter(None, cas_list))  # remove None
-    smiles_list = list(filter(None, smiles_list))
+    if smiles_list:
+        smiles_list = list(set(smiles_list))
+        smiles_list = list(filter(None, smiles_list))
 
     return cas_list, smiles_list

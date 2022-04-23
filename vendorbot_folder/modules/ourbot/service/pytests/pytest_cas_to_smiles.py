@@ -1,6 +1,6 @@
 
 from modules.ourbot.service.cas_to_smiles import pubchempy_smiles_resolve, \
-    cirpy_smiles_resolve, cas_to_smiles, get_cas_smiles, is_cas_number
+    cirpy_smiles_resolve, cas_to_smiles, get_cas_smiles, is_cas_number, what_reagent
 
 from unittest.mock import patch
 
@@ -10,7 +10,11 @@ class PubChempyComponent:
         self.isomeric_smiles = isomeric_smiles
 
 
-@patch("pubchempy.get_compounds", side_effect=[[PubChempyComponent("1")], [PubChempyComponent("2")]])
+def pubchempy_smiles_return(ret):
+    return [PubChempyComponent(ret)]
+
+
+@patch("pubchempy.get_compounds", side_effect=[pubchempy_smiles_return("1"), pubchempy_smiles_return("2")])
 def test_pubchempy_smiles_resolve(pubchempy_smiles_resolve_patched):
 
     assert "1" == pubchempy_smiles_resolve("1-1-1")
@@ -26,44 +30,47 @@ def test_cirpy_smiles_resolve(cirpy_resolve_patched):
     assert cirpy_resolve_patched.call_count == 1
 
 
-def test_cas_to_smiles():
+def test_cas_to_smiles(mock_pubchempy_get_compounds,
+                       mock_cirpy_resolve):
 
-    with patch("cirpy.resolve", side_effect=["1"]) as cirpy_patched:
-        with patch("pubchempy.get_compounds",
-                   side_effect=[[PubChempyComponent("2")]]) as pubchempy_patched:
-            assert "1" == cas_to_smiles("1")
-            assert cirpy_patched.call_count == 1
-            assert pubchempy_patched.call_count == 0
+    mock_cirpy_resolve.side_effect = ["1"]
+    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent("2")]]
 
-    with patch("cirpy.resolve", side_effect=[None]) as cirpy_patched:
-        with patch("pubchempy.get_compounds",
-                   side_effect=[[PubChempyComponent("2")]]) as pubchempy_patched:
+    assert "1" == cas_to_smiles("1")
+    assert mock_cirpy_resolve.call_count == 1
+    assert mock_pubchempy_get_compounds.call_count == 0
 
-            assert "2" == cas_to_smiles("1")
-            assert cirpy_patched.call_count == 1
-            assert pubchempy_patched.call_count == 1
+    mock_cirpy_resolve.side_effect = [None]
+    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent("2")]]
 
-    with patch("cirpy.resolve", side_effect=[Exception("it's OK test exception")]) as cirpy_patched:
-        with patch("pubchempy.get_compounds",
-                   side_effect=[[PubChempyComponent("2")]]) as pubchempy_patched:
+    assert "2" == cas_to_smiles("1")
+    assert mock_cirpy_resolve.call_count == 2
+    assert mock_pubchempy_get_compounds.call_count == 1
 
-            assert "2" == cas_to_smiles("1")
-            assert cirpy_patched.call_count == 1
-            assert pubchempy_patched.call_count == 1
+    mock_cirpy_resolve.side_effect = [Exception("it's OK test exception")]
+    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent("2")]]
 
-    with patch("cirpy.resolve", side_effect=[Exception("it's OK test exception")]) as cirpy_patched:
-        with patch("pubchempy.get_compounds",
-                   side_effect=[Exception("test")]) as pubchempy_patched:
+    assert "2" == cas_to_smiles("1")
+    assert mock_cirpy_resolve.call_count == 3
+    assert mock_pubchempy_get_compounds.call_count == 2
 
-            assert not cas_to_smiles("1")
-            assert cirpy_patched.call_count == 1
-            assert pubchempy_patched.call_count == 1
+    mock_cirpy_resolve.side_effect = [Exception("it's OK test exception")]
+    mock_pubchempy_get_compounds.side_effect = [Exception("it's OK test exception")]
+
+    assert not cas_to_smiles("1")
+    assert mock_cirpy_resolve.call_count == 4
+    assert mock_pubchempy_get_compounds.call_count == 3
+
+    # другой вариант patch прям в функции
+    #with patch("cirpy.resolve", side_effect=[Exception("it's OK test exception")]) as cirpy_patched:
+    #    with patch("pubchempy.get_compounds",
+    #               side_effect=[Exception("it's OK test exception")]) as pubchempy_patched:
 
 
 def test_get_cas_smiles():
 
     with patch("modules.ourbot.service.cas_to_smiles.cas_to_smiles",
-               side_effect=[None, "C", Exception("test")]) as patched:
+               side_effect=[None, "C", Exception("it's OK test exception")]) as patched:
 
         cas, smiles = get_cas_smiles("1")
         assert "1" == cas
@@ -87,3 +94,46 @@ def test_is_cas_number():
     assert not is_cas_number('102-95-5')
     assert not is_cas_number('@d12412')
     assert not is_cas_number('50 g')
+
+
+def test_what_reagent(mock_cirpy_resolve,
+                      mock_pubchempy_get_compounds):
+
+    mock_cirpy_resolve.side_effect = [None]
+    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent(None)]]
+
+    cas_list, smiles_list = what_reagent("1-1-1")
+
+    assert not cas_list
+    assert not smiles_list
+
+    #
+    mock_cirpy_resolve.side_effect = ["COC(=O)CC#N"]
+
+    cas_list, smiles_list = what_reagent("105-34-0")
+
+    assert cas_list == ["105-34-0"]
+    assert smiles_list == ["COC(=O)CC#N"]
+
+    #
+    mock_cirpy_resolve.side_effect = ["C1=CC=C(C=C1)CC(=O)CC2=CC=CC=C2", ["102-04-5"], ["102-04-5"], ["102-04-5"]]
+    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent("O=C(Cc1ccccc1)Cc2ccccc2")]]
+
+    cas_list, smiles_list = what_reagent("Benzyl ketone")
+
+    assert cas_list == ["102-04-5"]
+    #assert all(i in smiles_list for i in ["C1=CC=C(C=C1)CC(=O)CC2=CC=CC=C2", "O=C(Cc1ccccc1)Cc2ccccc2"])
+    assert "C1=CC=C(C=C1)CC(=O)CC2=CC=CC=C2" in smiles_list
+    assert "O=C(Cc1ccccc1)Cc2ccccc2" in smiles_list
+
+    #
+    mock_cirpy_resolve.side_effect = ["O=C(Cc1ccccc1)Cc2ccccc2", ["61346-73-4", "120-46-7"],
+                                      ["61346-73-4", "120-46-7"], ["61346-73-4", "120-46-7"]]
+    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent("C1=CC=C(C=C1)C(=O)CC(=O)C2=CC=CC=C2")]]
+
+    cas_list, smiles_list = what_reagent("Dibenzoylmethane")
+
+    assert "120-46-7" in cas_list
+    assert "61346-73-4" in cas_list
+    assert "C1=CC=C(C=C1)C(=O)CC(=O)C2=CC=CC=C2" in smiles_list
+    assert "O=C(Cc1ccccc1)Cc2ccccc2" in smiles_list

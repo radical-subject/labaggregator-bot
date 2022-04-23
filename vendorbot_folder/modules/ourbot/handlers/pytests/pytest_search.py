@@ -53,9 +53,13 @@ def create_user_with_reagents(user, reagents):
 
 def test_search_bad_cas(purge_users_collection: None,  # очищаем БД
                         bot, user, admin,
+                        mock_cirpy_resolve,
                         mock_pubchempy_get_compounds):
 
     mock_pubchempy_get_compounds.side_effect = [None, None]
+
+    mock_cirpy_resolve.side_effect = [None]
+    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent(None)]]
 
     dbuser = create_user_with_reagents(user, reagents1)
     dbadmin = create_user_with_reagents(admin, reagents2)
@@ -68,10 +72,7 @@ def test_search_bad_cas(purge_users_collection: None,  # очищаем БД
     user.send_message("1-1-1")
 
     text = user.get_message_text()
-    assert "Не похоже на CAS. Сейчас поищем по названию..." in text
-
-    text = user.get_message_text()
-    assert "Реагентом пока никто не готов поделиться." in text
+    assert "Реагент не определен" in text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
@@ -79,7 +80,11 @@ def test_search_bad_cas(purge_users_collection: None,  # очищаем БД
 
 
 def test_search_cas(purge_users_collection: None,  # очищаем БД
-                    bot, user, admin):
+                    bot, user, admin,
+                    mock_cirpy_resolve,
+                    mock_pubchempy_get_compounds):
+
+    mock_cirpy_resolve.side_effect = ["C[C@H]([NH3+])CO"]
 
     dbuser = create_user_with_reagents(user, reagents1)
     dbadmin = create_user_with_reagents(admin, reagents2)
@@ -92,20 +97,27 @@ def test_search_cas(purge_users_collection: None,  # очищаем БД
     user.send_message("2749-11-3")
 
     text = user.get_message_text()
-    assert "Ищем CAS в базе шеринга..." in text
+    assert "Ищем по пользователям:" in text
+    assert "CAS: 2749-11-3" in text
+    assert "SMILES: C[C@H]([NH3+])CO" in text
 
     text = user.get_message_text()
     assert f"Реагентом могут поделиться эти контакты: {user.user.username}" in text
 
     # у двоих есть
+
+    mock_cirpy_resolve.side_effect = ["O=C(CC(=O)c1ccccc1)c2ccccc2"]
+
     user.send_message("120-46-7")
 
     text = user.get_message_text()
-    assert "Ищем CAS в базе шеринга..." in text
+    assert "Ищем по пользователям:" in text
+    assert "CAS: 120-46-7" in text
+    assert "SMILES: O=C(CC(=O)c1ccccc1)c2ccccc2" in text
 
     text = user.get_message_text()
-    assert f"Реагентом могут поделиться эти контакты: {user.user.username}, {admin.user.username}" \
-           in text
+    assert user.user.username in text
+    assert admin.user.username in text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
@@ -114,12 +126,16 @@ def test_search_cas(purge_users_collection: None,  # очищаем БД
 
 def test_search_smiles(purge_users_collection: None,  # очищаем БД
                        bot, user, admin,
-                       mock_pubchempy_get_compounds):
+                       mock_pubchempy_get_compounds,
+                       mock_cirpy_resolve):
 
     mock_pubchempy_get_compounds.side_effect = [None, None]
 
     dbuser = create_user_with_reagents(user, reagents1)
     dbadmin = create_user_with_reagents(admin, reagents2)
+
+    mock_cirpy_resolve.side_effect = [None, ["2749-11-3"]]
+    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent("C[C@H]([NH3+])CO")]]
 
     user.send_command("/search")
 
@@ -129,20 +145,12 @@ def test_search_smiles(purge_users_collection: None,  # очищаем БД
     user.send_message("C[C@H]([NH3+])CO")
 
     text = user.get_message_text()
-    assert "Не похоже на CAS. Сейчас поищем по названию..." in text
+    assert "Ищем по пользователям:" in text
+    assert "CAS: 2749-11-3" in text
+    assert "SMILES: C[C@H]([NH3+])CO" in text
 
     text = user.get_message_text()
     assert f"Реагентом могут поделиться эти контакты: {user.user.username}" in text
-
-    # у двоих есть
-    user.send_message("O=C(CC(=O)c1ccccc1)c2ccccc2")
-
-    text = user.get_message_text()
-    assert "Не похоже на CAS. Сейчас поищем по названию..." in text
-
-    text = user.get_message_text()
-    assert f"Реагентом могут поделиться эти контакты: {user.user.username}, {admin.user.username}" \
-           in text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
@@ -154,9 +162,6 @@ def test_search_name(purge_users_collection: None,  # очищаем БД
                      mock_pubchempy_get_compounds,
                      mock_cirpy_resolve):
 
-    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent('C1=CC=C(C=C1)C(=O)CC(=O)C2=CC=CC=C2')]]
-    mock_cirpy_resolve.side_effect = [['61346-73-4', '120-46-7']]
-
     dbuser = create_user_with_reagents(user, reagents1)
     dbadmin = create_user_with_reagents(admin, reagents2)
 
@@ -165,22 +170,22 @@ def test_search_name(purge_users_collection: None,  # очищаем БД
     text = user.get_message_text()
     assert "Пришли интересующий CAS-номер" in text
 
+    mock_cirpy_resolve.side_effect = ["O=C(Cc1ccccc1)Cc2ccccc2", ["61346-73-4", "120-46-7"],
+                                      ["61346-73-4", "120-46-7"], ["61346-73-4", "120-46-7"]]
+    mock_pubchempy_get_compounds.side_effect = [[PubChempyComponent("C1=CC=C(C=C1)C(=O)CC(=O)C2=CC=CC=C2")]]
+
     user.send_message("Dibenzoylmethane")
 
     text = user.get_message_text()
-    assert "Не похоже на CAS. Сейчас поищем по названию..." in text
+    assert "Ищем по пользователям:" in text
+    assert "61346-73-4" in text
+    assert "120-46-7" in text
+    assert "O=C(Cc1ccccc1)Cc2ccccc2" in text
+    assert "C1=CC=C(C=C1)C(=O)CC(=O)C2=CC=CC=C2" in text
 
     text = user.get_message_text()
-    assert "Ищем по пользователям SMILES" in text
-
-    text = user.get_message_text()
-    assert "Ищем по пользователям CAS=61346-73-4" in text
-
-    text = user.get_message_text()
-    assert "Ищем по пользователям CAS=120-46-7" in text
-
-    text = user.get_message_text()
-    assert f"Реагентом могут поделиться эти контакты: {user.user.username}, {admin.user.username}" in text
+    assert user.user.username in text
+    assert admin.user.username in text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
