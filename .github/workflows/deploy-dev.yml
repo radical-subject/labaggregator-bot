@@ -48,7 +48,7 @@ jobs:
           cd ./labaggregator2022-dev
           docker-compose -f docker-compose.yml -f docker-compose.pytest.yml up --build --abort-on-container-exit
 
-    - name: Docker-compose up
+    - name: Docker-compose build & up
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.DEVELOPMENT_HOST }}
