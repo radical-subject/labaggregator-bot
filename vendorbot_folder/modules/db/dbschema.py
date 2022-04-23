@@ -3,7 +3,7 @@ from typing import Text, List, Tuple
 import uuid
 import time
 from modules.db.blacklist import blacklist_engine
-from modules.ourbot.service.helpers import is_cas_number
+from modules.ourbot.service.cas_to_smiles import is_cas_number
 from modules.ourbot.service import batch
 
 import logging
@@ -56,6 +56,23 @@ def find_reagent(user, value):
             if value in reagent.values():
                 reagents.append(reagent)
     return reagents
+
+
+def get_reagent_contacts(users, text):
+    """
+    :param users: список объектов пользователей
+    :param text: CAS или SMILES
+    :return: список контактов
+    """
+    ret = []
+    if users:
+        for user in users:
+            reagents = find_reagent(user, text)
+            for r in reagents:
+                contact = reagent_contact(user, r)
+                if contact:
+                    ret.append(contact)
+    return ret
 
 
 def parse_cas_list(cas_list: List[str], contact: str = ''):

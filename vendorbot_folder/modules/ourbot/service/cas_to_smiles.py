@@ -3,9 +3,35 @@ import cirpy
 import pubchempy
 import traceback
 import time
+import re
 
 import logging
 logger = logging.getLogger(__name__)
+
+# Chemical Abstract Service Registry Number regular expression pattern
+CAS_REGEXP = "^[1-9][0-9]{1,6}\\-[0-9]{2}\\-[0-9]$"
+
+
+def is_cas_number(cas: str) -> bool:
+    """
+    Функция работает грамотно, проверено кровью, ее, сука, не трогать!
+    """
+    pattern = re.compile(CAS_REGEXP)
+    if not pattern.match(cas):
+        return False
+
+    only_digits = cas.replace('-', '')
+    control_digit = only_digits[-1]
+    only_digits = only_digits[::-1]
+    list_digits = list(only_digits[1:])
+
+    sum_digits = 0
+    index = 1
+    for digit in list_digits:
+        sum_digits += int(digit) * index
+        index += 1
+
+    return sum_digits % 10 == int(control_digit)
 
 
 def get_cas_smiles(cas: str, delay: float = 0.2):
@@ -19,30 +45,40 @@ def get_cas_smiles(cas: str, delay: float = 0.2):
     return cas, None
 
 
-def cirpy_smiles_resolve(cas: str):
+def cirpy_smiles_resolve(cas_or_name: str):
     """
     param: 106-95-6
-    :return: C=CCBr
+    :return: C=CCBr  # TODO а может быть несколько SMILES?
     """
-    return cirpy.resolve(cas, 'smiles')
+    try:
+        return cirpy.resolve(cas_or_name, "smiles")
+    except Exception as err:
+        logger.warning(traceback.format_exc())   # посмотрим сетевые ошибки
 
 
-def cirpy_cas_resolve(smiles: str):
+def cirpy_cas_resolve(smiles_or_name: str):
     """
     :param smiles: C=CCBr
-    :return: 106-95-6
+    :return: [106-95-6]
     """
-    return cirpy.resolve(smiles, 'cas')
+    try:
+        ret = cirpy.resolve(smiles_or_name, "cas")
+        return [ret] if isinstance(ret, str) else ret
+    except Exception as err:
+        logger.warning(traceback.format_exc())   # посмотрим сетевые ошибки
 
 
-def pubchempy_smiles_resolve(cas: str):
+def pubchempy_smiles_resolve(cas_or_name: str):
     """
     подходит для cas и для name.
     param: cas name. example: "1-1-1"
     TODO: кажется функция не работает. написал свою: pubchempy_get_smiles().
     """
-    pubchem_response = pubchempy.get_compounds(cas, "name")
-    return pubchem_response[0].isomeric_smiles if pubchem_response else None
+    try:
+        pubchem_response = pubchempy.get_compounds(cas_or_name, "name")
+        return pubchem_response[0].isomeric_smiles if pubchem_response else None
+    except Exception as err:
+        logger.warning(traceback.format_exc())   # посмотрим сетевые ошибки
 
 
 def cas_to_smiles(cas):
@@ -52,18 +88,37 @@ def cas_to_smiles(cas):
         "CAS": CAS_number
     }
     """
-    res = None
-    try:
-        res = cirpy.resolve(cas, "smiles")
-    except Exception as err:
-        logger.warning(traceback.format_exc())   # посмотрим сетевые ошибки
+    res = cirpy_smiles_resolve(cas)
+    if not res:
         logger.warning(f"cirpy: CAS({cas}) not found")
-
-    try:
-        if not res:
-            res = pubchempy_smiles_resolve(cas)
-    except Exception as err:
-        logger.warning(traceback.format_exc())   # посмотрим сетевые ошибки
-        logger.warning(f"pubchempy_smiles_resolve: CAS({cas}) not found")
-
+        return pubchempy_smiles_resolve(cas)
     return res
+
+
+def what_reagent(text):
+    """
+    :param text: CAS or SMILES or name
+    :return: [cas1, cas2], [smiles1, smiles2]
+    """
+    cas_list = []
+    smiles_list = []
+
+    if is_cas_number(text):
+        cas_list.append(text)
+        smiles_list.append(cas_to_smiles(text))
+    else:
+        smiles_list.append(cirpy_smiles_resolve(text))  # name2smiles
+        smiles_list.append(pubchempy_smiles_resolve(text))  # name2smiles
+
+        for smiles in smiles_list:
+            cas_list.extend(cirpy_cas_resolve(smiles))  # smiles2cas
+
+        cas_list.extend(cirpy_cas_resolve(text))  # name2cas
+
+    cas_list = list(set(cas_list))   # remove dublicates
+    smiles_list = list(set(smiles_list))
+
+    cas_list = list(filter(None, cas_list))  # remove None
+    smiles_list = list(filter(None, smiles_list))
+
+    return cas_list, smiles_list

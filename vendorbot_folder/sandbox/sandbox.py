@@ -27,9 +27,10 @@ def cas_to_name(cas):
     ret = cirpy.resolve(smiles, 'names')
     pp.pprint(ret)
 
-cas_to_name('75-64-9')
+#cas_to_name('75-64-9')
 
-
+ret = cirpy.resolve('Dibenzoylmethane', 'cas')
+pp.pprint(ret)
 
 #smiles = pubchempy_smiles_resolve('Dibenzoylmethane')
 

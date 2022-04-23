@@ -1,16 +1,15 @@
 import os
 import traceback
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, ParseMode
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
     MessageHandler, Filters
 
 from modules.ourbot.handlers.helpers import CONV_SEARCH, SEARCH_STATE
 from modules.ourbot.handlers.handlers import Handlers
-from modules.ourbot.service.cas_to_smiles import pubchempy_smiles_resolve, cirpy_cas_resolve
-from modules.ourbot.service.helpers import is_cas_number
+from modules.ourbot.service.cas_to_smiles import what_reagent
 import logging
 
-from modules.db import dbschema
+from modules.db.dbschema import get_reagent_contacts
 from modules.db.dbmodel import users_collection
 
 logger = logging.getLogger(__name__)
@@ -56,72 +55,26 @@ class Search(Handlers):
         logger.info(f"search_cas({chat_id}): {text}")
 
         try:
-            def get_reagent_contact(users, text):
-                ret = []
-                if users:
-                    for user in users:
-                        reagents = dbschema.find_reagent(user, text)
-                        for r in reagents:
-                            contact = dbschema.reagent_contact(user, r)
-                            if contact:
-                                if contact not in contacts:
-                                    ret.append(contact)
-                return ret
-
             contacts = []
 
-            if is_cas_number(text):
-                update.message.reply_text("Ищем CAS в базе шеринга...")
+            cas_list, smiles_list = what_reagent(text)
 
-                users = users_collection.get_users_by_cas(text)
-                if users:
-                    contacts.extend(get_reagent_contact(users, text))
+            text = "Ищем по пользователям:"
+            if cas_list:
+                text += f"\nCAS: {' ,'.join(cas_list)}"
+            if smiles_list:
+                text += f"\nSMILES: {' ,'.join(smiles_list)}"
+            update.message.reply_text(text)
 
-            else:
-                update.message.reply_text("Не похоже на CAS. Сейчас поищем по названию...")
+            for cas in cas_list:
+                contacts.extend(get_reagent_contacts(users_collection.get_users_by_cas(cas), cas))
 
-                try:
-                    users = users_collection.get_users_by_smiles(text)  # вдруг это smiles
-                    if users:
-                        contacts.extend(get_reagent_contact(users, text))
-
-                    smiles = pubchempy_smiles_resolve(text)  # возвращает None на smiles
-                    if smiles:
-                        update.message.reply_text(f"Ищем по пользователям SMILES={smiles}")
-
-                        users.extend(users_collection.get_users_by_smiles(smiles))
-                        if users:
-                            contacts.extend(get_reagent_contact(users, smiles))
-
-                        cas = cirpy_cas_resolve(smiles)
-                        if cas:
-                            if isinstance(cas, str):  # TODO переписать cirpy_cas_resolve чтоыб всегда list возвращал
-                                cas = [cas]
-
-                            for c in cas:
-                                update.message.reply_text(f"Ищем по пользователям CAS={c}")
-                                users = users_collection.get_users_by_cas(c)
-                                if users:
-                                    contacts.extend(get_reagent_contact(users, c))
-                        else:
-                            update.message.reply_text(f"Не смогли определить CAS")
-
-                except Exception as err:
-                    logger.error(traceback.format_exc())
-                    update.message.reply_text(f"Не смогли определить SMILES")
-                    return SEARCH_STATE
-
-            for user in users:
-                reagents = dbschema.find_reagent(user, text)
-                for r in reagents:
-                    contact = dbschema.reagent_contact(user, r)
-                    if contact:
-                        if contact not in contacts:
-                            contacts.append(contact)
+            for smiles in smiles_list:
+                contacts.extend(get_reagent_contacts(users_collection.get_users_by_smiles(smiles), smiles))
 
             contacts = list(set(contacts))
             if contacts:
-                update.message.reply_text(f'Реагентом могут поделиться эти контакты: {", ".join(contacts)}')
+                update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
             else:
                 update.message.reply_text("Реагентом пока никто не готов поделиться.")
 
