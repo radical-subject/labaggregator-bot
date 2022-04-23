@@ -16,16 +16,16 @@ jobs:
     - name: Checkout Git
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.DEVELOPMENT_HOST }}
-        username: ${{ secrets.DEVELOPMENT_USERNAME }}
-        key: ${{ secrets.DEVELOPMENT_SSHKEY }}
+        host: ${{ secrets.PRODUCTION_HOST }}
+        username: ${{ secrets.PRODUCTION_USERNAME }}
+        key: ${{ secrets.PRODUCTION_SSHKEY }}
         script_stop: true
         script: |
           cd ./labaggregator2022
           git checkout main
           git pull
 
-    - name: create env file
+    - name: Create .env file
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.PRODUCTION_HOST }}
