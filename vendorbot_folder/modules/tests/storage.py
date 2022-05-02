@@ -12,7 +12,7 @@ def gen_id(size, chars=string.ascii_lowercase + string.ascii_uppercase + string.
 
 class DocumentBase(Document):
 
-    def __init__(self, dir_or_bytes: Union[str, BinaryIO], file_name: str, mime_type: Optional[str]):
+    def __init__(self, dir_or_bytes: Union[str, BinaryIO], file_name: str, mime_type: Optional[str] = None):
 
         #path_or_bytes
         if isinstance(dir_or_bytes, str):
