@@ -26,7 +26,7 @@ def test_manage(purge_users_collection: None,  # очищаем БД
     assert 'Отправьте мне' in message['text']
 
     # Отправляем файл
-    user.send_file(FILES_DIR, 'cas1.txt')
+    user.send_document(FILES_DIR, 'cas1.txt')
 
     message = user.get_message()
     assert 'Ожидайте: список обрабатывается' in message['text']

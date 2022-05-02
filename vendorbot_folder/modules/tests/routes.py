@@ -3,11 +3,12 @@ import json
 import threading
 import waitress
 import werkzeug
+from io import BytesIO
 from typing import List, Dict
 from flask import Flask, request, make_response, send_file
 from flask import json
 from .core import core
-from .storage import storage, FileBase
+from .storage import storage, FileBase, DocumentBase
 from .user import virtual_bot
 
 logger = logging.getLogger(__name__)
@@ -30,13 +31,12 @@ app.register_error_handler(500, handle_bad_request)
 
 def result_ok(result: List, ok: bool = True) -> Dict:
     return {
-            "ok": ok,
-            "result": result
+        "ok": ok,
+        "result": result
     }
 
 
 def server_response(data):
-
     r = make_response(
        json.dumps(result_ok(data)),
        200
@@ -47,7 +47,12 @@ def server_response(data):
 
 @app.route('/<token>/getMe', methods=['POST'])
 def getMe(token: str):
-    j = request.get_json()  # cause flask bug
+    """
+    Bot asks Telegram about himself
+    :param token:
+    :return:
+    """
+    request.get_json()  # must read body (flask bug)
 
     bot_id = int(token.split(':')[0])
 
@@ -59,13 +64,23 @@ def getMe(token: str):
 
 @app.route('/<token>/deleteWebhook', methods=['POST'])
 def deleteWebhook(token: str):
-    j = request.get_json()  # cause flask bug
+    """
+    Bot deletes Webhook
+    :param token:
+    :return:
+    """
+    request.get_json()  # must read body (flask bug)
     return server_response(True)
 
 
 @app.route('/<token>/getUpdates', methods=['POST'])
 def getUpdates(token: str):
-    j = request.get_json()  # cause flask bug
+    """
+    Bot checks updates (long polling)
+    :param token:
+    :return:
+    """
+    request.get_json()  # must read body (flask bug)
 
     bot_id = int(token.split(':')[0])
 
@@ -76,9 +91,11 @@ def getUpdates(token: str):
 
 @app.route('/<token>/sendMessage', methods=['POST'])
 def sendMessage(token: str):
-
-    #bot_id = int(token.split(':')[0])
-
+    """
+    Bot sends message to Telegram
+    :param token:
+    :return:
+    """
     data = request.get_json()
 
     chat_id = int(data['chat_id'])
@@ -86,17 +103,48 @@ def sendMessage(token: str):
 
     chat = {'id': chat_id, 'type': 'private'}  # simple chat structure
 
-    ret = core.bot_send(bot_from=virtual_bot.to_dict(),
-                        chat=chat,
-                        text=text
-                        )
+    ret = core.send(chat_id,
+                    sender=virtual_bot.to_dict(),
+                    chat=chat,
+                    text=text)
+
+    return server_response(ret)
+
+
+@app.route('/<token>/sendDocument', methods=['POST'])
+def sendDocument(token: str):
+    """
+    Bot sends document to Telegram
+    :param token:
+    :return:
+    """
+    d = request.files['document']
+    f = BytesIO(d.stream.read())
+    f.name = d.filename
+    f.seek(0)
+
+    document = DocumentBase(f, d.filename, d.mimetype)
+    storage.add(document['file_id'], document)
+
+    chat_id = int(request.form['chat_id'])
+    chat = {'id': chat_id, 'type': 'private'}  # simple chat structure
+
+    ret = core.send(chat_id,
+                    sender=virtual_bot.to_dict(),
+                    chat=chat,
+                    document=document.to_dict())
 
     return server_response(ret)
 
 
 @app.route('/<token>/getFile', methods=['POST'])
 def getFile(token: str):
-
+    """
+    Bot/User ask Telegram for the file information
+    :param token:
+    :param file_id: file id
+    :return:
+    """
     data = request.get_json()
     file_id = data['file_id']
 
@@ -112,10 +160,14 @@ def getFile(token: str):
 
 @app.route('/<token>/file/<file_id>', methods=['GET'])
 def file(token: str, file_id: str):
-
+    """
+    Bot/User downloads file from Telegram
+    :param token:
+    :param file_id: file id
+    :return:
+    """
     document = storage.get(file_id)
-
-    return send_file(document.local_path, as_attachment=True)
+    return send_file(document.path_or_bytes, as_attachment=True)
 
 
 def start_server():

@@ -2,6 +2,7 @@ import os
 import string
 import random
 import mimetypes
+from typing import Union, BinaryIO, Optional
 from telegram import Document, File
 
 
@@ -11,14 +12,21 @@ def gen_id(size, chars=string.ascii_lowercase + string.ascii_uppercase + string.
 
 class DocumentBase(Document):
 
-    def __init__(self, dir: str, file_name: str):
+    def __init__(self, dir_or_bytes: Union[str, BinaryIO], file_name: str, mime_type: Optional[str]):
 
-        self.local_path = os.path.join(dir, file_name)
+        #path_or_bytes
+        if isinstance(dir_or_bytes, str):
+            self.path_or_bytes = os.path.join(dir_or_bytes, file_name)
+            file_size = os.path.getsize(self.path_or_bytes)
+        else:
+            self.path_or_bytes = dir_or_bytes
+            file_size = dir_or_bytes.getbuffer().nbytes
 
         file_id = gen_id(72)
         file_unique_id = gen_id(15)
-        file_size = os.path.getsize(self.local_path)
-        mime_type = mimetypes.types_map[f".{file_name.split('.')[1]}"]
+
+        if not mime_type:
+            mime_type = mimetypes.types_map[f".{file_name.split('.')[1]}"]
 
         super().__init__(file_id=file_id,
                          file_unique_id=file_unique_id,
@@ -45,10 +53,10 @@ class Storage:
     def __init__(self):
         self.storage = {}
 
-    def add(self, file_id, document):
+    def add(self, file_id: str, document: DocumentBase):
         self.storage[file_id] = document
 
-    def get(self, file_id: str):
+    def get(self, file_id: str) -> DocumentBase:
 
         if file_id in self.storage:
             return self.storage[file_id]

@@ -30,6 +30,8 @@ class TelegramCore:
         :param id: chat_id
         :return:
         """
+        if isinstance(id, str):
+            raise Exception('chat_id should be int')
         if id not in self.income:
             self.income[id] = Queue(100)
 
@@ -56,7 +58,7 @@ class TelegramCore:
         self.income[receiver_id].put(message, block=False)
         return message
 
-    def send_command(self, bot_id: int, sender, chat, command: str) -> None:
+    def send_command(self, bot_id: int, sender, chat, command: str) -> Dict:
         """
         Command message from User to Bot
         :param bot_id:

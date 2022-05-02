@@ -126,9 +126,7 @@ class Admin:
 
                 context.bot.send_document(chat_id, f)
 
-                digest_txt = ""
-                for cas in cas_list:
-                    digest_txt += f'{cas} : {", ".join(digest[cas])}\n'
+                digest_txt = '\n'.join(f'{cas} : {", ".join(digest[cas])}' for cas in cas_list)
 
                 f = BytesIO(bytes(digest_txt, 'utf-8'))
                 f.name = "digest.txt"

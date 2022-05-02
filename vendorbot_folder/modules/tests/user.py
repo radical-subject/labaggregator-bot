@@ -1,6 +1,7 @@
 import os
 import logging
 import time
+from io import BytesIO
 from typing import Dict, List
 from telegram import User, Chat, Contact
 from .storage import DocumentBase, storage
@@ -55,17 +56,31 @@ class ChatBase(Chat):
         )
 
 
-virtual_bot = User(
-    BOT_ID,
-    'PythonTelegramUnitTestBot',  # first_name
-    True,  # is_bot
-    None,  # last_name
-    'PTUTestBot',  # username
-    None,  # language_code
-    True,  # can_join_groups
-    False,  # can_read_all_group_messages
-    False  # supports_inline_queries
-)
+class BotBase(User):
+
+    def __init__(self,
+                 id: int = BOT_ID,
+                 first_name='PythonTelegramUnitTestBot',
+                 username='PTUTestBot'):
+
+        logger.debug(f'create BotBase={id}')
+
+        super().__init__(
+            id,  # id
+            first_name,
+            True,  # is_bot
+            None,  # last_name
+            username,
+            None,  # language_code
+            True,  # can_join_groups
+            False,  # can_read_all_group_messages
+            False  # supports_inline_queries
+        )
+
+
+virtual_bot = BotBase()
+
+chat = ChatBase(virtual_bot)
 
 
 class LessMessages(Exception):
@@ -128,7 +143,7 @@ class Tester:
     def get_message_text(self, timeout=5.0) -> str:
         return self.get_messages(1, timeout)[0]['text']
 
-    def send_file(self, dir: str, file_name: str) -> None:
+    def send_document(self, dir: str, file_name: str) -> None:
 
         document = DocumentBase(dir, file_name)
         storage.add(document['file_id'], document)
@@ -138,6 +153,13 @@ class Tester:
                        chat=self.chat.to_dict(),
                        document=document.to_dict()
                        )
+
+    def get_document(self, timeout=5.0) -> BytesIO:
+        message = self.get_message(timeout)
+        assert 'document' in message, 'Message hasn\'t a file'
+
+        file_id = message['document']['file_id']
+        return storage.get(file_id)
 
     def assert_message(self, error_message):
         try:
