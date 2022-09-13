@@ -40,6 +40,7 @@ sudo systemctl enable containerd.service
 
 Вручную клонируем репозиторий
 
+
 dev:
 git clone git@github.com:radicalsubject/labaggregator2022.git labaggregator2022-dev
 
