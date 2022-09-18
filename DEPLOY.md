@@ -135,3 +135,26 @@ err: Service 'vendorbot_service' failed to build : Build failed
 docker system prune -f
 ```
 кажется после каждой смены conda env.yml собирается новый образ на 3.5Гб
+
+# local development run
+
+create .env file
+put there following string:
+```
+DEVELOPMENT_BOT_TOKEN='5366466972:AAHTs2DoyjgmHq0biu2TAp_KDJycO-dN6y0'
+```
+
+local dev bot:
+```
+https://t.me/radical_puppet_local_bot
+```
+
+dev bot:
+```
+https://t.me/radical_puppet_bot
+```
+
+prod bot:
+```
+https://t.me/labaggregator_bot
+```
