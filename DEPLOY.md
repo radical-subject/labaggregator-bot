@@ -36,6 +36,32 @@ sudo systemctl enable containerd.service
 
 ### Настройка GitHub
 
+DEVELOPMENT_BOT_TOKEN
+DEVELOPMENT_HOST
+DEVELOPMENT_SSHKEY
+DEVELOPMENT_USERNAME
+PRODUCTION_BOT_TOKEN
+PRODUCTION_HOST
+PRODUCTION_SSHKEY
+PRODUCTION_USERNAME
+
+prod:
+ssh oikura@51.250.25.36
+aka labaggregator-vps
+cd labaggregator2022
+docker-compose logs -f
+
+dev:
+~~ssh vpn@95.217.20.153~~
+ssh ofedorov@51.250.97.197
+aka radicalsubject.space
+cd labaggregator2022-dev
+docker-compose logs -f
+
+vps-ssh-rsa.ppk
+ssh-rsa.ppk
+
+
 Вручную клонируем репозиторий
 
 
