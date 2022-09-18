@@ -19,12 +19,21 @@ RUN apt-get update -y \
 COPY package*.json ./
 RUN npm install
 
-# manually install mongodb to access mongodump: https://developer.mongodb.com/community/forums/t/mongodb-org-server-postinst-systemctl-not-found/9232/7
-RUN apt-get update -y \
-  && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 4B7C549A058F8B6B \
-  && echo "deb [arch=amd64] http://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.2.list \
-  && apt-get update -y
-RUN ln -T /bin/true /usr/bin/systemctl && apt-get update && apt-get install -y mongodb-org && rm /usr/bin/systemctl
+# # manually install mongodb to access mongodump: https://developer.mongodb.com/community/forums/t/mongodb-org-server-postinst-systemctl-not-found/9232/7
+# RUN apt-get update -y \
+#   && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 4B7C549A058F8B6B
+# RUN echo "deb [arch=amd64] http://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+# RUN apt-get update -y
+# RUN ln -T /bin/true /usr/bin/systemctl && apt-get update
+# RUN apt-get install -y mongodb-org && rm /usr/bin/systemctl
+
+RUN apt install -y dirmngr gnupg apt-transport-https software-properties-common ca-certificates curl 
+RUN curl -fsSL https://www.mongodb.org/static/pgp/server-4.2.asc | apt-key add - 
+RUN add-apt-repository 'deb https://repo.mongodb.org/apt/debian buster/mongodb-org/4.2 main' 
+RUN apt-get update -y
+RUN ln -T /bin/true /usr/bin/systemctl && apt-get update
+RUN apt-get install -y mongodb-org && rm /usr/bin/systemctl
+
 
 RUN apt-get install -y zip unzip
 

@@ -111,3 +111,6 @@ We look forward to migrate to postgresql catridge published by Timur Madzhidov i
 
 ## Further Info
 - look into DEVNOTES.md for raw details and notes on development process
+
+##
+docker-compose -f -f docker-compose.development.yml up --build
