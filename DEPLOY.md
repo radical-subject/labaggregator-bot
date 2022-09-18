@@ -1,5 +1,4 @@
 # Deploy
-
 Есть виртуальный сервер с доступом по ssh
 
 При коммите в ветку deploy GitHub Actions 
