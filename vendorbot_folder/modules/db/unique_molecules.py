@@ -1,100 +1,47 @@
 
-from typing import List
-import uuid
-import time
-from modules.db.blacklist import blacklist_engine
-from modules.chem.cas_to_smiles import is_cas_number
-from modules.chem import batch
-
+from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE
 import logging
-import traceback
 logger = logging.getLogger(__name__)
 
 
+class UniqueMolecules:
 
-class UniqueReagentsList:
-    """
-    This is object for manipulating easily with user 
-    attributes before sending updated data to database. 
+    def __init__(self, client, db):
+        self.name = 'unique_molecules_collection'
+        self.collection = client[db][self.name]
+        self.client = client
 
-    test_record = {
-        _id: "980159954",
-        user_id: "980159954",
-        username: "@None",
-        firstname: "Alex",
-        lastname: "Fedorov"
-        laboratory: [
-            {
-                laboratory_object
-            },
-            {
-                laboratory_object
-            }
-        ]
-        reagent_requests: [
-            {
-                requested_CAS: "50-00-0"
-            }
-        ],
-        user_reagents: [
-            {
-                CAS: "50-00-0",
-                SMILES: "???",
-                #reagent_name: "something 4-something"
-                sharing_status: "shared",
-                contact: "" # если админ добавил
-            }
-        ]
-    }
+    def get_molecule(self, index: str):
+        return self.collection.find_one({"index": index})
 
-    """
-    def __init__(self, *args, **kwargs):
-        if args:
-            self.args = args
-        if kwargs:
-            for key, value in kwargs.items():
-                setattr(self, key, value)
+    def add_molecule(self, data):
+        result = self.collection.insert_one(data)
+        #assert result.modified_count == 1
 
-        # присвоить id если его не было 
-        if "_id" not in kwargs.keys():
-            self._id = uuid.uuid4().hex
-    
-    def __iter__(self):
-        for attr, value in self.__dict__.items():
-            yield attr, value
+    # def get_reagents(self, user_id: int):
+    #     user = self.get_user(user_id)
+    #     if "user_reagents" in user:
+    #         return user["user_reagents"]
+    #     return []
 
-    def get_contacts_for_reagent(self, value):
-        """
-        find value in reagents:
-        {
-            CAS: "75-64-9",
-            SMILES: "CC(C)(C)N",
-            reagent_name: "something 4-something"
-            sharing_status: "shared"
-        }
-        :param value:
-        :return:
-        """
-        contacts = []
-        for reagent in self.user_reagents:
-            if value in reagent.values():
-                if reagent["contact"] not in contacts:
-                    contacts.append(reagent["contact"])
-        return contacts
+    # def get_all_users(self):
+    #     return list(self.collection.find({}))
 
-    def export(self):
-        """
-        UserReagents_export = {
-            "_id": self._id
-            "user_id": self.user_id,
-            "username": self.username,  
-            "time": self.time,
-            "firstname": self.firstname,
-            "lastname": self.lastname,
-            "laboratory": self.laboratory,
-            "reagent_requests": self.reagent_requests,
-            "user_reagents": self.user_reagents
-        }
-        """
-        return {**{"_id": self._id}, **dict(self)}
-        # json.dumps(UserReagents_export) # exports json string (to use it as python object you should convert it by json.loads())
+    def update_molecule(self, index: int, moldoc):
+        logger.info(f"molecule entry is being updated")
+        query = {'index': index}
+        # if '_id' in user_data:
+        #     del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
+        insertion_result = self.collection.update_one(query, {"$set": moldoc}, upsert=True) 
+        logger.info(f"molecule entry updated: {insertion_result.acknowledged}")
+        #return result
+        #assert result.modified_count == 1
+
+    # def get_users_by_cas(self, cas: str):
+    #     return list(self.collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}}))
+
+    # def get_users_by_smiles(self, smiles: str):
+    #     return list(self.collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}}))
+
+
+unique_molecules_collection = UniqueMolecules(db_client, MONGO_VENDORBOT_DATABASE)
