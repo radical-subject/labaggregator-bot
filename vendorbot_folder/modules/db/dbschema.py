@@ -74,7 +74,39 @@ def get_reagent_contacts(users, text):
                     ret.append(contact)
     return ret
 
+from rdkit import Chem
+def neutralize_atoms(mol):
+    '''
+    atom neutralizer
+    '''
+    pattern = Chem.MolFromSmarts("[+1!h0!$([*]~[-1,-2,-3,-4]),-1!$([*]~[+1,+2,+3,+4])]")
+    at_matches = mol.GetSubstructMatches(pattern)
+    at_matches_list = [y[0] for y in at_matches]
+    if len(at_matches_list) > 0:
+        for at_idx in at_matches_list:
+            atom = mol.GetAtomWithIdx(at_idx)
+            chg = atom.GetFormalCharge()
+            hcount = atom.GetTotalNumHs()
+            atom.SetFormalCharge(0)
+            atom.SetNumExplicitHs(hcount - chg)
+            atom.UpdatePropertyCache()
+    return mol
 
+from rdkit.Chem.rdmolops import GetFormalCharge
+def charge_fixer(SMILES):
+    '''
+    Neutralize molecules atom by atom
+    '''
+    # Create RDKit molecular objects
+    mol = Chem.MolFromSmiles(SMILES)
+    if GetFormalCharge(mol) != 0:
+        charge=GetFormalCharge(mol)
+        print(f"FORMAL CHARGE WAS:{charge}")
+        neutralize_atoms(mol)
+        charge=GetFormalCharge(mol)
+        print(f"FORMAL CHARGE BECAME:{charge}")
+    return Chem.MolToSmiles(mol)
+    
 def parse_cas_list(cas_list: List[str], contact: str = ''):
     """
     Фильтруем список CAS, ищем SMILES, удаляем прекурсоры, возвращаем список компонентов для БД и статистику
@@ -109,7 +141,7 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
         r = {
             "reagent_internal_id": uuid.uuid4().hex,
             "CAS": cas,
-            "SMILES": smiles,
+            "SMILES": charge_fixer(smiles),
             "sharing_status": "shared",
             "timestamp": now
         }
