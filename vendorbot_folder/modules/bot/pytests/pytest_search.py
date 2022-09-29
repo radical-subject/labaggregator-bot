@@ -102,7 +102,8 @@ def test_search_cas(purge_users_collection: None,  # очищаем БД
     assert "SMILES: C[C@H]([NH3+])CO" in text
 
     text = user.get_message_text()
-    assert f"Реагентом могут поделиться эти контакты: {user.user.username}" in text
+    assert f"Реагентом могут поделиться эти контакты: @{user.user.username}" \
+        in text
 
     # у двоих есть
 
@@ -150,7 +151,7 @@ def test_search_smiles(purge_users_collection: None,  # очищаем БД
     assert "SMILES: C[C@H]([NH3+])CO" in text
 
     text = user.get_message_text()
-    assert f"Реагентом могут поделиться эти контакты: {user.user.username}" in text
+    assert f"Реагентом могут поделиться эти контакты: @{user.user.username}" in text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()

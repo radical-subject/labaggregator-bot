@@ -129,6 +129,12 @@ class Search:
 
         return ConversationHandler.END
 
+    def fallback(self, update: Update, context: CallbackContext) -> int:
+
+        logger.error(f'{context}')
+
+        return self.exit(update, context)
+
     def register_handler(self, dispatcher):
 
         conv_search = ConversationHandler(
@@ -139,8 +145,8 @@ class Search:
                     MessageHandler(Filters.text & ~Filters.command, self.search_cas, run_async=run_async())
                 ],
             },
-            fallbacks=[MessageHandler(Filters.command, self.exit),
-                       MessageHandler(Filters.text, self.exit)],
+            fallbacks=[MessageHandler(Filters.command, self.fallback),
+                       MessageHandler(Filters.text, self.fallback)],
         )
 
         dispatcher.add_handler(conv_search, CONV_SEARCH)

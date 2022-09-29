@@ -70,9 +70,9 @@ def test_digest(purge_users_collection: None,  # очищаем БД
 2749-11-3
 75-64-9"""
 
-    assert digest == """120-46-7 : user1
-2749-11-3 : user1
-75-64-9 : user1"""
+    assert digest == """120-46-7 : @user1
+2749-11-3 : @user1
+75-64-9 : @user1"""
 
     # будет попрежнему 3, т.к. мы только уникальные выводим
     dbadmin = create_user_with_reagents(admin, reagents1)
@@ -83,9 +83,9 @@ def test_digest(purge_users_collection: None,  # очищаем БД
 2749-11-3
 75-64-9"""
 
-    assert digest == """120-46-7 : user1, user336091411
-2749-11-3 : user1, user336091411
-75-64-9 : user1, user336091411"""
+    assert digest == """120-46-7 : @user1, @user336091411
+2749-11-3 : @user1, @user336091411
+75-64-9 : @user1, @user336091411"""
 
     # Добавим Админу новые реактивы (новых там 2 шт) итого 5 будет
     dbadmin["user_reagents"].extend(reagents2)
@@ -99,8 +99,8 @@ def test_digest(purge_users_collection: None,  # очищаем БД
 2749-11-3
 75-64-9"""
 
-    assert digest == """106-97-8 : user336091411
-120-46-7 : user1, user336091411
-13896-65-6 : user336091411
-2749-11-3 : user1, user336091411
-75-64-9 : user1, user336091411"""
+    assert digest == """106-97-8 : @user336091411
+120-46-7 : @user1, @user336091411
+13896-65-6 : @user336091411
+2749-11-3 : @user1, @user336091411
+75-64-9 : @user1, @user336091411"""
