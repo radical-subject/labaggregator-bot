@@ -67,17 +67,17 @@ class UniqueMolecules:
         result = write.WriteFromMolList(self.collection, [molfile], scheme=scheme) 
         print (result)
         # print(query)
-        if result == 0:
+        # if result == 0:
 
-            reagent_internal_id_list = self.get_molecule(moldoc['index'])["value_data"]['reagent_internal_id_list']
+        #     reagent_internal_id_list = self.get_molecule(moldoc['index'])["value_data"]['reagent_internal_id_list']
             
-            # if reagent_internal_id not in reagent_internal_id_list:
-            #     reagent_internal_id_list.append(reagent_internal_id)
+        #     # if reagent_internal_id not in reagent_internal_id_list:
+        #     #     reagent_internal_id_list.append(reagent_internal_id)
 
-                # scheme.add_value_field('reagent_internal_id_list', reagent_internal_id_list)
+        #         # scheme.add_value_field('reagent_internal_id_list', reagent_internal_id_list)
 
-                # moldoc = scheme.generate_mol_doc(molfile)
-            self.update_molecule(moldoc['index'], moldoc)
+        #         # moldoc = scheme.generate_mol_doc(molfile)
+        #     self.update_molecule(moldoc['index'], moldoc)
 
         inchikey_standard = moldoc['index']
         return inchikey_standard

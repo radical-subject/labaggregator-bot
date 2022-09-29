@@ -84,14 +84,13 @@ class Search:
 
                 contacts = list(set(contacts))
                 if contacts:
-                    update.message.reply_text(f"Реагентом могут поделиться эти контакты: @{', @'.join(contacts)}")
+                    update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
                 else:
                     if best_match_smiles != None:
                         # for reagent_id in best_match_smiles[0]:
-                        print(best_match_smiles)
                         inchi_key = best_match_smiles[0]
                         contacts += [get_contact(i) for i in users_collection.get_user_by_reagent_inchi_key(inchi_key)]
-                        update.message.reply_text(f"Реагентом пока никто не готов поделиться, но найден похожий у @{', @'.join(contacts)}.\nсхожесть с запросом: {(best_match_smiles[2]*100):.2f}%\n{best_match_smiles[1:]}\nSimilarity Map Result:")
+                        update.message.reply_text(f"Реагентом пока никто не готов поделиться, но найден похожий у {', '.join(contacts)}.\nсхожесть с запросом: {(best_match_smiles[2]*100):.2f}%\n{best_match_smiles[1:]}\nSimilarity Map Result:")
         
     
                         mol = Chem.MolFromSmiles(best_match_smiles[1])

@@ -21,7 +21,7 @@ class UsersCollection:
         query = {
             "user_reagents": { '$elemMatch': { "inchikey_standard": inchi_key }}
         }
-        return self.collection.find_one(query)
+        return self.collection.find(query)
 
     def add_user(self, data):
         result = self.collection.insert_one(data)

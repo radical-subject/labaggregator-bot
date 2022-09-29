@@ -38,7 +38,7 @@ def reagent_CAS(r):
 
 def get_contact(user):
     if user["username"]:
-        return user["username"]
+        return f"@{user['username']}"
     elif user["phone_number"]:
         return user["phone_number"]  # TODO добавить + если 7
 
@@ -158,7 +158,7 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
         функция регистрации возвращает уникальный индекс - inchikey_standard, который добавляется в запись о реагенте у пользователя. 
 
         """
-        inchikey_standard = unique_molecules_collection_instance.reagent_registration(SMILES, reagent_internal_id)
+        inchikey_standard = unique_molecules_collection_instance.reagent_registration(SMILES)
         r = {
             "reagent_internal_id": reagent_internal_id,
             "inchikey_standard" : inchikey_standard,
