@@ -14,6 +14,15 @@ class UsersCollection:
     def get_user(self, user_id: int):
         return self.collection.find_one({"user_id": user_id})
 
+    def get_user_by_reagent_inchi_key(self, inchi_key: str):
+        '''
+        ищет в коллекции пользователей по листу реагентов совпадения уникального id регагента, и возвращает результат
+        '''
+        query = {
+            "user_reagents": { '$elemMatch': { "inchikey_standard": inchi_key }}
+        }
+        return self.collection.find_one(query)
+
     def add_user(self, data):
         result = self.collection.insert_one(data)
         #assert result.modified_count == 1

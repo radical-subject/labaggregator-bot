@@ -5,6 +5,7 @@ import time
 from modules.db.blacklist import blacklist_engine
 from modules.chem.cas_to_smiles import is_cas_number
 from modules.chem import batch
+from modules.db.unique_molecules import *
 
 import logging
 import traceback
@@ -93,10 +94,12 @@ def neutralize_atoms(mol):
     return mol
 
 from rdkit.Chem.rdmolops import GetFormalCharge
+
 def charge_fixer(SMILES):
     '''
     Neutralize molecules atom by atom
     '''
+    SMILES = SMILES.replace("|", "")
     # Create RDKit molecular objects
     mol = Chem.MolFromSmiles(SMILES)
     if GetFormalCharge(mol) != 0:
@@ -136,12 +139,31 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
     reagents = []
 
     now = time.strftime("%d.%m.%Y %H:%M", time.localtime())
+    
+    unique_molecules_collection_instance = UniqueMolecules(db_client, MOLECULES_DATABASE)
 
     for cas, smiles in cas_smiles_whitelist:
+
+        """
+        исправляем ошибки в зарядах: делаем все реагенты электронейтральными. 
+        этот модуль не оттестирован на прочие ошибки, возможно он приведет к ошибкам при импорте больших баз.
+        """
+        SMILES = charge_fixer(smiles)
+        reagent_internal_id = uuid.uuid4().hex
+        """
+        регистрируем реагент в базе молекул, в коллекции уникальных молекул. 
+        если молекула уже зарегистрирована, то reagent_internal_id реагента из user_reagents вписывается в лист value_data в уникальной записи уникальной молекулы. 
+        таким образом, пропуская дубликаты, создаются ссылки из сущности "банка реактивов" на уникальную молекулу, которая содержится в банке и обратно.
+
+        функция регистрации возвращает уникальный индекс - inchikey_standard, который добавляется в запись о реагенте у пользователя. 
+
+        """
+        inchikey_standard = unique_molecules_collection_instance.reagent_registration(SMILES, reagent_internal_id)
         r = {
-            "reagent_internal_id": uuid.uuid4().hex,
+            "reagent_internal_id": reagent_internal_id,
+            "inchikey_standard" : inchikey_standard,
             "CAS": cas,
-            "SMILES": charge_fixer(smiles),
+            "SMILES": SMILES,
             "sharing_status": "shared",
             "timestamp": now
         }

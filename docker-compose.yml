@@ -15,6 +15,7 @@ services:
       - MONGO_VENDORBOT_DATABASE=vendorbot_db
       - MONGO_BOT_USERNAME=bot
       - MONGO_BOT_PASSWORD=botpsswd
+      - MOLECULES_DATABASE=molecules_db
       - BOT_TOKEN=${BOT_TOKEN}
     depends_on:
       - mongodb_api

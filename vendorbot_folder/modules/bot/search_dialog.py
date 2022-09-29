@@ -2,6 +2,10 @@ import os
 import traceback
 import logging
 
+from rdkit import Chem
+from rdkit.Chem import Draw
+from rdkit.Chem.Draw import SimilarityMaps
+
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
     MessageHandler, Filters
@@ -10,8 +14,9 @@ from . import run_async
 from .helpers import CONV_SEARCH, SEARCH_STATE
 from modules.chem.cas_to_smiles import what_reagent
 
-from modules.db.dbschema import get_reagent_contacts
+from modules.db.dbschema import get_reagent_contacts, get_contact
 from modules.db.users import users_collection
+from modules.db.unique_molecules import *
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +65,9 @@ class Search:
             if cas_list or smiles_list:
                 text = "Ищем по пользователям:"
                 if cas_list:
-                    text += f"\nCAS: {' ,'.join(cas_list)}"
+                    text += f"\nCAS: {', '.join(cas_list)}\n"
                 if smiles_list:
-                    text += f"\nSMILES: {' ,'.join(smiles_list)}"
+                    text += f"\nSMILES: {', '.join(smiles_list)}"
                 update.message.reply_text(text)
 
                 for cas in cas_list:
@@ -70,14 +75,43 @@ class Search:
 
                 for smiles in smiles_list:
                     contacts.extend(get_reagent_contacts(users_collection.get_users_by_smiles(smiles), smiles))
+                    
+                    """
+                    ВНИМАНИЕ !!!!
+                    ТУТ СТРАННОЕ МЕСТО, дебажить в первую очередь если поиск чудит
+                    """
+                    best_match_smiles = unique_molecules_collection.get_most_similar_reagent(smiles)
 
                 contacts = list(set(contacts))
                 if contacts:
-                    update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
+                    update.message.reply_text(f"Реагентом могут поделиться эти контакты: @{', @'.join(contacts)}")
                 else:
-                    update.message.reply_text("Реагентом пока никто не готов поделиться")
+                    if best_match_smiles != None:
+                        # for reagent_id in best_match_smiles[0]:
+                        print(best_match_smiles)
+                        inchi_key = best_match_smiles[0]
+                        contacts += [get_contact(i) for i in users_collection.get_user_by_reagent_inchi_key(inchi_key)]
+                        update.message.reply_text(f"Реагентом пока никто не готов поделиться, но найден похожий у @{', @'.join(contacts)}.\nсхожесть с запросом: {(best_match_smiles[2]*100):.2f}%\n{best_match_smiles[1:]}\nSimilarity Map Result:")
+        
+    
+                        mol = Chem.MolFromSmiles(best_match_smiles[1])
+                        refmol = Chem.MolFromSmiles(smiles)
+
+                        fp = SimilarityMaps.GetAPFingerprint(mol, fpType='normal')
+                        fp = SimilarityMaps.GetTTFingerprint(mol, fpType='normal')
+                        fp = SimilarityMaps.GetMorganFingerprint(mol, fpType='bv')
+                        fig, maxweight = SimilarityMaps.GetSimilarityMapForFingerprint(refmol, mol, SimilarityMaps.GetMorganFingerprint)
+                        fig.savefig("/vendorbot_container/srs/pic/molpic.png", bbox_inches = "tight")
+                        
+                        path = "/vendorbot_container/srs/pic"
+                        context.bot.sendDocument(chat_id=chat_id, document=open(f'{path}/molpic.png', 'rb'), timeout=1000)
+                        # result = f'Similarity Map Result. \nсхожесть с запросом: {(best_match_smiles[1]*100):.2f}%'
+                        # update.message.reply_text(result)
+
+                    else: 
+                        update.message.reply_text(f"Реагентом пока никто не готов поделиться")
             else:
-                update.message.reply_text("Реагент не определен")
+                update.message.reply_text("Реагент не определен (ошибка в CAS?)")
 
         except Exception as err:
             logger.error(traceback.format_exc())
