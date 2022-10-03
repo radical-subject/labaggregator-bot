@@ -90,7 +90,7 @@ class Search:
                         # for reagent_id in best_match_smiles[0]:
                         inchi_key = best_match_smiles[0]
                         contacts += [get_contact(i) for i in users_collection.get_user_by_reagent_inchi_key(inchi_key)]
-                        update.message.reply_text(f"Реагентом пока никто не готов поделиться, но найден похожий у {', '.join(contacts)}.\nсхожесть с запросом: {(best_match_smiles[2]*100):.2f}%\n{best_match_smiles[1:]}\nSimilarity Map Result:")
+                        update.message.reply_text(f"Кажется, реагентом пока никто не готов поделиться, но найден похожий у {', '.join(contacts)}.\nсхожесть с запросом: {(best_match_smiles[2]*100):.2f}%\n{best_match_smiles[1:]}\nSimilarity Map Result:")
         
     
                         mol = Chem.MolFromSmiles(best_match_smiles[1])
@@ -100,10 +100,10 @@ class Search:
                         fp = SimilarityMaps.GetTTFingerprint(mol, fpType='normal')
                         fp = SimilarityMaps.GetMorganFingerprint(mol, fpType='bv')
                         fig, maxweight = SimilarityMaps.GetSimilarityMapForFingerprint(refmol, mol, SimilarityMaps.GetMorganFingerprint)
-                        fig.savefig("/vendorbot_container/srs/pic/molpic.png", bbox_inches = "tight")
+                        fig.savefig(f"/vendorbot_container/srs/pic/{inchi_key}.png", bbox_inches = "tight")
                         
                         path = "/vendorbot_container/srs/pic"
-                        context.bot.sendDocument(chat_id=chat_id, document=open(f'{path}/molpic.png', 'rb'), timeout=1000)
+                        context.bot.sendPhoto(chat_id=chat_id, photo=open(f'{path}/{inchi_key}.png', 'rb'), timeout=1000)
                         # result = f'Similarity Map Result. \nсхожесть с запросом: {(best_match_smiles[1]*100):.2f}%'
                         # update.message.reply_text(result)
 

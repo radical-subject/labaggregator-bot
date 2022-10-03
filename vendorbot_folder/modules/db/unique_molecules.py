@@ -15,16 +15,17 @@ logger = logging.getLogger(__name__)
 class UniqueMolecules:
 
     def __init__(self, client, db):
-        self.name = 'unique_molecules_collection'
-        self.collection = client[db][self.name]
         self.client = client
         self.db = client[db]
+        self.unique_molecules_collection = client[db]['unique_molecules_collection']
+        self.mfp_counts = client[db]['mfp_counts']
+        self.permutations = client[db]['permutations']
 
     def get_molecule(self, index: str):
-        return self.collection.find_one({"index": index})
+        return self.unique_molecules_collection.find_one({"index": index})
 
     def add_molecule(self, data):
-        result = self.collection.insert_one(data)
+        result = self.unique_molecules_collection.insert_one(data)
         #assert result.modified_count == 1
 
     # def get_reagents(self, user_id: int):
@@ -34,23 +35,23 @@ class UniqueMolecules:
     #     return []
 
     # def get_all_users(self):
-    #     return list(self.collection.find({}))
+    #     return list(self.unique_molecules_collection.find({}))
 
     def update_molecule(self, index: int, moldoc):
         logger.info(f"molecule entry is being updated")
         query = {'index': index}
         # if '_id' in user_data:
         #     del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
-        insertion_result = self.collection.update_one(query, {"$set": moldoc}, upsert=True) 
+        insertion_result = self.unique_molecules_collection.update_one(query, {"$set": moldoc}, upsert=True) 
         logger.info(f"molecule entry updated: {insertion_result.acknowledged}")
         #return result
         #assert result.modified_count == 1
 
     # def get_users_by_cas(self, cas: str):
-    #     return list(self.collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}}))
+    #     return list(self.unique_molecules_collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}}))
 
     # def get_users_by_smiles(self, smiles: str):
-    #     return list(self.collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}}))
+    #     return list(self.unique_molecules_collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}}))
     
     
     def reagent_registration(self, SMILES):
@@ -64,7 +65,7 @@ class UniqueMolecules:
         # scheme.add_value_field('reagent_internal_id_list', [reagent_internal_id])
         moldoc = scheme.generate_mol_doc(molfile)
 
-        result = write.WriteFromMolList(self.collection, [molfile], scheme=scheme) 
+        result = write.WriteFromMolList(self.unique_molecules_collection, [molfile], scheme=scheme) 
         print (result)
         # print(query)
         # if result == 0:
@@ -92,21 +93,21 @@ class UniqueMolecules:
         db_client[MOLECULES_DATABASE].permutations.drop()
 
         # Search.PrepareForSearch(rdkit_db, rdkit_db.molecules, rdkit_db.mfp_counts, rdkit_db.permutations)
-        substructure.AddPatternFingerprints(self.collection)
-        similarity.AddMorganFingerprints(self.collection, self.db.mfp_counts) # db_client[MOLECULES_DATABASE]
+        substructure.AddPatternFingerprints(self.unique_molecules_collection)
+        similarity.AddMorganFingerprints(self.unique_molecules_collection, self.mfp_counts) # db_client[MOLECULES_DATABASE]
 
         # Generate 100 different permutations of length 2048 and save them in demo_db.permutations as separate documents.
-        similarity.AddRandPermutations(self.db.permutations)
+        similarity.AddRandPermutations(self.permutations)
 
         # Add locality-sensitive hash values to each documents in demo_db.molecules by splitting the 100 different permutations
         # in demo_db.permutations into 25 different buckets.
-        similarity.AddLocalityHashes(self.collection, self.db.permutations, 25)
+        similarity.AddLocalityHashes(self.unique_molecules_collection, self.permutations, 25)
 
         # Create 25 different collections in db_demo each store a subset of hash values for molecules in demo_db.molecules.
-        similarity.AddHashCollections(self.db, self.collection)
+        similarity.AddHashCollections(self.db, self.unique_molecules_collection)
 
 
-    def similarity_search(self, database, smiles: str):
+    def similarity_search(self, smiles: str):
         """
         Ищем похожие реагенты умными функциями
         :param smiles:
@@ -118,7 +119,7 @@ class UniqueMolecules:
         if not mol:
             raise Exception("MolFromSmiles returned None")
 
-        res = similarity.SimSearchAggregate(mol, database.unique_molecules_collection, database.mfp_counts, 0.1) # 0.5 = similarity threshold
+        res = similarity.SimSearchAggregate(mol, self.unique_molecules_collection, self.mfp_counts, 0.1) # 0.5 = similarity threshold
 
         if not res:
             return
@@ -131,10 +132,10 @@ class UniqueMolecules:
         return res
 
     def get_most_similar_reagent(self, REQUESTED_SMILES: str):
-        if self.similarity_search(self.db, REQUESTED_SMILES) != None:
-            best_similarity_result_probability = self.similarity_search(self.db, REQUESTED_SMILES)[0][0]
+        if self.similarity_search(REQUESTED_SMILES) != None:
+            best_similarity_result_probability = self.similarity_search(REQUESTED_SMILES)[0][0]
 
-            best_similarity_result_id = self.similarity_search(self.db, REQUESTED_SMILES)[0][1]
+            best_similarity_result_id = self.similarity_search(REQUESTED_SMILES)[0][1]
 
             inchi_key = self.get_molecule(best_similarity_result_id)["index"]
             best_match_smiles = self.get_molecule(best_similarity_result_id)["smiles"]
