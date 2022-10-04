@@ -16,7 +16,7 @@ HELP_TARGET_MAX_CHAR_NUM=20
 	pull_n_up \
 	pull \
 	mongod_stop \
-	hepl \
+	help \
 	env_dev \
 	env_prod \
 	env_test \
@@ -100,6 +100,12 @@ pull:
 up:
 	-$(DOCKER_COMPOSE_CMD) up -d $(c)
 
+#  build and run in detached mode + 
+build&up:
+	-BOT_TOKEN=${DEVELOPMENT_BOT_TOKEN} $(DOCKER_COMPOSE_CMD) up --build 
+	
+#	&& docker image prune -f $(c)
+
 #  pull from git and reload running containers
 pull_n_up: pull up
 
@@ -109,18 +115,24 @@ start:
 down:
 	-$(DOCKER_COMPOSE_CMD) down $(c)
 
-#  destroy application
+#  destroy application (containers), preserve images
 destroy:
 	-$(DOCKER_COMPOSE_CMD) down -v $(c)
 
+#  This will delete all containers, volumers and images
+prune: 
+	-docker system prune --all --force --volumes 
+
 #  restart application
 restart: stop up
+
+#  logs for every container listed in docker-compose.yml
 logs:
 	-$(DOCKER_COMPOSE_CMD) logs --tail=100 -f $(c)
 
 #  lists application for bot container
-logs_api:
-	-$(DOCKER_COMPOSE_CMD) logs --tail=100 -f vendorbot_container
+logs_bot:
+	-$(DOCKER_COMPOSE_CMD) logs --tail=100 -f | grep vendorbot_container $(c)
 
 #  lists containers in docker-compose
 ps:
@@ -128,11 +140,11 @@ ps:
 
 #  gives shell to mongodb_api container
 mongodb_shell:
-	-$(DOCKER_COMPOSE_CMD) exec mongodb_api /bin/bash
+	-docker exec -ti mongodb /bin/bash
 
 #  gives shell to bot container
 bot_shell:
-	$(DOCKER_COMPOSE_CMD) exec vendorbot_container /bin/bash
+	-docker exec -ti vendorbot_container /bin/bash
 
 #  Do update if needed
 update_if_needed:
