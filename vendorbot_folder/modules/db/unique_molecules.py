@@ -1,222 +1,147 @@
+from operator import itemgetter
 
-from typing import List
-import uuid
-import time
-from modules.db.blacklist import blacklist_engine
-from modules.chem.cas_to_smiles import is_cas_number
-from modules.chem import batch
+from rdkit import RDLogger, Chem
+from mongordkit.Database import write
+from mongordkit.Search import similarity, substructure
+from mongordkit.Database import registration
 
+from rdkit.Chem import PandasTools, SanitizeMol
+
+from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE, MOLECULES_DATABASE
 import logging
-import traceback
 logger = logging.getLogger(__name__)
 
 
-def get_shared_reagents(user):
-    if 'user_reagents' in user:
-        return filter(lambda r: r['sharing_status'] == 'shared', user['user_reagents'])
-    return []
+class UniqueMolecules:
 
+    def __init__(self, client, db):
+        self.client = client
+        self.db = client[db]
+        self.unique_molecules_collection = client[db]['unique_molecules_collection']
+        self.mfp_counts = client[db]['mfp_counts']
+        self.permutations = client[db]['permutations']
 
-def reagent_name(r):
-    """
-    У нас может быть что-то не заполнено (?)
-    """
-    if 'CAS' in r and r['CAS']:
-        return r['CAS']
-    if 'reagent_name' in r and r['reagent_name']:
-        return r['reagent_name']
+    def get_molecule(self, index: str):
+        return self.unique_molecules_collection.find_one({"index": index})
 
+    def add_molecule(self, data):
+        result = self.unique_molecules_collection.insert_one(data)
+        #assert result.modified_count == 1
 
-def reagent_CAS(r):
-    """
-    У нас может быть что-то не заполнено (?)
-    """
-    if 'CAS' in r and r['CAS']:
-        return r['CAS']
+    # def get_reagents(self, user_id: int):
+    #     user = self.get_user(user_id)
+    #     if "user_reagents" in user:
+    #         return user["user_reagents"]
+    #     return []
 
+    # def get_all_users(self):
+    #     return list(self.unique_molecules_collection.find({}))
 
-def get_contact(user):
-    if user["username"]:
-        return user["username"]
-    elif user["phone_number"]:
-        return user["phone_number"]  # TODO добавить + если 7
+    def update_molecule(self, index: int, moldoc):
+        logger.info(f"molecule entry is being updated")
+        query = {'index': index}
+        # if '_id' in user_data:
+        #     del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
+        insertion_result = self.unique_molecules_collection.update_one(query, {"$set": moldoc}, upsert=True) 
+        logger.info(f"molecule entry updated: {insertion_result.acknowledged}")
+        #return result
+        #assert result.modified_count == 1
 
+    # def get_users_by_cas(self, cas: str):
+    #     return list(self.unique_molecules_collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}}))
 
-def reagent_contact(user, reagent):
-    if 'contact' in reagent and reagent['contact']:
-        return reagent['contact']
-    else:
-        return get_contact(user)
-
-
-def find_reagent(user, value):
-    reagents = []
-    if 'user_reagents' in user:
-        for reagent in user['user_reagents']:
-            if value in reagent.values():
-                reagents.append(reagent)
-    return reagents
-
-
-def get_reagent_contacts(users, text):
-    """
-    :param users: список объектов пользователей
-    :param text: CAS или SMILES
-    :return: список контактов
-    """
-    ret = []
-    if users:
-        for user in users:
-            reagents = find_reagent(user, text)
-            for r in reagents:
-                contact = reagent_contact(user, r)
-                if contact:
-                    ret.append(contact)
-    return ret
-
-
-def parse_cas_list(cas_list: List[str], contact: str = ''):
-    """
-    Фильтруем список CAS, ищем SMILES, удаляем прекурсоры, возвращаем список компонентов для БД и статистику
-    :param cas_list:
-    :param contact:
-    :return:
-    """
-    valid_cas_list = [r for r in cas_list if is_cas_number(r)]
-    failed_cas = [r for r in cas_list if not is_cas_number(r)]
-    cas_smiles_list = batch.batch_cas_to_smiles(valid_cas_list)
-
-    no_smiles_list = [cas_smiles[0] for cas_smiles in cas_smiles_list if not cas_smiles[1]]
-
-    cas_smiles_list = [cas_smiles for cas_smiles in cas_smiles_list if cas_smiles[1]]
-
-    cas_smiles_whitelist = []
-    errors = []
-    for cas, smiles in cas_smiles_list:
-        try:
-            if not blacklist_engine.is_similar(smiles):
-                cas_smiles_whitelist.append((cas, smiles))
-        except Exception as err:
-            tb = traceback.format_exc()
-            logger.error(f"is_similar failed for ({cas}, {smiles}). Error: {tb}")
-            errors.append(f"{cas}, {smiles}")
-
-    reagents = []
-
-    now = time.strftime("%d.%m.%Y %H:%M", time.localtime())
-
-    for cas, smiles in cas_smiles_whitelist:
-        r = {
-            "reagent_internal_id": uuid.uuid4().hex,
-            "CAS": cas,
-            "SMILES": smiles,
-            "sharing_status": "shared",
-            "timestamp": now
-        }
-        if contact:
-            r["contact"] = contact
-        reagents.append(r)
-
-    message = f"file was successfully parsed and uploaded.\n"
-    message += f"<b>import results</b>:\n"
-    message += f"Строк в вашем списке <b>{len(cas_list)}</b>\n"
-    message += f"Правильных CAS-номеров <b>{len(valid_cas_list)}</b>\n"
-    message += f"Опечатка в CAS: <b>{', '.join(failed_cas)}</b>\n"
-    message += f"Не найдено SMILES для: <b>{len(no_smiles_list)}</b> позиций\n"
-    if no_smiles_list:
-        message += "\n".join(no_smiles_list) + "\n"
-    message += f"Ошибка обработки SMILES <b>{len(errors)}</b> позиций\n"
-    if errors:
-        message += "\n".join(errors) + "\n"
-    message += f"Найдено SMILES для: <b>{len(cas_smiles_list)}</b> реагентов\n"
-    message += f"Прекурсоров найдено и вычеркнуто: <b>{len(cas_smiles_list) - len(cas_smiles_whitelist)}</b>\n"
-
-    return reagents, message
-
-
-class UserReagents:
-    """
-    This is object for manipulating easily with user 
-    attributes before sending updated data to database. 
-
-    test_record = {
-        _id: "980159954",
-        user_id: "980159954",
-        username: "@None",
-        firstname: "Alex",
-        lastname: "Fedorov"
-        laboratory: [
-            {
-                laboratory_object
-            },
-            {
-                laboratory_object
-            }
-        ]
-        reagent_requests: [
-            {
-                requested_CAS: "50-00-0"
-            }
-        ],
-        user_reagents: [
-            {
-                CAS: "50-00-0",
-                SMILES: "???",
-                #reagent_name: "something 4-something"
-                sharing_status: "shared",
-                contact: "" # если админ добавил
-            }
-        ]
-    }
-
-    """
-    def __init__(self, *args, **kwargs):
-        if args:
-            self.args = args
-        if kwargs:
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-
-        # присвоить id если его не было 
-        if "_id" not in kwargs.keys():
-            self._id = uuid.uuid4().hex
+    # def get_users_by_smiles(self, smiles: str):
+    #     return list(self.unique_molecules_collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}}))
     
-    def __iter__(self):
-        for attr, value in self.__dict__.items():
-            yield attr, value
+    
+    def reagent_registration(self, SMILES):
+        """
+        регистрация уникальной молекулы в коллекции уникальных молекул в отдельной базе. 
+        набивка ссылками записи уникальной молекулы на конкретные айдишники банок с реагентами
+        """
+        
+        molfile = Chem.MolFromSmiles(SMILES)
+        scheme = registration.MolDocScheme()
+        # scheme.add_value_field('reagent_internal_id_list', [reagent_internal_id])
+        moldoc = scheme.generate_mol_doc(molfile)
 
-    def get_contacts_for_reagent(self, value):
-        """
-        find value in reagents:
-        {
-            CAS: "75-64-9",
-            SMILES: "CC(C)(C)N",
-            reagent_name: "something 4-something"
-            sharing_status: "shared"
-        }
-        :param value:
-        :return:
-        """
-        contacts = []
-        for reagent in self.user_reagents:
-            if value in reagent.values():
-                if reagent["contact"] not in contacts:
-                    contacts.append(reagent["contact"])
-        return contacts
+        result = write.WriteFromMolList(self.unique_molecules_collection, [molfile], scheme=scheme) 
+        print (result)
+        # print(query)
+        # if result == 0:
 
-    def export(self):
+        #     reagent_internal_id_list = self.get_molecule(moldoc['index'])["value_data"]['reagent_internal_id_list']
+            
+        #     # if reagent_internal_id not in reagent_internal_id_list:
+        #     #     reagent_internal_id_list.append(reagent_internal_id)
+
+        #         # scheme.add_value_field('reagent_internal_id_list', reagent_internal_id_list)
+
+        #         # moldoc = scheme.generate_mol_doc(molfile)
+        #     self.update_molecule(moldoc['index'], moldoc)
+
+        inchikey_standard = moldoc['index']
+        return inchikey_standard
+    
+
+    def calculate_hashes(self):
         """
-        UserReagents_export = {
-            "_id": self._id
-            "user_id": self.user_id,
-            "username": self.username,  
-            "time": self.time,
-            "firstname": self.firstname,
-            "lastname": self.lastname,
-            "laboratory": self.laboratory,
-            "reagent_requests": self.reagent_requests,
-            "user_reagents": self.user_reagents
-        }
+        необходимая подготовка к поиску, обсчет структурных данных
         """
-        return {**{"_id": self._id}, **dict(self)}
-        # json.dumps(UserReagents_export) # exports json string (to use it as python object you should convert it by json.loads())
+        # во избежание дубликатов
+        db_client[MOLECULES_DATABASE].mfp_counts.drop()
+        db_client[MOLECULES_DATABASE].permutations.drop()
+
+        # Search.PrepareForSearch(rdkit_db, rdkit_db.molecules, rdkit_db.mfp_counts, rdkit_db.permutations)
+        substructure.AddPatternFingerprints(self.unique_molecules_collection)
+        similarity.AddMorganFingerprints(self.unique_molecules_collection, self.mfp_counts) # db_client[MOLECULES_DATABASE]
+
+        # Generate 100 different permutations of length 2048 and save them in demo_db.permutations as separate documents.
+        similarity.AddRandPermutations(self.permutations)
+
+        # Add locality-sensitive hash values to each documents in demo_db.molecules by splitting the 100 different permutations
+        # in demo_db.permutations into 25 different buckets.
+        similarity.AddLocalityHashes(self.unique_molecules_collection, self.permutations, 25)
+
+        # Create 25 different collections in db_demo each store a subset of hash values for molecules in demo_db.molecules.
+        similarity.AddHashCollections(self.db, self.unique_molecules_collection)
+
+
+    def similarity_search(self, smiles: str):
+        """
+        Ищем похожие реагенты умными функциями
+        :param smiles:
+        :return: отсортированный по похожести список реагентов
+        """
+        smiles = smiles.replace("|", "")  # вертикальная черта в SMILES - непонятно что несёт, и RDKIT ее не понимает, убираем ее
+        mol = Chem.MolFromSmiles(smiles)
+
+        if not mol:
+            raise Exception("MolFromSmiles returned None")
+
+        res = similarity.SimSearchAggregate(mol, self.unique_molecules_collection, self.mfp_counts, 0.1) # 0.5 = similarity threshold
+
+        if not res:
+            return
+
+        res = sorted(res, key=itemgetter(0), reverse=True)
+
+        if res[0] is None:
+            raise Exception(f"incorrect result: {str(res)}")
+
+        return res
+
+    def get_most_similar_reagent(self, REQUESTED_SMILES: str):
+        if self.similarity_search(REQUESTED_SMILES) != None:
+            best_similarity_result_probability = self.similarity_search(REQUESTED_SMILES)[0][0]
+
+            best_similarity_result_id = self.similarity_search(REQUESTED_SMILES)[0][1]
+
+            inchi_key = self.get_molecule(best_similarity_result_id)["index"]
+            best_match_smiles = self.get_molecule(best_similarity_result_id)["smiles"]
+            return (inchi_key, best_match_smiles, best_similarity_result_probability)
+        
+        else: 
+            return None
+        
+unique_molecules_collection = UniqueMolecules(db_client, MOLECULES_DATABASE)

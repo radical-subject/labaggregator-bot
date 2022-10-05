@@ -13,6 +13,7 @@ from modules.db.users import users_collection
 from modules.db import dbschema
 from modules.db.blacklist import blacklist_engine
 from modules.db.mongodb import dump_database
+from modules.db.unique_molecules import *
 
 from . import run_async
 from .decorators import is_admin
@@ -83,6 +84,19 @@ class Admin:
 
         reply = blacklist_engine.reload_pandas()
         logger.info(f"{reply} molecules successfully imported with metadata in separate collection. nice!")
+
+    @is_admin
+    def calculate_hashes(self, update: Update, context: CallbackContext):
+        """
+        запускает обсчет хешей
+        """
+        chat_id = update.message.chat_id
+        logger.info(f"calculating hashes({chat_id})")
+
+        update.message.reply_text("Wait, im calculating...")
+        unique_molecules_collection.calculate_hashes()
+        update.message.reply_text(f"database is ready for structure search")
+
 
     @is_admin
     def digest(self, update: Update, context: CallbackContext):
@@ -164,5 +178,8 @@ class Admin:
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
         dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=run_async()))
         dispatcher.add_handler(CommandHandler('blacklist_reload', self.blacklist_reload, run_async=run_async()))
+        dispatcher.add_handler(CommandHandler('calculate_hashes', self.calculate_hashes, run_async=run_async()))
         dispatcher.add_handler(CommandHandler('digest', self.digest, run_async=run_async()))
         dispatcher.add_handler(CallbackQueryHandler(self.button_handler))
+
+        

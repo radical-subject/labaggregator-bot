@@ -5,6 +5,7 @@ import time
 from modules.db.blacklist import blacklist_engine
 from modules.chem.cas_to_smiles import is_cas_number
 from modules.chem import batch
+from modules.db.unique_molecules import *
 
 import logging
 import traceback
@@ -37,7 +38,7 @@ def reagent_CAS(r):
 
 def get_contact(user):
     if user["username"]:
-        return user["username"]
+        return f"@{user['username']}"
     elif user["phone_number"]:
         return user["phone_number"]  # TODO добавить + если 7
 
@@ -74,7 +75,41 @@ def get_reagent_contacts(users, text):
                     ret.append(contact)
     return ret
 
+from rdkit import Chem
+def neutralize_atoms(mol):
+    '''
+    atom neutralizer
+    '''
+    pattern = Chem.MolFromSmarts("[+1!h0!$([*]~[-1,-2,-3,-4]),-1!$([*]~[+1,+2,+3,+4])]")
+    at_matches = mol.GetSubstructMatches(pattern)
+    at_matches_list = [y[0] for y in at_matches]
+    if len(at_matches_list) > 0:
+        for at_idx in at_matches_list:
+            atom = mol.GetAtomWithIdx(at_idx)
+            chg = atom.GetFormalCharge()
+            hcount = atom.GetTotalNumHs()
+            atom.SetFormalCharge(0)
+            atom.SetNumExplicitHs(hcount - chg)
+            atom.UpdatePropertyCache()
+    return mol
 
+from rdkit.Chem.rdmolops import GetFormalCharge
+
+def charge_fixer(SMILES):
+    '''
+    Neutralize molecules atom by atom
+    '''
+    SMILES = SMILES.replace("|", "")
+    # Create RDKit molecular objects
+    mol = Chem.MolFromSmiles(SMILES)
+    if GetFormalCharge(mol) != 0:
+        charge=GetFormalCharge(mol)
+        print(f"FORMAL CHARGE WAS:{charge}")
+        neutralize_atoms(mol)
+        charge=GetFormalCharge(mol)
+        print(f"FORMAL CHARGE BECAME:{charge}")
+    return Chem.MolToSmiles(mol)
+    
 def parse_cas_list(cas_list: List[str], contact: str = ''):
     """
     Фильтруем список CAS, ищем SMILES, удаляем прекурсоры, возвращаем список компонентов для БД и статистику
@@ -104,12 +139,31 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
     reagents = []
 
     now = time.strftime("%d.%m.%Y %H:%M", time.localtime())
+    
+    unique_molecules_collection_instance = UniqueMolecules(db_client, MOLECULES_DATABASE)
 
     for cas, smiles in cas_smiles_whitelist:
+
+        """
+        исправляем ошибки в зарядах: делаем все реагенты электронейтральными. 
+        этот модуль не оттестирован на прочие ошибки, возможно он приведет к ошибкам при импорте больших баз.
+        """
+        SMILES = charge_fixer(smiles)
+        reagent_internal_id = uuid.uuid4().hex
+        """
+        регистрируем реагент в базе молекул, в коллекции уникальных молекул. 
+        если молекула уже зарегистрирована, то reagent_internal_id реагента из user_reagents вписывается в лист value_data в уникальной записи уникальной молекулы. 
+        таким образом, пропуская дубликаты, создаются ссылки из сущности "банка реактивов" на уникальную молекулу, которая содержится в банке и обратно.
+
+        функция регистрации возвращает уникальный индекс - inchikey_standard, который добавляется в запись о реагенте у пользователя. 
+
+        """
+        inchikey_standard = unique_molecules_collection_instance.reagent_registration(SMILES)
         r = {
-            "reagent_internal_id": uuid.uuid4().hex,
+            "reagent_internal_id": reagent_internal_id,
+            "inchikey_standard" : inchikey_standard,
             "CAS": cas,
-            "SMILES": smiles,
+            "SMILES": SMILES,
             "sharing_status": "shared",
             "timestamp": now
         }

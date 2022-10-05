@@ -23,6 +23,7 @@ def bot_commands_text(chat_id):
 """
     if is_admin_chat(chat_id):
         text += """\n== Админам ==
+/calculate_hashes - подготовить базу к поиску
 /append - добавить новые компоненты в список
 /digest - загрузить все shared
 /purge_handler - очистка бд (только админам)

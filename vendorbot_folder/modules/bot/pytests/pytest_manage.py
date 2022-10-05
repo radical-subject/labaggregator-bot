@@ -74,7 +74,7 @@ def test_get_contact(dbuser: Dict):
 
     dbuser["username"] = "u"
     dbuser["phone_number"] = "1"
-    assert get_contact(dbuser) == "u"
+    assert get_contact(dbuser) == "@u"
 
     dbuser["username"] = ""
     assert get_contact(dbuser) == "1"
