@@ -75,17 +75,18 @@ class Search:
 
                 for smiles in smiles_list:
                     contacts.extend(get_reagent_contacts(users_collection.get_users_by_smiles(smiles), smiles))
-                    
+
+                contacts = list(set(contacts))
+                
+                if contacts:
+                    update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
+                else:
                     """
                     ВНИМАНИЕ !!!!
                     ТУТ СТРАННОЕ МЕСТО, дебажить в первую очередь если поиск чудит
                     """
                     best_match_smiles = unique_molecules_collection.get_most_similar_reagent(smiles)
-
-                contacts = list(set(contacts))
-                if contacts:
-                    update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
-                else:
+                    
                     if best_match_smiles != None:
                         # for reagent_id in best_match_smiles[0]:
                         inchi_key = best_match_smiles[0]

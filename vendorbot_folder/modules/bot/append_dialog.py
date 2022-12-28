@@ -53,7 +53,10 @@ class Append:
 
             cas_list = get_txt_content(update, context)
 
-            contact, cas_list = get_contact_from_cas_file(cas_list, user_info)
+            if not cas_list[0].startswith('reagents_contact:'):
+                cas_list.insert(0, 'reagents_contact:' + '@' + user_info.username)
+
+            contact, cas_list = get_contact_from_cas_file(cas_list)
             if not contact:
                 update.message.reply_text("Добавьте первую строку 'reagents_contact:<телефон/почта>' "
                                           "или заполните свой username")

@@ -121,7 +121,7 @@ class UniqueMolecules:
 
         res = similarity.SimSearchAggregate(mol, self.unique_molecules_collection, self.mfp_counts, 0.1) # 0.5 = similarity threshold
 
-        if not res:
+        if not res: 
             return
 
         res = sorted(res, key=itemgetter(0), reverse=True)
@@ -132,13 +132,16 @@ class UniqueMolecules:
         return res
 
     def get_most_similar_reagent(self, REQUESTED_SMILES: str):
-        if self.similarity_search(REQUESTED_SMILES) != None:
-            best_similarity_result_probability = self.similarity_search(REQUESTED_SMILES)[0][0]
+        searchResult = self.similarity_search(REQUESTED_SMILES)
+        if searchResult != None:
 
-            best_similarity_result_id = self.similarity_search(REQUESTED_SMILES)[0][1]
+            best_similarity_result_probability = searchResult[0][0]
+            best_similarity_result_id = searchResult[0][1]
 
-            inchi_key = self.get_molecule(best_similarity_result_id)["index"]
-            best_match_smiles = self.get_molecule(best_similarity_result_id)["smiles"]
+            molecule = self.get_molecule(best_similarity_result_id)
+            inchi_key = molecule["index"]
+            best_match_smiles = molecule["smiles"]
+
             return (inchi_key, best_match_smiles, best_similarity_result_probability)
         
         else: 
