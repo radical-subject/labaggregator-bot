@@ -51,5 +51,18 @@ class UsersCollection:
     def get_users_by_smiles(self, smiles: str):
         return list(self.collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}}))
 
+    # get location for my reagent
+    def get_user_id_by_username(self, update):
+        return self.collection.find_one({"username": update.message.from_user.username})['user_id']
+
+    def get_location_by_user_and_cas(self, username: str, cas):
+        user_id = self.get_user_id_by_username(username)
+        result = self.collection.find_one({"user_id": user_id})['user_reagents']
+        locations = []
+        for each in result:
+            if each['CAS'] in cas:
+                locations.append(each['location'])
+        return '\n'.join(set(locations))
+
 
 users_collection = UsersCollection(db_client, MONGO_VENDORBOT_DATABASE)

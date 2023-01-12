@@ -18,6 +18,13 @@ from modules.db.unique_molecules import *
 from . import run_async
 from .decorators import is_admin
 
+## DB backup via Google drive
+from google.oauth2 import service_account
+from googleapiclient.http import MediaIoBaseDownload,MediaFileUpload
+from googleapiclient.discovery import build
+import pprint
+import io
+
 logger = logging.getLogger(__name__)
 
 
@@ -166,9 +173,26 @@ class Admin:
         logger.info(f'{files}')
         # this bot cannot send more than 50 mb
         try:
-            context.bot.sendDocument(chat_id=chat_id, document=open(f'{path}.zip', 'rb'), timeout=1000)
-            result = 'Гена, помнишь ты просил меня принести тебе бекап базы данных, я пошел и принес, вот оно. Гена на.'
-            update.message.reply_text(result)
+            if os.path.getsize(f'{path}.zip') < 49000000:
+                context.bot.sendDocument(chat_id=chat_id, document=open(f'{path}.zip', 'rb'), timeout=1000)
+                result = 'Гена, помнишь ты просил меня принести тебе бекап базы данных, я пошел и принес, вот оно. Гена на.'
+                update.message.reply_text(result)
+            else:
+                credentials = service_account.Credentials.from_service_account_file(
+                    'google_secret.json', 
+                    scopes=['https://www.googleapis.com/auth/drive']
+                )
+                service = build('drive', 'v3', credentials=credentials)
+                folder_id = '19yQQad5C_5YAmcjvYwFsNCvnxB6OtEor'
+                file_metadata = {
+                                'name': f'{path.split("/")[-1]}.zip',
+                                'parents': [folder_id]
+                            }
+                media = MediaFileUpload(f'{path}.zip', resumable=True)
+                r = service.files().create(body=file_metadata, media_body=media, fields='webViewLink, id').execute()
+                results = service.files().list(q=f'parents in "{folder_id}"').execute()
+                update.message.reply_text(r.get('webViewLink'))
+
         except Exception as err:
             tb = traceback.format_exc()
             update.message.reply_text("что-то не так. скорее всего база данных слишком большая и тебе нужно наладить закачку на гуглодиск.")

@@ -2,9 +2,11 @@
 from typing import List
 
 import io
-from csv import reader
+#from csv import reader
 from telegram.ext import CallbackContext
 from telegram import Update
+
+from pandas import read_excel, read_csv, DataFrame
 
 # у каждого conversational handler должна быть своя группа
 CONV_START, CONV_MANAGE, CONV_SEARCH, CONV_APPEND = range(4)
@@ -33,39 +35,25 @@ def bot_commands_text(chat_id):
     return text
 
 
-LIST_OF_ADMINS = [336091411, 122267418, 588927967, 47390523, 250291302, 880726373]  # tg id's 336091411, 122267418, 588927967, 47390523
+LIST_OF_ADMINS = [336091411, 122267418, 588927967, 47390523, 250291302, 880726373, 490796163]  # tg id's 336091411, 122267418, 588927967, 47390523
 
 
 def is_admin_chat(chat_id):
     return chat_id in LIST_OF_ADMINS
 
 
-def get_csv_content(update: Update, context: CallbackContext) -> List[List[str]]:
-    """
-    Возвращает содержимое csv файла присланного пользователем
-    :param update:
-    :param context:
-    :return:
-    """
+def get_file_content(update: Update, context: CallbackContext) -> List[List[str]]:
     out = io.BytesIO()
-    context.bot.get_file(update.message.document).download(out=out)
+    document = update.message.document
+    context.bot.get_file(document).download(out=out)
     out.seek(0)
 
-    content = out.read().decode('utf-8')
-    rows = []
-    c = reader(content.splitlines(), delimiter=',')  # out.read().decode('utf-8').splitlines()
-    for r in c:
-        rows.append(r)
-    return rows
-
-
-def get_txt_content(update: Update, context: CallbackContext) -> List[str]:
-    out = io.BytesIO()
-    context.bot.get_file(update.message.document).download(out=out)
-    out.seek(0)
-
-    content = out.read().decode('utf-8')
-    rows = []
-    for r in content.splitlines():
-        rows.append(r.strip())
-    return rows
+    ext = document['file_name'].split('.')[-1]
+    if ext == 'txt':
+        return read_csv(out, names=['CAS'], usecols=[0])
+    elif ext == 'csv':
+        return read_csv(out, delimiter=';|,|\t', usecols=['CAS', 'location', 'name'], encoding= 'unicode_escape')
+    elif ext == 'xlsx':
+        return read_excel(out, usecols=['CAS', 'location', 'name'])
+    else:
+        return 'Valid file extensions are [ .txt | .csv | .xlsx ]'

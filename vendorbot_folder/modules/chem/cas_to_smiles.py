@@ -42,7 +42,15 @@ def get_cas_smiles(cas: str, delay: float = 0.2):
     except Exception as err:
         logger.error(err)
     return cas, None
-
+### 2
+def get_cas_smiles(cas: str, delay: float = 0.2):
+    try:
+        smiles = cas_to_smiles(cas)
+        time.sleep(delay)  # чтобы не грузить сервер
+        return smiles
+    except Exception as err:
+        logger.error(err)
+    return None
 
 def cirpy_smiles_resolve(cas_or_name: str):
     """
@@ -110,10 +118,20 @@ def what_reagent(text):
         cas_list.append(text)
         smiles_list.append(cas_to_smiles(text))
     else:
-        smiles_list.append(cirpy_smiles_resolve(text))  # name2smiles
-        smiles_list.append(pubchempy_smiles_resolve(text))  # name2smiles
+        for fun in (cirpy_smiles_resolve, pubchempy_smiles_resolve):
+            smiles = fun(text)
+            if smiles:
+                smiles_list.append(smiles)      
+                break  
 
-        smiles_list = list(filter(None, smiles_list))
+        # smiles = cirpy_smiles_resolve(text)
+        # if smiles == None:
+        #     smiles = pubchempy_smiles_resolve(text)
+        #     if smiles =! None
+        # smiles_list.append(smiles)  # name2smiles
+        
+
+        # smiles_list = list(filter(None, smiles_list))
         for smiles in smiles_list:  # TODO если передали SMILES, нужен ли поиск по CAS?
             cas_list.extend(cirpy_cas_resolve(smiles))  # smiles2cas
 

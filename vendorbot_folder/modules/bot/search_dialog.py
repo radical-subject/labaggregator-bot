@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 CANCEL_SEARCH = 'Завершить поиск'
 cancel_keyboard = [[KeyboardButton(CANCEL_SEARCH)]]
 
-
 DBSIZE_OPEN_SEARCH = int(os.getenv('DBSIZE_OPEN_SEARCH', 10))
 
 
@@ -54,12 +53,12 @@ class Search:
     def search_cas(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
         text = update.message.text
+        user = update.message.from_user
 
         logger.info(f"search_cas({chat_id}): {text}")
 
         try:
             contacts = []
-
             cas_list, smiles_list = what_reagent(text)
 
             if cas_list or smiles_list:
@@ -78,38 +77,46 @@ class Search:
 
                 contacts = list(set(contacts))
                 
-                if contacts:
+                if '@' + user.username in contacts:
+                    update.message.reply_text(f"Будьте внимательны, этот реагент есть у Вас")
+                    
+                    location = users_collection.get_location_by_user_and_cas(update, cas_list)
+                    if location not in [None, '', []]:
+                        update.message.reply_text(f'Попробуйте поискать его тут:\n\n{location}')
+                
+                elif contacts:
                     update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
+                
                 else:
+                    update.message.reply_text(f"Реагентом пока никто не готов поделиться")
                     """
                     ВНИМАНИЕ !!!!
                     ТУТ СТРАННОЕ МЕСТО, дебажить в первую очередь если поиск чудит
                     """
                     best_match_smiles = unique_molecules_collection.get_most_similar_reagent(smiles)
-                    
+
                     if best_match_smiles != None:
                         # for reagent_id in best_match_smiles[0]:
                         inchi_key = best_match_smiles[0]
                         contacts += [get_contact(i) for i in users_collection.get_user_by_reagent_inchi_key(inchi_key)]
-                        update.message.reply_text(f"Кажется, реагентом пока никто не готов поделиться, но найден похожий у {', '.join(contacts)}.\nсхожесть с запросом: {(best_match_smiles[2]*100):.2f}%\n{best_match_smiles[1:]}\nSimilarity Map Result:")
-        
-    
-                        mol = Chem.MolFromSmiles(best_match_smiles[1])
-                        refmol = Chem.MolFromSmiles(smiles)
 
-                        fp = SimilarityMaps.GetAPFingerprint(mol, fpType='normal')
-                        fp = SimilarityMaps.GetTTFingerprint(mol, fpType='normal')
-                        fp = SimilarityMaps.GetMorganFingerprint(mol, fpType='bv')
-                        fig, maxweight = SimilarityMaps.GetSimilarityMapForFingerprint(refmol, mol, SimilarityMaps.GetMorganFingerprint)
-                        fig.savefig(f"/vendorbot_container/srs/pic/{inchi_key}.png", bbox_inches = "tight")
-                        
-                        path = "/vendorbot_container/srs/pic"
-                        context.bot.sendPhoto(chat_id=chat_id, photo=open(f'{path}/{inchi_key}.png', 'rb'), timeout=1000)
-                        # result = f'Similarity Map Result. \nсхожесть с запросом: {(best_match_smiles[1]*100):.2f}%'
-                        # update.message.reply_text(result)
+                        if contacts:
+                            update.message.reply_text(f"Но найден похожий у {', '.join(contacts)}.\nсхожесть с запросом: {(best_match_smiles[2]*100):.2f}%\n{best_match_smiles[1:]}\nSimilarity Map Result:")
+            
+                            mol = Chem.MolFromSmiles(best_match_smiles[1])
+                            refmol = Chem.MolFromSmiles(smiles)
 
-                    else: 
-                        update.message.reply_text(f"Реагентом пока никто не готов поделиться")
+                            fp = SimilarityMaps.GetAPFingerprint(mol, fpType='normal')
+                            fp = SimilarityMaps.GetTTFingerprint(mol, fpType='normal')
+                            fp = SimilarityMaps.GetMorganFingerprint(mol, fpType='bv')
+                            fig, maxweight = SimilarityMaps.GetSimilarityMapForFingerprint(refmol, mol, SimilarityMaps.GetMorganFingerprint)
+                            fig.savefig(f"/vendorbot_container/srs/pic/{inchi_key}.png", bbox_inches = "tight")
+                            
+                            path = "/vendorbot_container/srs/pic"
+                            context.bot.sendPhoto(chat_id=chat_id, photo=open(f'{path}/{inchi_key}.png', 'rb'), timeout=1000)
+                            # result = f'Similarity Map Result. \nсхожесть с запросом: {(best_match_smiles[1]*100):.2f}%'
+                            # update.message.reply_text(result)
+
             else:
                 update.message.reply_text("Реагент не определен (ошибка в CAS?)")
 

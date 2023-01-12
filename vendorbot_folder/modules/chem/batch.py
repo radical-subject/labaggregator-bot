@@ -11,7 +11,7 @@ def batch_cas_to_smiles(cas_list: List[str]):
     """
 
     #out = [get_cas_smiles(cas) for cas in cas_list]
-    n = 50
-    with Pool(processes=n) as pool:
+    #n = 50, processes=n
+    with Pool(processes=50) as pool:
         out = pool.map(get_cas_smiles, cas_list)
     return out

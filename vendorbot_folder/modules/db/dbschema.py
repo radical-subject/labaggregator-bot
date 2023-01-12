@@ -11,6 +11,8 @@ import logging
 import traceback
 logger = logging.getLogger(__name__)
 
+import pandas as pd
+
 
 def get_shared_reagents(user):
     if 'user_reagents' in user:
@@ -95,6 +97,7 @@ def neutralize_atoms(mol):
 
 from rdkit.Chem.rdmolops import GetFormalCharge
 
+
 def charge_fixer(SMILES):
     '''
     Neutralize molecules atom by atom
@@ -110,31 +113,34 @@ def charge_fixer(SMILES):
         print(f"FORMAL CHARGE BECAME:{charge}")
     return Chem.MolToSmiles(mol)
     
-def parse_cas_list(cas_list: List[str], contact: str = ''):
+
+def parse_cas_list(cas_file: pd.DataFrame, contact: str = ''):
     """
     Фильтруем список CAS, ищем SMILES, удаляем прекурсоры, возвращаем список компонентов для БД и статистику
-    :param cas_list:
+    :param cas_file:
     :param contact:
     :return:
     """
-    valid_cas_list = [r for r in cas_list if is_cas_number(r)]
-    failed_cas = [r for r in cas_list if not is_cas_number(r)]
-    cas_smiles_list = batch.batch_cas_to_smiles(valid_cas_list)
+    condition = cas_file['CAS'].fillna('Missing').map(lambda x: is_cas_number(x))
+    valid_cas_list = cas_file.loc[condition]
+    failed_cas = cas_file.loc[~condition]
 
-    no_smiles_list = [cas_smiles[0] for cas_smiles in cas_smiles_list if not cas_smiles[1]]
+    valid_cas_list['cas_smiles'] = batch.batch_cas_to_smiles(valid_cas_list['CAS'])
 
-    cas_smiles_list = [cas_smiles for cas_smiles in cas_smiles_list if cas_smiles[1]]
+    no_smiles_list = valid_cas_list.loc[valid_cas_list['cas_smiles'] == None]['CAS'].to_list()
+    cas_smiles_list = valid_cas_list.loc[valid_cas_list['cas_smiles'] != None]
 
     cas_smiles_whitelist = []
     errors = []
-    for cas, smiles in cas_smiles_list:
+    for cas, smiles in zip(valid_cas_list['CAS'], valid_cas_list['cas_smiles']):
         try:
             if not blacklist_engine.is_similar(smiles):
                 cas_smiles_whitelist.append((cas, smiles))
         except Exception as err:
             tb = traceback.format_exc()
             logger.error(f"is_similar failed for ({cas}, {smiles}). Error: {tb}")
-            errors.append(f"{cas}, {smiles}")
+            #errors.append(f"{cas}, {smiles}")
+            errors.append(f"{cas}")
 
     reagents = []
 
@@ -159,13 +165,15 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
 
         """
         inchikey_standard = unique_molecules_collection_instance.reagent_registration(SMILES)
+        location = '\n'.join(set(valid_cas_list.loc[valid_cas_list['CAS'] == cas]['location'].values)) if 'location' in valid_cas_list.columns else None
         r = {
             "reagent_internal_id": reagent_internal_id,
             "inchikey_standard" : inchikey_standard,
             "CAS": cas,
             "SMILES": SMILES,
             "sharing_status": "shared",
-            "timestamp": now
+            "timestamp": now,
+            "location": location,
         }
         if contact:
             r["contact"] = contact
@@ -173,9 +181,9 @@ def parse_cas_list(cas_list: List[str], contact: str = ''):
 
     message = f"file was successfully parsed and uploaded.\n"
     message += f"<b>import results</b>:\n"
-    message += f"Строк в вашем списке <b>{len(cas_list)}</b>\n"
+    message += f"Строк в вашем списке <b>{len(cas_file.index)}</b>\n"
     message += f"Правильных CAS-номеров <b>{len(valid_cas_list)}</b>\n"
-    message += f"Опечатка в CAS: <b>{', '.join(failed_cas)}</b>\n"
+    message += f"Опечатка в CAS: <b>{len(failed_cas.index)}</b>\n"
     message += f"Не найдено SMILES для: <b>{len(no_smiles_list)}</b> позиций\n"
     if no_smiles_list:
         message += "\n".join(no_smiles_list) + "\n"

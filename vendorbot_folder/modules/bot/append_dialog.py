@@ -2,13 +2,13 @@
 from telegram import Update, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
-from .helpers import get_txt_content, bot_commands_text, CONV_APPEND, APPEND_STATE
+from .helpers import bot_commands_text, CONV_APPEND, APPEND_STATE, get_file_content
 
 from modules.db.users import users_collection
 from modules.db.dbschema import UserReagents, parse_cas_list
 
 from . import run_async
-from .manage_dialog import get_contact_from_cas_file
+from .manage_dialog import get_contact_from_first_row
 
 import logging
 import traceback
@@ -51,13 +51,15 @@ class Append:
 
             update.message.reply_text(f"Ожидайте: список обрабатывается.\nBe patient; it may take a while...")
 
-            cas_list = get_txt_content(update, context)
-
-            if not cas_list[0].startswith('reagents_contact:'):
-                cas_list.insert(0, 'reagents_contact:' + '@' + user_info.username)
-
-            contact, cas_list = get_contact_from_cas_file(cas_list)
+            cas_tab = get_file_content(update, context)
+            if isinstance(cas_tab, str):
+                update.message.reply_text(cas_tab)
+                return ConversationHandler.END 
+            
+            contact, cas_list = get_contact_from_first_row(cas_tab)
             if not contact:
+                contact = '@' + user_info.username
+            if not contact or contact == '@':
                 update.message.reply_text("Добавьте первую строку 'reagents_contact:<телефон/почта>' "
                                           "или заполните свой username")
                 return APPEND_STATE
