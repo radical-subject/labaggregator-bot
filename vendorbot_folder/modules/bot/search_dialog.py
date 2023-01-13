@@ -78,12 +78,14 @@ class Search:
                 contacts = list(set(contacts))
                 
                 if '@' + user.username in contacts:
-                    update.message.reply_text(f"Будьте внимательны, этот реагент есть у Вас")
+                    msg = update.message.reply_text(f"Этот реагент есть у вас.")
                     
                     location = users_collection.get_location_by_user_and_cas(update, cas_list)
+
                     if location not in [None, '', []]:
-                        update.message.reply_text(f'Попробуйте поискать его тут:\n\n{location}')
-                
+                        msg.edit_text(f'Этот реагент есть у вас. Попробуйте поискать его тут:\n\n{location}')
+                    else:
+                        msg.edit_text("Этот реагент есть у вас.\nNo location was specified.\n\nSeriously, you're on your own, kiddo.")
                 elif contacts:
                     update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
                 

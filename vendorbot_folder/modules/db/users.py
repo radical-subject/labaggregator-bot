@@ -61,7 +61,9 @@ class UsersCollection:
         locations = []
         for each in result:
             if each['CAS'] in cas:
-                locations.append(each['location'])
+                if 'location' in each.keys():
+                    locations.append(each['location'])
+
         return '\n'.join(set(locations))
 
 
