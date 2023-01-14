@@ -146,5 +146,22 @@ class UniqueMolecules:
         
         else: 
             return None
+
+    def get_5_most_similar_reagents(self, REQUESTED_SMILES: str):
+
+        """
+        returns list of tuples with max length of 5
+        [(inchi_key, best_match_smiles, best_similarity_result_probability), (), ()..]
+
+        """
+
+        searchResult = self.similarity_search(REQUESTED_SMILES)
+        if searchResult != None:
+            number_of_hits = min(len(searchResult), 5)
+
+            return [(self.get_molecule(searchResult[i][1])["index"], self.get_molecule(searchResult[i][1])["smiles"], searchResult[i][0]) for i in range(number_of_hits)]
+        
+        else: 
+            return None
         
 unique_molecules_collection = UniqueMolecules(db_client, MOLECULES_DATABASE)

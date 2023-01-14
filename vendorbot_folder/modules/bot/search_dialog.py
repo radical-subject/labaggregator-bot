@@ -45,7 +45,7 @@ class Search:
 
         reply_markup = ReplyKeyboardMarkup(cancel_keyboard, resize_keyboard=True)
         update.message.reply_text("🙋🏻‍♀️ Enter query (name or CAS):\n\n"
-                                  "🖋 Пришли интересующий CAS-номер:",
+                                  "🖋 Пришли интересующий **CAS-номер** или **название на английском языке**:",
                                   reply_markup=reply_markup)
 
         return SEARCH_STATE
@@ -90,7 +90,7 @@ class Search:
                     update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
                 
                 else:
-                    msg = update.message.reply_text(f"Реагентом пока никто не готов поделиться.")
+                    msg = update.message.reply_text(f"Именно этим реагентом пока никто не готов поделиться.")
                     """
                     ВНИМАНИЕ !!!!
                     ТУТ СТРАННОЕ МЕСТО, дебажить в первую очередь если поиск чудит
@@ -121,6 +121,7 @@ class Search:
                                 update.message.reply_text(f"Но найден похожий у {', '.join(contacts)}.\nсхожесть с запросом: {(best_match_reagent[2]*100):.2f}%\n{best_match_reagent[1:]}\nSimilarity Map Result:")
                 
                                 mol = Chem.MolFromSmiles(best_match_reagent[1])
+
                                 refmol = Chem.MolFromSmiles(smiles)
 
                                 fp = SimilarityMaps.GetAPFingerprint(mol, fpType='normal')
@@ -133,6 +134,34 @@ class Search:
                                 context.bot.sendPhoto(chat_id=chat_id, photo=open(f'{path}/{inchi_key}.png', 'rb'), timeout=1000)
                                 # result = f'Similarity Map Result. \nсхожесть с запросом: {(best_match_reagent[1]*100):.2f}%'
                                 # update.message.reply_text(result)
+
+
+                                
+                                """
+                                part with grid picture:
+                                """
+                                five_best_match_mols = unique_molecules_collection.get_5_most_similar_reagents(smiles)
+                                
+                                number_of_pics = len(five_best_match_mols)
+                                ms = [Chem.MolFromSmiles(entry[1]) for entry in five_best_match_mols]
+                                
+                                legends=["requested structure"]+[f"Similarity={(entry[2]*100):.2f}%" for entry in five_best_match_mols]
+
+                                # if '@' + user.username in contacts:
+                                #     msg.edit_text(f"Этот реагент есть у вас.")
+                                #     location = users_collection.get_location_by_user_and_inchi_key(update, inchi_key)
+
+                                #     if location not in [None, '', []]:
+                                #         msg.edit_text(f'Этот реагент есть у вас. Попробуйте поискать его тут:\n\n{location}')
+                                #     else:
+                                #         msg.edit_text("Этот реагент есть у вас.\nNo location was specified.\n\nSeriously, you're on your own, kiddo.")
+                                # elif contacts:
+                                #     update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
+                                
+                                requested_mol = [Chem.MolFromSmiles(smiles)]
+                                img=Draw.MolsToGridImage(requested_mol+ms,molsPerRow=3,subImgSize=(400,400), legends=legends)    
+                                img.save(f"/vendorbot_container/srs/pic/{inchi_key}_grid.png", bbox_inches = "tight")
+                                context.bot.sendPhoto(chat_id=chat_id, photo=open(f'{path}/{inchi_key}_grid.png', 'rb'), timeout=1000)
 
             else:
                 update.message.reply_text("Реагент не определен (ошибка в CAS?)")
