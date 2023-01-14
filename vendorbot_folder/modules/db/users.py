@@ -55,8 +55,8 @@ class UsersCollection:
     def get_user_id_by_username(self, update):
         return self.collection.find_one({"username": update.message.from_user.username})['user_id']
 
-    def get_location_by_user_and_cas(self, username: str, cas):
-        user_id = self.get_user_id_by_username(username)
+    def get_location_by_user_and_cas(self, update, cas):
+        user_id = self.get_user_id_by_username(update)
         result = self.collection.find_one({"user_id": user_id})['user_reagents']
         locations = []
         for each in result:
@@ -66,5 +66,28 @@ class UsersCollection:
 
         return '\n'.join(set(locations))
 
+
+    def get_location_by_user_and_inchi_key(self, update, inchi_key: str):
+        '''
+        ищет в коллекции пользователей нужного пользователя и по листу реагентов - ищет совпадения уникального id регагента.
+        возвращает поле локации для данного реагента
+        '''
+        user_id = self.get_user_id_by_username(update)
+        self.get_user_by_reagent_inchi_key(inchi_key)
+        query = {
+            "user_id": user_id,
+            "user_reagents": { '$elemMatch': { "inchikey_standard": inchi_key }}
+        }
+        results = self.collection.find(query)
+        
+        locations = []
+        for result in results:
+            for each in result['user_reagents']:
+                if "inchikey_standard" in each.keys():
+                    if each["inchikey_standard"] == inchi_key:
+                        if 'location' in each.keys():
+                            locations.append(each['location'])
+
+        return '\n'.join(set(locations))
 
 users_collection = UsersCollection(db_client, MONGO_VENDORBOT_DATABASE)
