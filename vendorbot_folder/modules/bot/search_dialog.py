@@ -130,7 +130,7 @@ class Search:
                                     else:
                                         msg.edit_text("Этот реагент есть у вас.\nNo location was specified.\n\nSeriously, you're on your own, kiddo.")
                                 elif contacts:
-                                    update.message.reply_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
+                                    msg.edit_text(f"Реагентом могут поделиться эти контакты: {', '.join(contacts)}")
                                     
                                 # msg.edit_text(f"Но найден похожий у {', '.join(contacts)}.\nсхожесть с запросом: {(best_match_reagent[2]*100):.2f}%\n{best_match_reagent[1:]}\nSimilarity Map Result:")
                             else:    
