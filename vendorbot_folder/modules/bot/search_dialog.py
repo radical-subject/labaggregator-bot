@@ -36,6 +36,14 @@ class Search:
         logger.info(f"search({chat_id})")
 
         user_id = update.message.from_user.id
+
+        # Достаем из базы весь объект пользователя с реагентами
+        # Пользователь должен быть
+        user = users_collection.get_user(user_id)
+        if not user:
+            update.message.reply_text("Это почему тебя нет в БД?! Тыкни /start")
+            return ConversationHandler.END
+
         count = len(users_collection.get_reagents(user_id))
 
         if count < DBSIZE_OPEN_SEARCH:  #  and not is_admin_chat(chat_id)
@@ -107,7 +115,9 @@ class Search:
                         inchi_key = best_match_reagent[0]
                         database_entries = users_collection.get_user_by_reagent_inchi_key(inchi_key)
                         contacts += [get_contact(i) for i in database_entries]
-                        user_ids += [i['user_id'] for i in database_entries]
+
+                        database_entries = users_collection.get_user_by_reagent_inchi_key(inchi_key)
+                        user_ids += [i["user_id"] for i in database_entries]
 
                         if contacts:
                             if best_match_reagent[2]*100 == 100:
