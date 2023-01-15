@@ -136,15 +136,10 @@ class Search:
                                 # msg.edit_text(f"Но найден похожий у {', '.join(contacts)}.\nсхожесть с запросом: {(best_match_reagent[2]*100):.2f}%\n{best_match_reagent[1:]}\nSimilarity Map Result:")
                             else:    
                                 update.message.reply_text(f"Но найден похожий у {', '.join(contacts)}.\nсхожесть с запросом: {(best_match_reagent[2]*100):.2f}%\n{best_match_reagent[1:]}\nSimilarity Map Result:")
-                                if user.id in user_ids:
-                                    msg = update.message.reply_text(f"Этот реагент есть у вас.")
-                                    location = users_collection.get_location_by_user_and_inchi_key(update, inchi_key)
-
-                                    if location not in [None, '', []]:
-                                        msg.edit_text(f'Наиболее похожий на ваш запрос реагент находится у вас.\nCхожесть с запросом: {(best_match_reagent[2]*100):.2f}%\nПопробуйте поискать его тут:\n\n{location}')
-                                    else:
-                                        msg.edit_text("Наиболее похожий на ваш запрос реагент находится у вас.\nсхожесть с запросом: {(best_match_reagent[2]*100):.2f}%\nNo location was specified.\n\nSeriously, you're on your own, kiddo.")
-
+                                
+                                """
+                                sending picture of similarity map
+                                """
                                 mol = Chem.MolFromSmiles(best_match_reagent[1])
 
                                 refmol = Chem.MolFromSmiles(smiles)
@@ -159,6 +154,17 @@ class Search:
                                 context.bot.sendPhoto(chat_id=chat_id, photo=open(f'{path}/{inchi_key}.png', 'rb'), timeout=1000)
                                 # result = f'Similarity Map Result. \nсхожесть с запросом: {(best_match_reagent[1]*100):.2f}%'
                                 # update.message.reply_text(result)
+
+                                
+                                if user.id in user_ids:
+                                    msg = update.message.reply_text(f"Этот реагент есть у вас.")
+                                    location = users_collection.get_location_by_user_and_inchi_key(update, inchi_key)
+
+                                    if location not in [None, '', []]:
+                                        msg.edit_text(f'Наиболее похожий на ваш запрос реагент находится у вас.\nCхожесть с запросом: {(best_match_reagent[2]*100):.2f}%\nПопробуйте поискать его тут:\n\n{location}')
+                                    else:
+                                        msg.edit_text("Наиболее похожий на ваш запрос реагент находится у вас.\nсхожесть с запросом: {(best_match_reagent[2]*100):.2f}%\nNo location was specified.\n\nSeriously, you're on your own, kiddo.")
+
 
                                 """
                                 making grid picture:
