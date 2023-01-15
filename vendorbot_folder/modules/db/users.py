@@ -1,5 +1,6 @@
 
 from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE
+from modules.db import dbschema
 import logging
 logger = logging.getLogger(__name__)
 
@@ -90,13 +91,21 @@ class UsersCollection:
 
         return '\n'.join(set(locations))
     
-    def get_reagent_by_inchi_key(self, inchi_key: str):
+    def get_reagents_contacts_by_inchi_key(self, inchi_key: str):
         '''
         ищет в коллекции пользователей по листу реагентов совпадения уникального id регагента, и возвращает результат
         '''
         query = {
             "user_reagents": { '$elemMatch': { "inchikey_standard": inchi_key }}
         }
-        return self.collection.find(query)
+        contacts = []
+        users = self.collection.find(query)
+        for user in users:
+            reagents = dbschema.find_reagent(user, inchi_key)
+            
+            for reagent in reagents: 
+                contacts += [dbschema.reagent_contact(user, reagent)]
+
+        return contacts
 
 users_collection = UsersCollection(db_client, MONGO_VENDORBOT_DATABASE)
