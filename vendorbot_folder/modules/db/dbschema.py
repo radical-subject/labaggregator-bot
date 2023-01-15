@@ -43,6 +43,8 @@ def get_contact(user):
         return f"@{user['username']}"
     elif user["phone_number"]:
         return user["phone_number"]  # TODO добавить + если 7
+    else:
+        return "user haven't specified phone or username!"
 
 
 def reagent_contact(user, reagent):

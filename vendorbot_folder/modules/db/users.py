@@ -89,5 +89,14 @@ class UsersCollection:
                             locations.append(each['location'])
 
         return '\n'.join(set(locations))
+    
+    def get_reagent_by_inchi_key(self, inchi_key: str):
+        '''
+        ищет в коллекции пользователей по листу реагентов совпадения уникального id регагента, и возвращает результат
+        '''
+        query = {
+            "user_reagents": { '$elemMatch': { "inchikey_standard": inchi_key }}
+        }
+        return self.collection.find(query)
 
 users_collection = UsersCollection(db_client, MONGO_VENDORBOT_DATABASE)

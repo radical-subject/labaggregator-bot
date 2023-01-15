@@ -59,6 +59,7 @@ class Search:
 
         try:
             contacts = []
+            user_ids = []
             cas_list, smiles_list = what_reagent(text)
 
             if cas_list or smiles_list:
@@ -71,13 +72,17 @@ class Search:
 
                 for cas in cas_list:
                     contacts.extend(get_reagent_contacts(users_collection.get_users_by_cas(cas), cas))
+                    user_ids.extend([i['user_id'] for i in users_collection.get_users_by_cas(cas)])
 
                 for smiles in smiles_list:
                     contacts.extend(get_reagent_contacts(users_collection.get_users_by_smiles(smiles), smiles))
+                    user_ids.extend([i['user_id'] for i in users_collection.get_users_by_smiles(smiles)])
 
                 contacts = list(set(contacts))
+                user_ids = list(set(user_ids))
                 
-                if '@' + user.username in contacts:
+                # if '@' + user.username in contacts:
+                if user.id in user_ids:
                     msg = update.message.reply_text(f"Этот реагент есть у вас.")
                     
                     location = users_collection.get_location_by_user_and_cas(update, cas_list)
@@ -102,10 +107,11 @@ class Search:
                         inchi_key = best_match_reagent[0]
                         database_entries = users_collection.get_user_by_reagent_inchi_key(inchi_key)
                         contacts += [get_contact(i) for i in database_entries]
+                        user_ids += [i['user_id'] for i in database_entries]
 
                         if contacts:
                             if best_match_reagent[2]*100 == 100:
-                                if '@' + user.username in contacts:
+                                if user.id in user_ids:
                                     msg.edit_text(f"Этот реагент есть у вас.")
                                     location = users_collection.get_location_by_user_and_inchi_key(update, inchi_key)
 
