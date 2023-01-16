@@ -52,12 +52,8 @@ class UsersCollection:
     def get_users_by_smiles(self, smiles: str):
         return list(self.collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}}))
 
-    # get location for my reagent
-    def get_user_id_by_username(self, update):
-        return self.collection.find_one({"username": update.message.from_user.username})['user_id']
-
     def get_location_by_user_and_cas(self, update, cas):
-        user_id = self.get_user_id_by_username(update)
+        user_id = update.message.from_user.id
         result = self.collection.find_one({"user_id": user_id})['user_reagents']
         locations = []
         for each in result:
@@ -67,13 +63,13 @@ class UsersCollection:
 
         return '\n'.join(set(locations))
 
-
     def get_location_by_user_and_inchi_key(self, update, inchi_key: str):
         '''
         ищет в коллекции пользователей нужного пользователя и по листу реагентов - ищет совпадения уникального id регагента.
         возвращает поле локации для данного реагента
         '''
-        user_id = self.get_user_id_by_username(update)
+        
+        user_id = update.message.from_user.id
         self.get_user_by_reagent_inchi_key(inchi_key)
         query = {
             "user_id": user_id,
@@ -95,9 +91,10 @@ class UsersCollection:
         '''
         ищет в коллекции пользователей по листу реагентов совпадения уникального id регагента, и возвращает результат
         '''
+
         query = {
             "user_reagents": { '$elemMatch': { "inchikey_standard": inchi_key }}
-        }
+            }
         contacts = []
         users = self.collection.find(query)
         for user in users:
@@ -107,5 +104,47 @@ class UsersCollection:
                 contacts += [dbschema.reagent_contact(user, reagent)]
 
         return contacts
+
+    def get_reagents_by_text_name(self, text_name):
+        '''
+        В коллекции пользователей ищет по листу реагентов вхождение подстроки text_name в значение поля "name",
+        и возвращает контыкты всех положительных результатов.
+        '''
+
+        query = [
+            {"$match": {
+                "user_reagents": {
+                    '$elemMatch': { "name": { "$regex": text_name, '$options' : 'xi'}}}}},
+            {"$project": {
+                "user_id" : 1,
+                "username": 1,
+                "user_reagents": {
+                    "$filter": {
+                        "input": "$user_reagents",
+                        "cond": {
+                            "$regexMatch": {
+                                "input": "$$this.name",
+                                "regex": text_name,
+                                "options": "xi"
+        }}}}}}]
+        
+        reagents = dict()
+        found_reactives = self.collection.aggregate(query)
+
+        for user in list(found_reactives):
+
+            user_id = user['username']
+            reagents.update({user_id: ''})
+
+            for reagent in user['user_reagents']:
+
+                new_value = reagents[user_id] + reagent['name'].replace('\n', ',') + '\n'
+                    
+                reagents.update({
+                   user_id: new_value
+                })
+
+        return reagents
+
 
 users_collection = UsersCollection(db_client, MONGO_VENDORBOT_DATABASE)

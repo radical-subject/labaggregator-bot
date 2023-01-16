@@ -191,9 +191,14 @@ class Search:
                                 img=Draw.MolsToGridImage(requested_mol+ms,molsPerRow=3,subImgSize=(400,400), legends=legends)    
                                 img.save(f"/vendorbot_container/srs/pic/{inchi_key}_grid.png", bbox_inches = "tight")
                                 context.bot.sendPhoto(chat_id=chat_id, photo=open(f'{path}/{inchi_key}_grid.png', 'rb'), timeout=1000)
-
             else:
-                update.message.reply_text("Реагент не определен (ошибка в CAS?)")
+                found = users_collection.get_reagents_by_text_name(text)
+                if found:
+                    update.message.reply_text('Поиск по названию реактива показал, что Ваши коллеги имею нечто, отдаленно напоминающее запрашиваемый реактив')
+                    for each in found:
+                        update.message.reply_text('@' + each + ':\n' + found[each])
+                else:
+                    update.message.reply_text("Реагент не определен (ошибка в CAS?)")
 
         except Exception as err:
             logger.error(traceback.format_exc())
@@ -201,6 +206,10 @@ class Search:
 
         logger.info(f"search_cas({chat_id}): {text} end")
         return SEARCH_STATE
+
+    #def search_text_name(self, text_name):
+        
+
 
     def exit(self, update: Update, context: CallbackContext) -> int:
 

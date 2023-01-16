@@ -167,7 +167,6 @@ def parse_cas_list(cas_file: pd.DataFrame, contact: str = ''):
 
         """
         inchikey_standard = unique_molecules_collection_instance.reagent_registration(SMILES)
-        location = '\n'.join(set(valid_cas_list.loc[valid_cas_list['CAS'] == cas]['location'].values)) if 'location' in valid_cas_list.columns else None
         r = {
             "reagent_internal_id": reagent_internal_id,
             "inchikey_standard" : inchikey_standard,
@@ -175,8 +174,13 @@ def parse_cas_list(cas_file: pd.DataFrame, contact: str = ''):
             "SMILES": SMILES,
             "sharing_status": "shared",
             "timestamp": now,
-            "location": location,
         }
+        for option_values in ['location', 'name']:
+            if option_values in valid_cas_list.columns:
+                values = [i for i in set(valid_cas_list.loc[valid_cas_list['CAS'] == cas][option_values].dropna().values) if i]
+                if values:
+                    r[option_values] = '\n'.join(values)
+
         if contact:
             r["contact"] = contact
         reagents.append(r)
