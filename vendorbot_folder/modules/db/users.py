@@ -1,7 +1,7 @@
 
 from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE
 from modules.db import dbschema
-import logging
+import logging, re
 logger = logging.getLogger(__name__)
 
 
@@ -105,6 +105,39 @@ class UsersCollection:
 
         return contacts
 
+    def get_my_reagents_by_text_name(self, text_name, user_id):
+        '''
+        Ищет у данного пользователя по листу реагентов вхождение подстроки text_name в значение поля "name",
+        и возвращает месторасположения (location) всех положительных результатов.
+        '''
+
+        query = [
+            {"$match": {
+                "user_id": user_id, 
+                "user_reagents": {
+                    '$elemMatch': { "name": { "$regex": text_name, '$options' : 'xi'}}}}},
+            {"$project": {
+                "user_id" : 1,
+                "username": 1,
+                "user_reagents": {
+                    "$filter": {
+                        "input": "$user_reagents",
+                        "cond": {
+                            "$regexMatch": {
+                                "input": "$$this.name",
+                                "regex": text_name,
+                                "options": "xi"
+        }}}}}}]
+
+        my_similar_reagents = list(self.collection.aggregate(query))
+        if my_similar_reagents:
+            reagents = dict((one['name'], '\n'.join(set(re.split(',|\n', one['location'])))) for one in my_similar_reagents[0]['user_reagents'])
+            return reagents
+
+        else:
+            return None
+
+
     def get_reagents_by_text_name(self, text_name):
         '''
         В коллекции пользователей ищет по листу реагентов вхождение подстроки text_name в значение поля "name",
@@ -129,19 +162,18 @@ class UsersCollection:
         }}}}}}]
         
         reagents = dict()
-        found_reactives = self.collection.aggregate(query)
+        user_objects_dict = dict((user_object['user_id'], user_object) for user_object in self.collection.aggregate(query))
 
-        for user in list(found_reactives):
+        for user in user_objects_dict:
 
-            user_id = user['username']
-            reagents.update({user_id: ''})
+            reagents.update({user: ''})
 
-            for reagent in user['user_reagents']:
+            for reagent in user_objects_dict[user]['user_reagents']:
 
-                new_value = reagents[user_id] + reagent['name'].replace('\n', ',') + '\n'
+                new_value = reagents[user] + reagent['name'].replace('\n', ',') + '\n'
                     
                 reagents.update({
-                   user_id: new_value
+                   user: '\n'.join(set([name.strip() for name in new_value.replace('\n', ',').split(',')]))
                 })
 
         return reagents

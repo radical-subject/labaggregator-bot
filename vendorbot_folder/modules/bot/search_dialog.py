@@ -192,13 +192,19 @@ class Search:
                                 img.save(f"/vendorbot_container/srs/pic/{inchi_key}_grid.png", bbox_inches = "tight")
                                 context.bot.sendPhoto(chat_id=chat_id, photo=open(f'{path}/{inchi_key}_grid.png', 'rb'), timeout=1000)
             else:
-                found = users_collection.get_reagents_by_text_name(text)
-                if found:
-                    update.message.reply_text('Поиск по названию реактива показал, что Ваши коллеги имею нечто, отдаленно напоминающее запрашиваемый реактив')
-                    for each in found:
-                        update.message.reply_text('@' + each + ':\n' + found[each])
+                search_in_my_reagents = users_collection.get_my_reagents_by_text_name(text, user.id)
+                if search_in_my_reagents:
+                    update.message.reply_text('Поиск по названию реактива показал, что у Вас есть нечто, отдаленно напоминающее запрашиваемый реактив')
+                    for each in search_in_my_reagents:
+                        update.message.reply_text(each.replace('\n', ', ') + ':\n\n' + search_in_my_reagents[each])
                 else:
-                    update.message.reply_text("Реагент не определен (ошибка в CAS?)")
+                    found = users_collection.get_reagents_by_text_name(text)
+                    if found:
+                        update.message.reply_text('Поиск по названию реактива показал, что Ваши коллеги имею нечто, отдаленно напоминающее запрашиваемый реактив')
+                        for each in found:
+                            update.message.reply_text('@' + users_collection.get_user(each)['username'] + ':\n' + found[each])
+                    else:
+                        update.message.reply_text("Реагент не определен (ошибка в CAS?)")
 
         except Exception as err:
             logger.error(traceback.format_exc())
