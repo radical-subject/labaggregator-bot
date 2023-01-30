@@ -26,7 +26,7 @@ class BotObject:
     def __init__(self, token: str, base_url: str = None):
         logger.info('Bot initialization... __init__ in BotObject...')
         self.token = token
-
+        logger.info(f"bot token = {token}")
         num_threads = 10
         request = Request(con_pool_size=num_threads + 4)
         self.bot = Bot(self.token, base_url, base_url, request=request)
