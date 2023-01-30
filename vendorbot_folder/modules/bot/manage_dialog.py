@@ -25,11 +25,14 @@ def get_contact_from_first_row(df: pd.DataFrame) -> Tuple[Optional[str], pd.Data
     :param user_info:
     :return:
     """
-    if df['CAS'][0].startswith("reagents_contact:"):
-        contact = df['CAS'][0]
-        df = df.iloc[1:]
-        return contact.strip("reagents_contact:"), df
-    return None, df
+    try:
+        if df['CAS'][0].startswith("reagents_contact:"):
+            contact = df['CAS'][0]
+            df = df.iloc[1:]
+            return contact.strip("reagents_contact:"), df
+        return None, df
+    except:
+        return None, df
 
 
 class Manage:
