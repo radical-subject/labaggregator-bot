@@ -42,6 +42,8 @@ def get_cas_smiles(cas: str, delay: float = 0.2):
     except Exception as err:
         logger.error(err)
     return cas, None
+
+
 ### 2
 def get_cas_smiles(cas: str, delay: float = 0.2):
     try:
@@ -51,6 +53,7 @@ def get_cas_smiles(cas: str, delay: float = 0.2):
     except Exception as err:
         logger.error(err)
     return None
+
 
 def cirpy_smiles_resolve(cas_or_name: str):
     """

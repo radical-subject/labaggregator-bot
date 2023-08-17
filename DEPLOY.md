@@ -66,10 +66,12 @@ ssh-rsa.ppk
 
 
 dev:
-git clone git@github.com:radicalsubject/labaggregator2022.git labaggregator2022-dev
+git clone git@github.com:radical-subject/labaggregator-bot.git labaggregator2022-dev
 
 prod:
-git clone git@github.com:radicalsubject/labaggregator2022.git labaggregator2022
+git clone git@github.com:radical-subject/labaggregator-bot.git labaggregator2022
+
+
 
 
 ## Настройка GitHub Actions

@@ -2,9 +2,12 @@ import os
 import traceback
 import logging
 
-from rdkit import Chem
-from rdkit.Chem import Draw
-from rdkit.Chem.Draw import SimilarityMaps
+try:
+    from rdkit import Chem
+    from rdkit.Chem import Draw
+    from rdkit.Chem.Draw import SimilarityMaps
+except Exception:
+    pass
 
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \

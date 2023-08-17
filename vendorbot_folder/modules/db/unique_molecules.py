@@ -1,11 +1,13 @@
 from operator import itemgetter
 
-from rdkit import RDLogger, Chem
-from mongordkit.Database import write
-from mongordkit.Search import similarity, substructure
-from mongordkit.Database import registration
-
-from rdkit.Chem import PandasTools, SanitizeMol
+try:
+    from rdkit import RDLogger, Chem
+    from rdkit.Chem import PandasTools, SanitizeMol
+    from mongordkit.Database import write
+    from mongordkit.Search import similarity, substructure
+    from mongordkit.Database import registration
+except:
+    pass
 
 from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE, MOLECULES_DATABASE
 import logging
@@ -163,5 +165,6 @@ class UniqueMolecules:
         
         else: 
             return None
-        
+
+
 unique_molecules_collection = UniqueMolecules(db_client, MOLECULES_DATABASE)

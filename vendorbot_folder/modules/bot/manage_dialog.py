@@ -16,23 +16,21 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def get_contact_from_first_row(df: pd.DataFrame) -> Tuple[Optional[str], pd.DataFrame]:
+def get_contact_from_cas_file(cas_list: List[str]) -> Tuple[Optional[str], List[str]]:
     """
-    # оставляю возможность хардкодить вручную контакт для txt файлов,
-    # прописывая первую строку импортируемого файла руками:
+    # оставляю возможность хардкодить вручную контакт, прописывая первую строку импортируемого файла руками:
     # в формате reagents_contact:+79265776746
-    :param df: содержимое файла
+    :param cas_list: содержимое файла
     :param user_info:
     :return:
     """
-    try:
-        if df['CAS'][0].startswith("reagents_contact:"):
-            contact = df['CAS'][0]
-            df = df.iloc[1:]
-            return contact.strip("reagents_contact:"), df
-        return None, df
-    except:
-        return None, df
+    if cas_list and cas_list[0] and cas_list[0].startswith("reagents_contact:"):
+        contact = cas_list[0].split(":")[1]
+        cas_list = cas_list[1:]
+        return contact, cas_list
+    else:
+        return None, cas_list
+
 
 
 class Manage:

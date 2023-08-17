@@ -8,7 +8,7 @@ from modules.db.users import users_collection
 from modules.db.dbschema import UserReagents, parse_cas_list
 
 from . import run_async
-from .manage_dialog import get_contact_from_first_row
+from .manage_dialog import get_contact_from_cas_file
 
 import logging
 import traceback
@@ -56,10 +56,10 @@ class Append:
                 update.message.reply_text(cas_tab)
                 return ConversationHandler.END 
             
-            contact, cas_list = get_contact_from_first_row(cas_tab)
+            contact, cas_list = get_contact_from_cas_file(cas_tab)
             if not contact:
                 contact = '@' + user_info.username
-            if not contact or contact == '@':
+            if contact == '@':
                 update.message.reply_text("Добавьте первую строку 'reagents_contact:<телефон/почта>' "
                                           "или заполните свой username")
                 return APPEND_STATE

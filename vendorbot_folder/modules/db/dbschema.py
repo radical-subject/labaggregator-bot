@@ -2,16 +2,22 @@
 from typing import List
 import uuid
 import time
+import logging
+import traceback
+import pandas as pd
+
 from modules.db.blacklist import blacklist_engine
 from modules.chem.cas_to_smiles import is_cas_number
 from modules.chem import batch
 from modules.db.unique_molecules import *
 
-import logging
-import traceback
-logger = logging.getLogger(__name__)
+try:
+    from rdkit import Chem
+    from rdkit.Chem.rdmolops import GetFormalCharge
+except:
+    pass
 
-import pandas as pd
+logger = logging.getLogger(__name__)
 
 
 def get_shared_reagents(user):
@@ -79,7 +85,7 @@ def get_reagent_contacts(users, text):
                     ret.append(contact)
     return ret
 
-from rdkit import Chem
+
 def neutralize_atoms(mol):
     '''
     atom neutralizer
@@ -97,7 +103,6 @@ def neutralize_atoms(mol):
             atom.UpdatePropertyCache()
     return mol
 
-from rdkit.Chem.rdmolops import GetFormalCharge
 
 
 def charge_fixer(SMILES):

@@ -1,7 +1,10 @@
 
+import logging
+import re
+
 from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE
 from modules.db import dbschema
-import logging, re
+
 logger = logging.getLogger(__name__)
 
 

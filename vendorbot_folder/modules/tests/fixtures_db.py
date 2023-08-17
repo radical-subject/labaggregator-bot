@@ -5,6 +5,7 @@ import logging
 
 from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE, MONGO_TEST_DB
 from modules.db.users import UsersCollection
+from pymongo.errors import ServerSelectionTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +14,11 @@ logger = logging.getLogger(__name__)
 def purge_users_collection() -> None:
     assert MONGO_VENDORBOT_DATABASE == MONGO_TEST_DB, 'set MONGO_VENDORBOT_DATABASE=test_db!'
 
-    db_client[MONGO_VENDORBOT_DATABASE].drop_collection('users_collection')
-    logger.info(f"fixture purge: users_collection cleaned.")
+    try:
+        db_client[MONGO_VENDORBOT_DATABASE].drop_collection('users_collection')
+        logger.info(f"fixture purge: users_collection cleaned.")
+    except ServerSelectionTimeoutError:
+        raise Exception('Connect to MongoDB error. Run MongoDB.')
 
 
 @pytest.fixture
