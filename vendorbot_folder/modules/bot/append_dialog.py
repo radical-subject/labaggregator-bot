@@ -1,17 +1,20 @@
 
+import logging
+import traceback
+
 from telegram import Update, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
-from .helpers import bot_commands_text, CONV_APPEND, APPEND_STATE, get_file_content
+from .helpers import bot_commands_text, CONV_APPEND, APPEND_STATE, \
+    file_to_dataframe, get_file, get_contact_from_dataframe, df_to_reagents
 
 from modules.db.users import users_collection
-from modules.db.dbschema import UserReagents, parse_cas_list
+from modules.db.dbschema import get_contact
+from modules.db.parser import parse_reagent_list
+from modules.db.unique_molecules import unique_molecules_collection
 
 from . import run_async
-from .manage_dialog import get_contact_from_cas_file
 
-import logging
-import traceback
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +41,6 @@ class Append:
     def append_getting_file(self, update: Update, context: CallbackContext):
         chat_id = update.message.chat_id
         user_id = update.message.from_user.id
-        user_info = update.message.from_user
         logger.info(f"getting_file({chat_id})")
 
         try:
@@ -49,42 +51,40 @@ class Append:
                 update.message.reply_text("Это почему тебя нет в БД?! Тыкни /start")
                 return ConversationHandler.END
 
+            contact = get_contact(user)
+            if not contact:
+                update.message.reply_text("У нас нет твоих контактов. Тыкни /start")
+                return ConversationHandler.END
+
             update.message.reply_text(f"Ожидайте: список обрабатывается.\nBe patient; it may take a while...")
 
-            cas_tab = get_file_content(update, context)
-            if isinstance(cas_tab, str):
-                update.message.reply_text(cas_tab)
+            # читаем txt, csv, xlsx
+            file, file_name = get_file(update, context)
+
+            cas_df = file_to_dataframe(file, file_name)
+            if cas_df is None:
+                update.message.reply_text('Valid file extensions are [ .txt | .csv | .xlsx ]')
                 return ConversationHandler.END 
             
-            contact, cas_list = get_contact_from_cas_file(cas_tab)
-            if not contact:
-                contact = '@' + user_info.username
-            if contact == '@':
-                update.message.reply_text("Добавьте первую строку 'reagents_contact:<телефон/почта>' "
-                                          "или заполните свой username")
-                return APPEND_STATE
+            file_contact, cas_df = get_contact_from_dataframe(cas_df)
 
-            reagents, text_report = parse_cas_list(cas_list, contact)
+            reagents = df_to_reagents(cas_df)
+            if file_contact:
+                reagents, text_report = parse_reagent_list(reagents, file_contact)
+            else:
+                reagents, text_report = parse_reagent_list(reagents, contact)
 
-            user_reagents_object = UserReagents(**user)
+            unique_molecules_collection.register_reagents(reagents)
 
-            user_reagents_object.user_reagents += reagents  # добавляем
-
-            data = user_reagents_object.export()
-
-            users_collection.update_user(user_id, data)
-
-            sent_message = text_report + f"""Итого: импортировано в базу <b>{len(reagents)}</b> реагентов.\
-В вашей базе сейчас: <b>{len(user_reagents_object.user_reagents)}</b> реагентов."""
+            sent_message = text_report + f"""\nИтого: импортировано в базу <b>{len(reagents)}</b> реагентов.\
+В вашей базе сейчас: <b>{users_collection.reagents_count(user_id)}</b> реагентов."""
 
         except Exception as err:
             logger.error(traceback.format_exc())
             sent_message = "Ошибка обработки, лаборанты уже разбужены!"
 
         update.message.reply_text(sent_message, parse_mode=ParseMode.HTML)
-
         update.message.reply_text(bot_commands_text(chat_id))
-
         return ConversationHandler.END
 
     def exit(self, update: Update, context: CallbackContext):

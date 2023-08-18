@@ -58,7 +58,6 @@ class Search:
         update.message.reply_text("🙋🏻‍♀️ Enter query (name or CAS):\n\n"
                                   "🖋 Пришли интересующий **CAS-номер** или **название на английском языке**:",
                                   reply_markup=reply_markup)
-
         return SEARCH_STATE
 
     def search_cas(self, update: Update, context: CallbackContext):
@@ -215,10 +214,6 @@ class Search:
 
         logger.info(f"search_cas({chat_id}): {text} end")
         return SEARCH_STATE
-
-    #def search_text_name(self, text_name):
-        
-
 
     def exit(self, update: Update, context: CallbackContext) -> int:
 

@@ -103,7 +103,9 @@ class BlackList:
         :param smiles:
         :return: отсортированный по похожести список реагентов
         """
-        smiles = smiles.replace("|", "")  # вертикальная черта в SMILES - непонятно что несёт, и RDKIT ее не понимает, убираем ее
+        # вертикальная черта в SMILES - непонятно что несёт,
+        # и RDKIT ее не понимает, убираем ее
+        smiles = smiles.replace("|", "")
         mol = Chem.MolFromSmiles(smiles)
 
         if not mol:
@@ -114,7 +116,7 @@ class BlackList:
         logger.debug(f"{smiles} similarity ret = {len(res)}")
 
         if not res:
-            return
+            return False  # TODO что мы возвращаем?
 
         res = sorted(res, key=itemgetter(0), reverse=True)
 
@@ -130,12 +132,10 @@ class BlackList:
         :return: Есть ли подходящий на threshold реагент в blacklist?
         """
         res = self.similarity_search(smiles)
-
         if not res:
             return False
 
         logger.info(f"is_similar: {smiles} = {res[0][0]}")
-
         return res[0][0] > threshold
 
     def find_pandas_data(self, smiles: str):

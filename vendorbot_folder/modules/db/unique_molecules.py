@@ -1,3 +1,4 @@
+from typing import List
 from operator import itemgetter
 
 try:
@@ -9,7 +10,8 @@ try:
 except:
     pass
 
-from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE, MOLECULES_DATABASE
+from modules.reagent import Reagent
+from modules.db.dbconfig import db_client, MOLECULES_DATABASE
 import logging
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,8 @@ class UniqueMolecules:
 
     def add_molecule(self, data):
         result = self.unique_molecules_collection.insert_one(data)
-        #assert result.modified_count == 1
+        if not result.acknowledged:
+            logger.error(f"add_molecule error: {result}")
 
     # def get_reagents(self, user_id: int):
     #     user = self.get_user(user_id)
@@ -44,47 +47,59 @@ class UniqueMolecules:
         query = {'index': index}
         # if '_id' in user_data:
         #     del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
-        insertion_result = self.unique_molecules_collection.update_one(query, {"$set": moldoc}, upsert=True) 
-        logger.info(f"molecule entry updated: {insertion_result.acknowledged}")
-        #return result
-        #assert result.modified_count == 1
+        result = self.unique_molecules_collection.update_one(query, {"$set": moldoc}, upsert=True)
+        if not result.acknowledged:
+            logger.error(f"update_molecule error: {result}")
 
     # def get_users_by_cas(self, cas: str):
     #     return list(self.unique_molecules_collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}}))
 
     # def get_users_by_smiles(self, smiles: str):
     #     return list(self.unique_molecules_collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}}))
-    
-    
-    def reagent_registration(self, SMILES):
+
+    def register_reagents(self, reagents: List[Reagent]) -> None:
+        """
+        регистрируем реагент в базе молекул, в коллекции уникальных молекул.
+        если молекула уже зарегистрирована, то reagent_internal_id реагента из user_reagents
+
+        TODO: А где поверяется что молекула уже зарегистиррована?
+
+        вписывается в лист value_data в уникальной записи уникальной молекулы.
+
+        TODO: а что за лист value_data?
+
+        таким образом, пропуская дубликаты, создаются ссылки из сущности "банка реактивов"
+        на уникальную молекулу, которая содержится в банке и обратно.
+
+        функция регистрации возвращает уникальный индекс - inchikey_standard,
+        который добавляется в запись о реагенте у пользователя.
+        """
+        try:
+            for r in reagents:
+                self.reagent_registration(r.filter_smiles)  # TODO может нефильтованную smiles ?
+        except Exception as err:
+            logger.error(err)
+
+    def reagent_registration(self, smiles: str):
         """
         регистрация уникальной молекулы в коллекции уникальных молекул в отдельной базе. 
         набивка ссылками записи уникальной молекулы на конкретные айдишники банок с реагентами
         """
-        
-        molfile = Chem.MolFromSmiles(SMILES)
+        molfile = Chem.MolFromSmiles(smiles)
         scheme = registration.MolDocScheme()
         # scheme.add_value_field('reagent_internal_id_list', [reagent_internal_id])
         moldoc = scheme.generate_mol_doc(molfile)
 
         result = write.WriteFromMolList(self.unique_molecules_collection, [molfile], scheme=scheme) 
-        print (result)
+        logger.info(f"reagent_registration (smiles={smiles}) result: {result}")
         # print(query)
         # if result == 0:
-
         #     reagent_internal_id_list = self.get_molecule(moldoc['index'])["value_data"]['reagent_internal_id_list']
-            
         #     # if reagent_internal_id not in reagent_internal_id_list:
         #     #     reagent_internal_id_list.append(reagent_internal_id)
-
         #         # scheme.add_value_field('reagent_internal_id_list', reagent_internal_id_list)
-
         #         # moldoc = scheme.generate_mol_doc(molfile)
         #     self.update_molecule(moldoc['index'], moldoc)
-
-        inchikey_standard = moldoc['index']
-        return inchikey_standard
-    
 
     def calculate_hashes(self):
         """
@@ -121,7 +136,8 @@ class UniqueMolecules:
         if not mol:
             raise Exception("MolFromSmiles returned None")
 
-        res = similarity.SimSearchAggregate(mol, self.unique_molecules_collection, self.mfp_counts, 0.1) # 0.5 = similarity threshold
+        # 0.1 or 0.5 = similarity threshold
+        res = similarity.SimSearchAggregate(mol, self.unique_molecules_collection, self.mfp_counts, 0.1)
 
         if not res: 
             return

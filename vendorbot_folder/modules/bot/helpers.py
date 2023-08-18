@@ -1,12 +1,12 @@
 
-from typing import List
+from typing import List, Optional, Tuple
 
 import io
-#from csv import reader
+import pandas as pd
+
 from telegram.ext import CallbackContext
 from telegram import Update
-
-from pandas import read_excel, read_csv, DataFrame
+from modules.reagent import Reagent
 
 # у каждого conversational handler должна быть своя группа
 CONV_START, CONV_MANAGE, CONV_SEARCH, CONV_APPEND = range(4)
@@ -42,18 +42,62 @@ def is_admin_chat(chat_id):
     return chat_id in LIST_OF_ADMINS
 
 
-def get_file_content(update: Update, context: CallbackContext) -> List[List[str]]:
-    out = io.BytesIO()
+def get_file(update: Update, context: CallbackContext) -> [Optional[io.BytesIO], Optional[str]]:
+    """
+    Читаем файл, отправленный в бот
+    :param update:
+    :param context:
+    :return:
+    """
     document = update.message.document
-    context.bot.get_file(document).download(out=out)
-    out.seek(0)
+    if document:
+        out = io.BytesIO()
+        context.bot.get_file(document).download(out=out)
+        out.seek(0)
+        return out, document['file_name']
+    return None, None
 
-    ext = document['file_name'].split('.')[-1]
+
+def file_to_dataframe(file: io.BytesIO, name: str) -> Optional[pd.DataFrame]:
+    """
+    Читаем текстовый файл пандой
+    :param file: файл
+    :param name: имя файла
+    :return: pd.DataFrame
+    """
+    ext = name.split('.')[-1]
     if ext == 'txt':
-        return read_csv(out, names=['CAS'], usecols=[0])
+        return pd.read_csv(file,
+                        names=['CAS'], usecols=[0])
     elif ext == 'csv':
-        return read_csv(out, delimiter=';|,|\t', usecols=['CAS', 'location', 'name'], encoding= 'unicode_escape')
-    elif ext == 'xlsx':
-        return read_excel(out, usecols=['CAS', 'location', 'name'])
-    else:
-        return 'Valid file extensions are [ .txt | .csv | .xlsx ]'
+        return pd.read_csv(file,
+                        delimiter=';|,|\t', usecols=['CAS', 'location', 'name'],
+                        encoding='unicode_escape')
+    elif ext in ['xlsx', 'xls']:
+        return pd.read_excel(file, usecols=['CAS', 'location', 'name'])
+
+
+def get_contact_from_dataframe(df: pd.DataFrame) -> Tuple[Optional[str], pd.DataFrame]:
+    """
+    # оставляю возможность хардкодить вручную контакт,
+    прописывая первую строку импортируемого файла руками:
+    # в формате reagents_contact:+79265776746
+    :param df: содержимое файла
+    :param user_info:
+    :return:
+    """
+    try:
+        if 'CAS' in df:
+            contact = df['CAS'][0]
+            if contact.startswith("reagents_contact:"):
+                df = df.iloc[1:]  # удаляем 1ю строчку  TODO а надо ли ? мы уже считали же всё
+            return contact.split(':')[1], df
+    except:
+        return None, df
+
+
+def df_to_reagents(df: pd.DataFrame) -> List[Reagent]:
+    out = []
+    for row, value in df['CAS'].items():
+        out.append(Reagent(value))
+    return out

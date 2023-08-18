@@ -67,7 +67,7 @@ def test_search_bad_cas(purge_users_collection: None,  # очищаем БД
     user.send_command("/search")
 
     text = user.get_message_text()
-    assert "Пришли интересующий CAS-номер" in text
+    assert "Пришли интересующий **CAS-номер**" in text
 
     user.send_message("1-1-1")
 
@@ -92,18 +92,17 @@ def test_search_cas(purge_users_collection: None,  # очищаем БД
     user.send_command("/search")
 
     text = user.get_message_text()
-    assert "Пришли интересующий CAS-номер" in text
+    assert "Пришли интересующий **CAS-номер**" in text, text
 
     user.send_message("2749-11-3")
 
     text = user.get_message_text()
-    assert "Ищем по пользователям:" in text
-    assert "CAS: 2749-11-3" in text
-    assert "SMILES: C[C@H]([NH3+])CO" in text
+    assert "Ищем по пользователям:" in text, text
+    assert "CAS: 2749-11-3" in text, text
+    assert "SMILES: C[C@H]([NH3+])CO" in text, text
 
     text = user.get_message_text()
-    assert f"Реагентом могут поделиться эти контакты: @{user.user.username}" \
-        in text
+    assert f"Этот реагент есть у вас." in text, text
 
     # у двоих есть
 
@@ -112,17 +111,17 @@ def test_search_cas(purge_users_collection: None,  # очищаем БД
     user.send_message("120-46-7")
 
     text = user.get_message_text()
-    assert "Ищем по пользователям:" in text
-    assert "CAS: 120-46-7" in text
-    assert "SMILES: O=C(CC(=O)c1ccccc1)c2ccccc2" in text
+    assert "Ищем по пользователям:" in text, text
+    assert "CAS: 120-46-7" in text, text
+    assert "SMILES: O=C(CC(=O)c1ccccc1)c2ccccc2" in text, text
 
     text = user.get_message_text()
-    assert user.user.username in text
-    assert admin.user.username in text
+    assert user.user.username in text, text
+    assert admin.user.username in text, text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
-    assert "Поиск завершен" in text
+    assert "Поиск завершен" in text, text
 
 
 def test_search_smiles(purge_users_collection: None,  # очищаем БД
@@ -141,21 +140,21 @@ def test_search_smiles(purge_users_collection: None,  # очищаем БД
     user.send_command("/search")
 
     text = user.get_message_text()
-    assert "Пришли интересующий CAS-номер" in text
+    assert "Пришли интересующий CAS-номер" in text, text
 
     user.send_message("C[C@H]([NH3+])CO")
 
     text = user.get_message_text()
-    assert "Ищем по пользователям:" in text
-    assert "CAS: 2749-11-3" in text
-    assert "SMILES: C[C@H]([NH3+])CO" in text
+    assert "Ищем по пользователям:" in text, text
+    assert "CAS: 2749-11-3" in text, text
+    assert "SMILES: C[C@H]([NH3+])CO" in text, text
 
     text = user.get_message_text()
-    assert f"Реагентом могут поделиться эти контакты: @{user.user.username}" in text
+    assert f"Реагентом могут поделиться эти контакты: @{user.user.username}" in text, text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
-    assert "Поиск завершен" in text
+    assert "Поиск завершен" in text, text
 
 
 def test_search_name(purge_users_collection: None,  # очищаем БД
@@ -178,17 +177,17 @@ def test_search_name(purge_users_collection: None,  # очищаем БД
     user.send_message("Dibenzoylmethane")
 
     text = user.get_message_text()
-    assert "Ищем по пользователям:" in text
-    assert "61346-73-4" in text
-    assert "120-46-7" in text
-    assert "O=C(Cc1ccccc1)Cc2ccccc2" in text
-    assert "C1=CC=C(C=C1)C(=O)CC(=O)C2=CC=CC=C2" in text
+    assert "Ищем по пользователям:" in text, text
+    assert "61346-73-4" in text, text
+    assert "120-46-7" in text, text
+    assert "O=C(Cc1ccccc1)Cc2ccccc2" in text, text
+    assert "C1=CC=C(C=C1)C(=O)CC(=O)C2=CC=CC=C2" in text, text
 
     text = user.get_message_text()
-    assert user.user.username in text
-    assert admin.user.username in text
+    assert user.user.username in text, text
+    assert admin.user.username in text, text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
-    assert "Поиск завершен" in text
+    assert "Поиск завершен" in text, text
 

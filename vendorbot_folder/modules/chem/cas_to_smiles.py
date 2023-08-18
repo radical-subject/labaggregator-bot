@@ -4,6 +4,7 @@ import pubchempy
 import traceback
 import time
 import re
+from modules.reagent import Reagent
 
 import logging
 logger = logging.getLogger(__name__)
@@ -34,25 +35,13 @@ def is_cas_number(cas: str) -> bool:
     return sum_digits % 10 == int(control_digit)
 
 
-def get_cas_smiles(cas: str, delay: float = 0.2):
+def get_reagent_cas_smiles(r: Reagent, delay: float = 0.2):
     try:
-        smiles = cas_to_smiles(cas)
+        r.smiles = cas_to_smiles(r.cas)
         time.sleep(delay)  # чтобы не грузить сервер
-        return cas, smiles
     except Exception as err:
         logger.error(err)
-    return cas, None
-
-
-### 2
-def get_cas_smiles(cas: str, delay: float = 0.2):
-    try:
-        smiles = cas_to_smiles(cas)
-        time.sleep(delay)  # чтобы не грузить сервер
-        return smiles
-    except Exception as err:
-        logger.error(err)
-    return None
+    return r
 
 
 def cirpy_smiles_resolve(cas_or_name: str):

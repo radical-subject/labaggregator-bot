@@ -9,7 +9,32 @@ logger = logging.getLogger(__name__)
 
 
 class UsersCollection:
-
+    """
+    test_record = {
+        _id: "980159954",
+        user_id: "980159954",
+        username: "@None",
+        firstname: "Alex",
+        lastname: "Fedorov"
+        laboratory: [ {
+                laboratory_object
+            }, {
+                laboratory_object
+            }
+        ]
+        reagent_requests: [ {
+                requested_CAS: "50-00-0"
+            }
+        ],
+        user_reagents: [ {
+                CAS: "50-00-0",
+                SMILES: "???",
+                sharing_status: "shared",
+                contact: "" # если админ добавил
+            }, { ... }
+        ]
+    }
+    """
     def __init__(self, client, db):
         self.name = 'users_collection'
         self.collection = client[db][self.name]
@@ -20,22 +45,37 @@ class UsersCollection:
 
     def get_user_by_reagent_inchi_key(self, inchi_key: str):
         '''
-        ищет в коллекции пользователей по листу реагентов совпадения уникального id регагента, и возвращает результат
+        ищет в коллекции пользователей по листу реагентов совпадения
+        уникального id регагента, и возвращает результат
         '''
         query = {
-            "user_reagents": { '$elemMatch': { "inchikey_standard": inchi_key }}
+            "user_reagents": {'$elemMatch': {"inchikey_standard": inchi_key}}
         }
         return self.collection.find(query)
 
     def add_user(self, data):
         result = self.collection.insert_one(data)
-        #assert result.modified_count == 1
+        if not result.acknowledged:
+            logger.error(f"add_user error: {result}")
 
     def get_reagents(self, user_id: int):
         user = self.get_user(user_id)
-        if "user_reagents" in user:
-            return user["user_reagents"]
-        return []
+        return user.get("user_reagents", [])
+
+    def clear_reagents(self, user_id: int):
+        user = self.get_user(user_id)
+        user["user_reagents"] = []
+        self.update_user(user_id, user)
+
+    def add_reagents(self, user_id: int, reagents):
+        # TODO! не знаю, что делает "$set": user_data
+        user = self.get_user(user_id)
+        arr = [r.to_dict() for r in reagents]
+        user["user_reagents"] = user.get("user_reagents", []) + arr
+        self.update_user(user_id, user)
+
+    def reagents_count(self, user_id: int):
+        return len(self.get_reagents(user_id))
 
     def get_all_users(self):
         return list(self.collection.find({}))
@@ -45,9 +85,10 @@ class UsersCollection:
         if '_id' in user_data:
             del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
         result = self.collection.update_one({"user_id": user_id}, {"$set": user_data}, upsert=True)
-        logger.info(f"user {user_id} updated")
-        #return result
-        #assert result.modified_count == 1
+        if result.modified_count != 1:
+            logger.error(f"user {user_id} updated error: {result}")
+        else:
+            logger.info(f"user {user_id} updated")
 
     def get_users_by_cas(self, cas: str):
         return list(self.collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}}))
@@ -63,11 +104,11 @@ class UsersCollection:
             if each['CAS'] in cas:
                 if 'location' in each.keys():
                     locations.append(each['location'])
-
         return '\n'.join(set(locations))
 
     def get_location_by_user_and_inchi_key(self, update, inchi_key: str):
         '''
+        TODO убрать update!!!
         ищет в коллекции пользователей нужного пользователя и по листу реагентов - ищет совпадения уникального id регагента.
         возвращает поле локации для данного реагента
         '''
@@ -76,7 +117,7 @@ class UsersCollection:
         self.get_user_by_reagent_inchi_key(inchi_key)
         query = {
             "user_id": user_id,
-            "user_reagents": { '$elemMatch': { "inchikey_standard": inchi_key }}
+            "user_reagents": {'$elemMatch': {"inchikey_standard": inchi_key }}
         }
         results = self.collection.find(query)
         
@@ -91,13 +132,13 @@ class UsersCollection:
         return '\n'.join(set(locations))
     
     def get_reagents_contacts_by_inchi_key(self, inchi_key: str):
-        '''
-        ищет в коллекции пользователей по листу реагентов совпадения уникального id регагента, и возвращает результат
-        '''
-
+        """
+        ищет в коллекции пользователей по листу реагентов совпадения
+        уникального id регагента, и возвращает результат
+        """
         query = {
-            "user_reagents": { '$elemMatch': { "inchikey_standard": inchi_key }}
-            }
+            "user_reagents": {'$elemMatch': {"inchikey_standard": inchi_key}}
+        }
         contacts = []
         users = self.collection.find(query)
         for user in users:
@@ -109,18 +150,18 @@ class UsersCollection:
         return contacts
 
     def get_my_reagents_by_text_name(self, text_name, user_id):
-        '''
+        """
         Ищет у данного пользователя по листу реагентов вхождение подстроки text_name в значение поля "name",
         и возвращает месторасположения (location) всех положительных результатов.
-        '''
+        """
 
         query = [
             {"$match": {
                 "user_id": user_id, 
                 "user_reagents": {
-                    '$elemMatch': { "name": { "$regex": text_name, '$options' : 'xi'}}}}},
+                    '$elemMatch': {"name": {"$regex": text_name, '$options': 'xi'}}}}},
             {"$project": {
-                "user_id" : 1,
+                "user_id": 1,
                 "username": 1,
                 "user_reagents": {
                     "$filter": {
@@ -140,7 +181,6 @@ class UsersCollection:
         else:
             return None
 
-
     def get_reagents_by_text_name(self, text_name):
         '''
         В коллекции пользователей ищет по листу реагентов вхождение подстроки text_name в значение поля "name",
@@ -150,9 +190,9 @@ class UsersCollection:
         query = [
             {"$match": {
                 "user_reagents": {
-                    '$elemMatch': { "name": { "$regex": text_name, '$options' : 'xi'}}}}},
+                    '$elemMatch': {"name": {"$regex": text_name, '$options': 'xi'}}}}},
             {"$project": {
-                "user_id" : 1,
+                "user_id": 1,
                 "username": 1,
                 "user_reagents": {
                     "$filter": {

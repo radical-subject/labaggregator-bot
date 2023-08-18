@@ -1,36 +1,19 @@
 import logging
 import traceback
-from typing import List, Tuple, Optional
 
 from telegram import Update, ParseMode
 from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler)
 
 from modules.db.users import users_collection
-from modules.db.dbschema import UserReagents, parse_cas_list, get_contact
+from modules.db.dbschema import get_contact
+from modules.db.unique_molecules import unique_molecules_collection
+from modules.db.parser import parse_reagent_list
 
 from . import run_async
-from .helpers import bot_commands_text, CONV_MANAGE, UPLOAD_STATE, get_file_content
-
-import pandas as pd
+from .helpers import bot_commands_text, CONV_MANAGE, UPLOAD_STATE, get_file, \
+    get_contact_from_dataframe, file_to_dataframe, df_to_reagents
 
 logger = logging.getLogger(__name__)
-
-
-def get_contact_from_cas_file(cas_list: List[str]) -> Tuple[Optional[str], List[str]]:
-    """
-    # оставляю возможность хардкодить вручную контакт, прописывая первую строку импортируемого файла руками:
-    # в формате reagents_contact:+79265776746
-    :param cas_list: содержимое файла
-    :param user_info:
-    :return:
-    """
-    if cas_list and cas_list[0] and cas_list[0].startswith("reagents_contact:"):
-        contact = cas_list[0].split(":")[1]
-        cas_list = cas_list[1:]
-        return contact, cas_list
-    else:
-        return None, cas_list
-
 
 
 class Manage:
@@ -54,10 +37,18 @@ class Manage:
             return ConversationHandler.END
 
         update.message.reply_text("Отправьте мне .txt файл со списком CAS-номеров столбиком, "
-                                  "следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\n"
-                                  "Либо таблицу Excel формата:\n<b>[ CAS | location | name ]</b>\n\n"
+                                  "следующего формата:\n"
+                                  "\n"
+                                  "<b>12411-12-3</b>\n"
+                                  "<b>45646-23-2</b>\n"
+                                  "etc.\n"
+                                  "\n"
+                                  "Либо таблицу Excel формата:\n"
+                                  "<b>[ CAS | location | name ]</b>\n"
+                                  "\n"
                                   "Send cas list in .txt format.\n"
-                                  "or Excel sheet with headers \n<b>[ CAS | location | name ]</b>",
+                                  "or Excel sheet with headers \n"
+                                  "<b>[ CAS | location | name ]</b>",
                                   parse_mode=ParseMode.HTML)
         return UPLOAD_STATE
 
@@ -74,37 +65,36 @@ class Manage:
                 update.message.reply_text("Это почему тебя нет в БД?! Тыкни /start")
                 return ConversationHandler.END
 
-            if not get_contact(user):
+            contact = get_contact(user)
+            if not contact:
                 update.message.reply_text("У нас нет твоих контактов. Тыкни /start")
                 return ConversationHandler.END
 
             update.message.reply_text(f"Ожидайте: список обрабатывается.\nBe patient; it may take a while...")
-            
-            cas_tab = get_file_content(update, context) ### Remove after Pandas realisation
 
-            if isinstance(cas_tab, str):
-                update.message.reply_text(cas_tab)
-                return ConversationHandler.END 
-            #cas_tab = get_txt_content(update, context)
-            
+            # читаем txt, csv, xlsx
+            file, file_name = get_file(update, context)
 
-            contact, cas_list = get_contact_from_first_row(cas_tab)
-            if contact:
-                logger.info(f"getting_file({chat_id}): found contact in file {contact}")
+            cas_df = file_to_dataframe(file, file_name)
+            if cas_df is None:
+                update.message.reply_text('Valid file extensions are [ .txt | .csv | .xlsx ]')
+                return ConversationHandler.END
 
-            reagents, text_report = parse_cas_list(cas_list, contact)
+            file_contact, cas_df = get_contact_from_dataframe(cas_df)
 
-            user_reagents_object = UserReagents(**user)
+            reagents = df_to_reagents(cas_df)
+            if file_contact:
+                reagents, text_report = parse_reagent_list(reagents, file_contact)
+            else:
+                reagents, text_report = parse_reagent_list(reagents, contact)
 
-            user_reagents_object.user_reagents = reagents  # перезаписываем
+            unique_molecules_collection.register_reagents(reagents)
 
-            data = user_reagents_object.export()
-
-            users_collection.update_user(user_id, data)
+            users_collection.clear_reagents(user_id)
+            users_collection.add_reagents(user_id, reagents)
 
             sent_message = text_report + f"""Итого: База реагентов перезаписана. \
-                                             Содержит <b>{len(user_reagents_object.user_reagents)}</b> реагентов."""
-
+                                             Содержит <b>{users_collection.reagents_count(user_id)}</b> реагентов."""
         except Exception as err:
             logger.error(traceback.format_exc())
             sent_message = "Ошибка обработки, лаборанты уже разбужены!"
