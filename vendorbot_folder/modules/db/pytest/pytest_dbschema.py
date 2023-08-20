@@ -83,8 +83,8 @@ def test_parse_cas_list_fail_smiles(mock_batch_reagent_cas_to_smiles,
     assert "Строк в вашем списке <b>1</b>" in text_report, text_report
     assert "Правильных CAS-номеров <b>1</b>" in text_report, text_report
     assert "Опечатка в CAS: <b>0</b>" in text_report, text_report
-    assert "Не найдено SMILES для: <b>1</b> позиций\n" \
-           "(cas=15243-33-1)" in text_report, text_report
+    assert "Не найдено SMILES для: <b>1</b> позиций" in text_report, text_report
+    assert "CAS:15243-33-1" in text_report, text_report
     assert "Ошибка обработки SMILES <b>0</b> позиций" in text_report, text_report
     assert "Найдено SMILES для: <b>0</b> реагентов" in text_report, text_report
     assert "Прекурсоров найдено и вычеркнуто: <b>0</b>" in text_report, text_report

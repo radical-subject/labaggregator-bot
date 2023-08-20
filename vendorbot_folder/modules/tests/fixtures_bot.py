@@ -6,9 +6,9 @@ from unittest import mock
 from modules.bot.bot import BotObject
 from modules.bot.helpers import LIST_OF_ADMINS
 
-from modules.tests.routes import TELEGRAM_URL
-from modules.tests.core import core
-from modules.tests.user import BOT_TOKEN, Tester, UserBase, ChatBase
+from telegram_bot_unittest.routes import TELEGRAM_URL
+from telegram_bot_unittest.core import core
+from telegram_bot_unittest.user import BOT_TOKEN, Tester, UserBase, ChatBase
 
 logger = logging.getLogger(__name__)
 

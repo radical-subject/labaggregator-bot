@@ -1,9 +1,11 @@
 
 import logging
 import re
+from typing import Optional, List, Tuple, Union
 
 from modules.db.dbconfig import db_client, MONGO_VENDORBOT_DATABASE
 from modules.db import dbschema
+from modules.reagent import Reagent
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +45,6 @@ class UsersCollection:
     def get_user(self, user_id: int):
         return self.collection.find_one({"user_id": user_id})
 
-    def get_user_by_reagent_inchi_key(self, inchi_key: str):
-        '''
-        ищет в коллекции пользователей по листу реагентов совпадения
-        уникального id регагента, и возвращает результат
-        '''
-        query = {
-            "user_reagents": {'$elemMatch': {"inchikey_standard": inchi_key}}
-        }
-        return self.collection.find(query)
-
     def add_user(self, data):
         result = self.collection.insert_one(data)
         if not result.acknowledged:
@@ -90,13 +82,19 @@ class UsersCollection:
         else:
             logger.info(f"user {user_id} updated")
 
+    def get_users_by_reagent_field(self, name: str, value: str):
+        return list(self.collection.find({"user_reagents": {'$elemMatch': {name: value}}}))
+
     def get_users_by_cas(self, cas: str):
-        return list(self.collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}}))
+        return self.get_users_by_reagent_field('CAS', cas)
 
     def get_users_by_smiles(self, smiles: str):
-        return list(self.collection.find({"user_reagents": {'$elemMatch': {'SMILES': smiles}}}))
+        return self.get_users_by_reagent_field('SMILES', smiles)
 
-    def get_location_by_user_and_cas(self, update, cas):
+    def get_user_by_inchi_key(self, inchi_key: str):
+        return self.get_users_by_reagent_field('inchikey_standard', inchi_key)
+
+    def get_location_by_user_id_and_cas(self, update, cas):
         user_id = update.message.from_user.id
         result = self.collection.find_one({"user_id": user_id})['user_reagents']
         locations = []
@@ -106,118 +104,58 @@ class UsersCollection:
                     locations.append(each['location'])
         return '\n'.join(set(locations))
 
-    def get_location_by_user_and_inchi_key(self, update, inchi_key: str):
-        '''
-        TODO убрать update!!!
-        ищет в коллекции пользователей нужного пользователя и по листу реагентов - ищет совпадения уникального id регагента.
-        возвращает поле локации для данного реагента
-        '''
-        
-        user_id = update.message.from_user.id
-        self.get_user_by_reagent_inchi_key(inchi_key)
-        query = {
-            "user_id": user_id,
-            "user_reagents": {'$elemMatch': {"inchikey_standard": inchi_key }}
-        }
-        results = self.collection.find(query)
-        
-        locations = []
-        for result in results:
-            for each in result['user_reagents']:
-                if "inchikey_standard" in each.keys():
-                    if each["inchikey_standard"] == inchi_key:
-                        if 'location' in each.keys():
-                            locations.append(each['location'])
+    def get_reagents_by_field(self, field, value_list: Union[str, List[str]]) -> List[Reagent]:
+        if isinstance(value_list, str):  # можно и список и 1
+            value_list = [value_list, ]
+        reagents = []
+        for value in value_list:
+            users = self.get_users_by_reagent_field(field, value)
+            for user in users:
+                reagents.extend(dbschema.find_reagent(user, value))
+        return reagents
 
-        return '\n'.join(set(locations))
-    
-    def get_reagents_contacts_by_inchi_key(self, inchi_key: str):
+    def get_reagents_by_cas(self, cas_list: Union[str, List[str]]) -> List[Reagent]:
+        return self.get_reagents_by_field('CAS', cas_list)
+
+    def get_reagents_by_smiles(self, smiles_list: Union[str, List[str]]) -> List[Reagent]:
+        return self.get_reagents_by_field('SMILES', smiles_list)
+
+    def get_reagents_by_inchi(self, inchikey_list: Union[str, List[str]]) -> List[Reagent]:
+        return self.get_reagents_by_field('inchikey_standard', inchikey_list)
+
+    def get_reagents_by_name(self, name_list: Union[str, List[str]]) -> List[Reagent]:
         """
-        ищет в коллекции пользователей по листу реагентов совпадения
-        уникального id регагента, и возвращает результат
-        """
-        query = {
-            "user_reagents": {'$elemMatch': {"inchikey_standard": inchi_key}}
-        }
-        contacts = []
-        users = self.collection.find(query)
-        for user in users:
-            reagents = dbschema.find_reagent(user, inchi_key)
-            
-            for reagent in reagents: 
-                contacts += [dbschema.reagent_contact(user, reagent)]
-
-        return contacts
-
-    def get_my_reagents_by_text_name(self, text_name, user_id):
-        """
-        Ищет у данного пользователя по листу реагентов вхождение подстроки text_name в значение поля "name",
-        и возвращает месторасположения (location) всех положительных результатов.
-        """
-
-        query = [
-            {"$match": {
-                "user_id": user_id, 
-                "user_reagents": {
-                    '$elemMatch': {"name": {"$regex": text_name, '$options': 'xi'}}}}},
-            {"$project": {
-                "user_id": 1,
-                "username": 1,
-                "user_reagents": {
-                    "$filter": {
-                        "input": "$user_reagents",
-                        "cond": {
-                            "$regexMatch": {
-                                "input": "$$this.name",
-                                "regex": text_name,
-                                "options": "xi"
-        }}}}}}]
-
-        my_similar_reagents = list(self.collection.aggregate(query))
-        if my_similar_reagents:
-            reagents = dict((one['name'], '\n'.join(set(re.split(',|\n', one['location'])))) for one in my_similar_reagents[0]['user_reagents'])
-            return reagents
-
-        else:
-            return None
-
-    def get_reagents_by_text_name(self, text_name):
-        '''
         В коллекции пользователей ищет по листу реагентов вхождение подстроки text_name в значение поля "name",
         и возвращает контыкты всех положительных результатов.
-        '''
+        """
+        if isinstance(name_list, str):  # можно и список и 1
+            name_list = [name_list, ]
 
-        query = [
-            {"$match": {
-                "user_reagents": {
-                    '$elemMatch': {"name": {"$regex": text_name, '$options': 'xi'}}}}},
-            {"$project": {
-                "user_id": 1,
-                "username": 1,
-                "user_reagents": {
-                    "$filter": {
-                        "input": "$user_reagents",
-                        "cond": {
-                            "$regexMatch": {
-                                "input": "$$this.name",
-                                "regex": text_name,
-                                "options": "xi"
-        }}}}}}]
-        
-        reagents = dict()
-        user_objects_dict = dict((user_object['user_id'], user_object) for user_object in self.collection.aggregate(query))
+        reagents = []
+        for name in name_list:
+            query = [
+                {"$match": {
+                    "user_reagents": {
+                        '$elemMatch': {"name": {"$regex": name, '$options': 'xi'}}}}},
+                {"$project": {
+                    "user_id": 1,
+                    "username": 1,
+                    "user_reagents": {
+                        "$filter": {
+                            "input": "$user_reagents",
+                            "cond": {
+                                "$regexMatch": {
+                                    "input": "$$this.name",
+                                    "regex": name,
+                                    "options": "xi"
+                                }}}}}}]
 
-        for user in user_objects_dict:
-
-            reagents.update({user: ''})
-
-            for reagent in user_objects_dict[user]['user_reagents']:
-
-                new_value = reagents[user] + reagent['name'].replace('\n', ',') + '\n'
-                    
-                reagents.update({
-                   user: '\n'.join(set([name.strip() for name in new_value.replace('\n', ',').split(',')]))
-                })
+            for user in list(self.collection.aggregate(query)):
+                for reagent in user["user_reagents"]:
+                    r = Reagent()
+                    r.user_id = user["user_id"]
+                    r.from_dict(reagent)
+                    reagents.append(r)
 
         return reagents
 

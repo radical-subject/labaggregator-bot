@@ -1,8 +1,9 @@
 
+from typing import List
 import uuid
 import logging
 
-from modules.reagent import REAGENT_SHARED
+from modules.reagent import Reagent, REAGENT_SHARED
 
 logger = logging.getLogger(__name__)
 
@@ -46,29 +47,30 @@ def reagent_contact(user, reagent):
         return get_contact(user)
 
 
-def find_reagent(user, value):
+def find_reagent(user, value) -> List[Reagent]:
     reagents = []
     if 'user_reagents' in user:
         for reagent in user['user_reagents']:
             if value in reagent.values():
-                reagents.append(reagent)
+                r = Reagent()
+                r.user_id = user["user_id"]
+                r.from_dict(reagent)
+                reagents.append(r)
     return reagents
 
 
-def get_reagent_contacts(users, text):
+def get_reagent_contacts(user, text):
     """
-    :param users: список объектов пользователей
+    :param user: объект пользователя
     :param text: CAS или SMILES
     :return: список контактов
     """
     ret = []
-    if users:
-        for user in users:
-            reagents = find_reagent(user, text)
-            for r in reagents:
-                contact = reagent_contact(user, r)
-                if contact:
-                    ret.append(contact)
+    reagents = find_reagent(user, text)
+    for r in reagents:
+        contact = reagent_contact(user, r)
+        if contact:
+            ret.append(contact)
     return ret
 
 

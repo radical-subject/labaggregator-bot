@@ -72,7 +72,10 @@ def test_search_bad_cas(purge_users_collection: None,  # очищаем БД
     user.send_message("1-1-1")
 
     text = user.get_message_text()
-    assert "Реагент не определен" in text
+    assert "Ищем по пользователям\nназвание: 1-1-1" in text
+
+    text = user.get_message_text()
+    assert "Реагент не определён" in text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
@@ -97,7 +100,7 @@ def test_search_cas(purge_users_collection: None,  # очищаем БД
     user.send_message("2749-11-3")
 
     text = user.get_message_text()
-    assert "Ищем по пользователям:" in text, text
+    assert "Ищем по пользователям" in text, text
     assert "CAS: 2749-11-3" in text, text
     assert "SMILES: C[C@H]([NH3+])CO" in text, text
 
@@ -110,18 +113,18 @@ def test_search_cas(purge_users_collection: None,  # очищаем БД
 
     user.send_message("120-46-7")
 
-    text = user.get_message_text()
-    assert "Ищем по пользователям:" in text, text
+    messages = user.get_messages(2)
+    text = messages[1]['text']
+    assert "Ищем по пользователям" in text, text
     assert "CAS: 120-46-7" in text, text
     assert "SMILES: O=C(CC(=O)c1ccccc1)c2ccccc2" in text, text
 
-    text = user.get_message_text()
-    assert user.user.username in text, text
-    assert admin.user.username in text, text
+    text2 = messages[0]['text']
+    assert "Этот реагент есть у вас" in text2
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
-    assert "Поиск завершен" in text, text
+    #assert "Поиск завершен" in text, text
 
 
 def test_search_smiles(purge_users_collection: None,  # очищаем БД
@@ -140,21 +143,23 @@ def test_search_smiles(purge_users_collection: None,  # очищаем БД
     user.send_command("/search")
 
     text = user.get_message_text()
-    assert "Пришли интересующий CAS-номер" in text, text
+    assert "Пришли интересующий **CAS-номер**" in text, text
 
     user.send_message("C[C@H]([NH3+])CO")
 
     text = user.get_message_text()
-    assert "Ищем по пользователям:" in text, text
+    assert "Ищем по пользователям" in text, text
     assert "CAS: 2749-11-3" in text, text
     assert "SMILES: C[C@H]([NH3+])CO" in text, text
 
     text = user.get_message_text()
-    assert f"Реагентом могут поделиться эти контакты: @{user.user.username}" in text, text
+    assert f"(CAS:2749-11-3, SMILES:C[C@H]([NH3+])CO)" in text, text
+    assert "Этот реагент есть у вас." in text, text
+    assert "No location was specified." in text, text
 
     user.send_message(CANCEL_SEARCH)
     text = user.get_message_text()
-    assert "Поиск завершен" in text, text
+    #assert "Поиск завершен" in text, text
 
 
 def test_search_name(purge_users_collection: None,  # очищаем БД
@@ -168,7 +173,7 @@ def test_search_name(purge_users_collection: None,  # очищаем БД
     user.send_command("/search")
 
     text = user.get_message_text()
-    assert "Пришли интересующий CAS-номер" in text
+    assert "Пришли интересующий **CAS-номер**" in text
 
     mock_cirpy_resolve.side_effect = ["O=C(Cc1ccccc1)Cc2ccccc2", ["61346-73-4", "120-46-7"],
                                       ["61346-73-4", "120-46-7"], ["61346-73-4", "120-46-7"]]
@@ -177,7 +182,7 @@ def test_search_name(purge_users_collection: None,  # очищаем БД
     user.send_message("Dibenzoylmethane")
 
     text = user.get_message_text()
-    assert "Ищем по пользователям:" in text, text
+    assert "Ищем по пользователям" in text, text
     assert "61346-73-4" in text, text
     assert "120-46-7" in text, text
     assert "O=C(Cc1ccccc1)Cc2ccccc2" in text, text

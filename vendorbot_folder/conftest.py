@@ -11,7 +11,7 @@ def pytest_sessionstart(session: Session) -> None:
 
 # Load fixtures
 pytest_plugins = [
-    'modules.tests.fixtures',
+    'telegram_bot_unittest.fixtures',
     'modules.tests.fixtures_db',
     'modules.tests.fixtures_bot',
     'modules.tests.fixtures_cas'

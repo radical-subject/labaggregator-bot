@@ -121,7 +121,6 @@ def what_reagent(text):
         #     smiles = pubchempy_smiles_resolve(text)
         #     if smiles =! None
         # smiles_list.append(smiles)  # name2smiles
-        
 
         # smiles_list = list(filter(None, smiles_list))
         for smiles in smiles_list:  # TODO если передали SMILES, нужен ли поиск по CAS?

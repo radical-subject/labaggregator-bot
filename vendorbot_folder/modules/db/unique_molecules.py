@@ -1,3 +1,4 @@
+import traceback
 from typing import List
 from operator import itemgetter
 
@@ -28,10 +29,11 @@ class UniqueMolecules:
     def get_molecule(self, index: str):
         return self.unique_molecules_collection.find_one({"index": index})
 
-    def add_molecule(self, data):
-        result = self.unique_molecules_collection.insert_one(data)
-        if not result.acknowledged:
-            logger.error(f"add_molecule error: {result}")
+    # TODO not used
+    #def add_molecule(self, data):
+    #    result = self.unique_molecules_collection.insert_one(data)
+    #    if not result.acknowledged:
+    #        logger.error(f"add_molecule error: {result}")
 
     # def get_reagents(self, user_id: int):
     #     user = self.get_user(user_id)
@@ -42,14 +44,15 @@ class UniqueMolecules:
     # def get_all_users(self):
     #     return list(self.unique_molecules_collection.find({}))
 
-    def update_molecule(self, index: int, moldoc):
-        logger.info(f"molecule entry is being updated")
-        query = {'index': index}
-        # if '_id' in user_data:
-        #     del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
-        result = self.unique_molecules_collection.update_one(query, {"$set": moldoc}, upsert=True)
-        if not result.acknowledged:
-            logger.error(f"update_molecule error: {result}")
+    # TODO not used?
+    #def update_molecule(self, index: int, moldoc):
+    #    logger.info(f"molecule entry is being updated")
+    #    query = {'index': index}
+    #    # if '_id' in user_data:
+    #    #     del user_data['_id']  # Performing an update on the path '_id' would modify the immutable field '_id'
+    #    result = self.unique_molecules_collection.update_one(query, {"$set": moldoc}, upsert=True)
+    #    if not result.acknowledged:
+    #        logger.error(f"update_molecule error: {result}")
 
     # def get_users_by_cas(self, cas: str):
     #     return list(self.unique_molecules_collection.find({"user_reagents": {'$elemMatch': {'CAS': cas}}}))
@@ -80,18 +83,18 @@ class UniqueMolecules:
         except Exception as err:
             logger.error(err)
 
-    def reagent_registration(self, smiles: str):
+    def reagent_registration(self, filter_smiles: str):
         """
         регистрация уникальной молекулы в коллекции уникальных молекул в отдельной базе. 
         набивка ссылками записи уникальной молекулы на конкретные айдишники банок с реагентами
         """
-        molfile = Chem.MolFromSmiles(smiles)
+        molfile = Chem.MolFromSmiles(filter_smiles)
         scheme = registration.MolDocScheme()
         # scheme.add_value_field('reagent_internal_id_list', [reagent_internal_id])
         moldoc = scheme.generate_mol_doc(molfile)
 
         result = write.WriteFromMolList(self.unique_molecules_collection, [molfile], scheme=scheme) 
-        logger.info(f"reagent_registration (smiles={smiles}) result: {result}")
+        logger.info(f"reagent_registration (smiles={filter_smiles}) result: {result}")
         # print(query)
         # if result == 0:
         #     reagent_internal_id_list = self.get_molecule(moldoc['index'])["value_data"]['reagent_internal_id_list']
@@ -123,9 +126,9 @@ class UniqueMolecules:
         # Create 25 different collections in db_demo each store a subset of hash values for molecules in demo_db.molecules.
         similarity.AddHashCollections(self.db, self.unique_molecules_collection)
 
-
     def similarity_search(self, smiles: str):
         """
+        TODO мы выполняли registration с filter_smiles, а тут ищем не по filter. не ошибка ли ?
         Ищем похожие реагенты умными функциями
         :param smiles:
         :return: отсортированный по похожести список реагентов
@@ -149,38 +152,30 @@ class UniqueMolecules:
 
         return res
 
-    def get_most_similar_reagent(self, REQUESTED_SMILES: str):
-        searchResult = self.similarity_search(REQUESTED_SMILES)
-        if searchResult != None:
-
-            best_similarity_result_probability = searchResult[0][0]
-            best_similarity_result_id = searchResult[0][1]
-
-            molecule = self.get_molecule(best_similarity_result_id)
-            inchi_key = molecule["index"]
-            best_match_smiles = molecule["smiles"]
-
-            return (inchi_key, best_match_smiles, best_similarity_result_probability)
-        
-        else: 
-            return None
-
-    def get_5_most_similar_reagents(self, REQUESTED_SMILES: str):
-
+    def get_similar_molecules(self, smiles: str, limit: int = 1):
         """
-        returns list of tuples with max length of 5
-        [(inchi_key, best_match_smiles, best_similarity_result_probability), (), ()..]
-
+        TODO переименовать
+        :param smiles:  TODO не ошибка ли, что в registration filter_smiles, а тут без filter?
+        :return: [(inchi_key, smiles, similarity)]
         """
-
-        searchResult = self.similarity_search(REQUESTED_SMILES)
-        if searchResult != None:
-            number_of_hits = min(len(searchResult), 5)
-
-            return [(self.get_molecule(searchResult[i][1])["index"], self.get_molecule(searchResult[i][1])["smiles"], searchResult[i][0]) for i in range(number_of_hits)]
-        
-        else: 
-            return None
+        molecules = []
+        try:
+            similarities = self.similarity_search(smiles)
+            if similarities:
+                for s in similarities:
+                    try:
+                        similarity = s[0]
+                        id = s[1]
+                        molecule = self.get_molecule(id)
+                        inchi_key = molecule["index"]
+                        molecules.append((inchi_key, molecule["smiles"], similarity))
+                    except Exception as err:
+                        logger.error(traceback.format_exc())
+                    if len(molecules) >= limit:
+                        break
+        except Exception as err:
+            logger.error(traceback.format_exc())
+        return molecules
 
 
 unique_molecules_collection = UniqueMolecules(db_client, MOLECULES_DATABASE)
