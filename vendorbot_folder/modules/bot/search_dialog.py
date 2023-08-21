@@ -7,7 +7,7 @@ from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
     MessageHandler, Filters
 
 from . import run_async
-from .helpers import CONV_SEARCH, SEARCH_STATE
+from .helpers import CONV_SEARCH, SEARCH_STATE, is_admin_chat
 from modules.chem.cas_to_smiles import what_reagent
 from modules.chem import helpers
 from modules.chem.pictures import create_similar_smiles_grid_picture, create_smiles_picture
@@ -104,7 +104,7 @@ class Search:
 
         count = len(users_collection.get_reagents(user_id))
 
-        if count < DBSIZE_OPEN_SEARCH:  #  and not is_admin_chat(chat_id)
+        if count < DBSIZE_OPEN_SEARCH and not is_admin_chat(chat_id):
             update.message.reply_text(f"Чтобы разблокировать шеринг, вам необходимо загрузить "
                                       f"в базу не менее {DBSIZE_OPEN_SEARCH} ваших позиций. /manage")
             return ConversationHandler.END

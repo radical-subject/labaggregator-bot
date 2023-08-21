@@ -109,7 +109,7 @@ class BlackList:
         mol = Chem.MolFromSmiles(smiles)
 
         if not mol:
-            raise Exception("MolFromSmiles returned None")
+            raise Exception(f"MolFromSmiles returned None (SMILES={smiles})")
 
         res = similarity.SimSearchAggregate(mol, self.molecules, self.mfp_counts, 0.1)
 

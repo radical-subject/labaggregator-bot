@@ -5,8 +5,14 @@
 import pprint
 import cirpy
 
-pp = pprint.PrettyPrinter(indent=4)
+#pp = pprint.PrettyPrinter(indent=4)
 
+from modules.chem.pictures import create_similar_smiles_grid_picture, create_smiles_picture
+
+smiles = 'CCN(CC)CC'
+path = create_smiles_picture(smiles)
+
+print(path)
 
 #
 # convert_to_smiles_and_get_additional_data(client, db_instance, result)[1]['NameRUS']
@@ -25,8 +31,8 @@ def cas_to_name(cas):
 
 #cas_to_name('75-64-9')
 
-ret = cirpy.resolve('Dibenzoylmethane', 'cas')
-pp.pprint(ret)
+#ret = cirpy.resolve('Dibenzoylmethane', 'cas')
+#pp.pprint(ret)
 
 #smiles = pubchempy_smiles_resolve('Dibenzoylmethane')
 

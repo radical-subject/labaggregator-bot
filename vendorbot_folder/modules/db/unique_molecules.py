@@ -93,6 +93,7 @@ class UniqueMolecules:
         # scheme.add_value_field('reagent_internal_id_list', [reagent_internal_id])
         moldoc = scheme.generate_mol_doc(molfile)
 
+        # внутри есть проверка на дубликаты
         result = write.WriteFromMolList(self.unique_molecules_collection, [molfile], scheme=scheme) 
         logger.info(f"reagent_registration (smiles={filter_smiles}) result: {result}")
         # print(query)

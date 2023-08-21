@@ -13,19 +13,17 @@ try:
 except Exception:
     pass
 
+PICTURES_PATH = os.getenv('PICTURES_PATH')
 
-PICTURES_PATH = '/vendorbot_container/srs/pic'
-
-
-def create_smiles_picture(smiles: str) -> str:
+def create_smiles_picture(smiles: str, path: str = PICTURES_PATH) -> str:
     """
     :param smiles: TODO опять глупый вопрос нужен filter_smiles или обычный
     :return:
     """
     smiles = smiles.replace("|", "")  # вот этого не было и поэтому поиск падал
 
-    path = os.path.join(PICTURES_PATH, smiles + '.png')
-    if not os.path.exists(path):  # TODO нужно ли перегенерировать или картинки всегда одинаковые?
+    fpath = os.path.join(path, smiles + '.png')
+    if not os.path.exists(fpath):  # TODO нужно ли перегенерировать или картинки всегда одинаковые?
         mol = Chem.MolFromSmiles(smiles)
         refmol = Chem.MolFromSmiles(smiles)
 
@@ -34,11 +32,12 @@ def create_smiles_picture(smiles: str) -> str:
         fp = SimilarityMaps.GetMorganFingerprint(mol, fpType='bv')
         fig, maxweight = SimilarityMaps.GetSimilarityMapForFingerprint(refmol, mol, SimilarityMaps.GetMorganFingerprint)
 
-        fig.savefig(path, bbox_inches="tight")
-    return path
+        fig.savefig(fpath, bbox_inches="tight")
+    return fpath
 
 
-def create_similar_smiles_grid_picture(request_smiles: str, molecules: List[Tuple[str, str, float]]):
+def create_similar_smiles_grid_picture(request_smiles: str, molecules: List[Tuple[str, str, float]],
+                                       path: str = PICTURES_PATH):
     """
     TODO smiles - или всё же filter_smiles?
     TODO добавить контакты реактивов. Нужно вынести 1 фукнцию, которая ищет по БД все реактивы и возвращает нам и её результат
@@ -59,6 +58,6 @@ def create_similar_smiles_grid_picture(request_smiles: str, molecules: List[Tupl
     img = Draw.MolsToGridImage(ms, molsPerRow=3, subImgSize=(400, 400), legends=legends)
 
     fname = request_smiles.replace("|", "")
-    path = os.path.join(PICTURES_PATH, fname + '_grid.png')
-    img.save(path, bbox_inches="tight")
-    return path
+    fpath = os.path.join(path, fname + '_grid.png')
+    img.save(fpath, bbox_inches="tight")
+    return fpath
