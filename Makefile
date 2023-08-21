@@ -1,8 +1,8 @@
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
 MONGOD_STARTED := $(shell systemctl is-active mongod)
-DOCKER_COMPOSE_CMD := docker-compose -f docker-compose.yml
-DOCKER_COMPOSE_DEV_CMD := docker-compose -f docker-compose.yml -f docker-compose.development.yml
-DOCKER_COMPOSE_TEST_CMD := docker-compose -f docker-compose.pytest.yml
+DOCKER_COMPOSE_CMD := docker compose -f docker-compose.yml
+DOCKER_COMPOSE_DEV_CMD := docker compose -f docker-compose.yml -f docker-compose.development.yml
+DOCKER_COMPOSE_TEST_CMD := docker compose -f docker-compose.pytest.yml
 
 #  COLORS
 GREEN  := $(shell tput -Txterm setaf 2)
