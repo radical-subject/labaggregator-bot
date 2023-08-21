@@ -75,10 +75,13 @@ def find_contacts_and_answer_user(update: Update, user_id: int, reagents: List[R
         cas_smiles.extend([r.smiles for r in reagents_not_my])
         cas_smiles = list(set(cas_smiles))
 
+        contacts = [r.contact for r in reagents_not_my]
+        contacts = list(set(contacts))
+
         #TODO добавить печать location
         update.message.reply_text(f"{', '.join(cas_smiles)}\n"
                                   f"Реагентом могут поделиться эти контакты:\n"
-                                  f"{', '.join([r.contact for r in reagents_not_my])}")
+                                  f"{', '.join(contacts)}")
 
 
 class Search:
@@ -134,11 +137,12 @@ class Search:
                     update.message.reply_text("Реагент не определён (ошибка в CAS?)")
 
             else:
-                ret = "Ищем по пользователям"
+                ret = "Ищем по пользователям\n"
                 if cas_list:
-                    ret += f"\nCAS: {', '.join(cas_list)}\n"
+                    ret += f"CAS: {', '.join(cas_list)}\n"
                 if smiles_list:
-                    ret += f"\nSMILES: {', '.join(smiles_list)}"
+                    ret += f"SMILES: {', '.join(smiles_list)}"
+
                 update.message.reply_text(ret)
 
                 reagents = users_collection.get_reagents_by_cas(cas_list)
@@ -161,7 +165,9 @@ class Search:
 
                         molecules = unique_molecules_collection.get_similar_molecules(filter_smiles, 5)
 
-                        if molecules:  # что-то нашли
+                        if not molecules:
+                            update.message.reply_text(f"Похожие на {smiles} не найдены")
+                        else:  # что-то нашли
                             # similarity 0-1.0 схожесть где 1.0=100%
                             same_inchikey, same_smiles, similarity = molecules[0]
                             if similarity > 0.99:
