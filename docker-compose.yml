@@ -16,6 +16,7 @@ services:
       - MONGO_BOT_USERNAME=bot
       - MONGO_BOT_PASSWORD=botpsswd
       - BOT_TOKEN=${BOT_TOKEN}
+      - PICTURES_PATH=/vendorbot_container/srs/pic
     depends_on:
       - mongodb_api
     volumes:
@@ -37,6 +38,24 @@ services:
       - mongo_dumps:/mongodumps
     # shorten logs
     command: mongod --quiet --logpath /dev/null # логи монго выключены насовсем
+
+  mongo_express:
+    container_name: mongo-express-panel
+    image: mongo-express:latest
+    restart: always
+    ports:
+      - ${MONGO_EXPRESS_PORT:-8081}:${MONGO_EXPRESS_PORT:-8081}
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb_api
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_AUTH_DATABASE=admin
+      - ME_CONFIG_MONGODB_AUTH_USERNAME=root
+      - ME_CONFIG_MONGODB_AUTH_PASSWORD=dr5[gnhn
+      - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_USERNAME:-username}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD:-password}
+    depends_on:
+      - mongodb_api
 
 volumes:
     mongodb_api:
