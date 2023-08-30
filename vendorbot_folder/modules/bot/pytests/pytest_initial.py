@@ -4,7 +4,7 @@ def test_start_message(bot, user, admin):
     Проверим какие команды показываются обычному юзеру, а какие админу
     """
     user_commands = ['/start', '/help', '/manage', '/search']
-    admin_commands = ['/digest', '/dump', '/purge_handler', '/blacklist_reload']
+    admin_commands = ['/digest', '/dump', '/purge_handler', '/blacklist_reload', '/logs']
 
     user.send_command('/start')
 

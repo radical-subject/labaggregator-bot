@@ -1,24 +1,41 @@
 
 class Reagent:
-    cas: str = ''
-    smiles: str = ''
-    filter_smiles: str = ''   # для регистрации в unique_molecules DB
+    cas: str = ""
+    smiles: str = ""
+    filter_smiles: str = ""   # для регистрации в unique_molecules DB
 
-    reagent_id: str = ''      # почему не id ?
-    inchikey_standard: str = ''
-    sharing_status: str = ''  # какие есть кроме shared?
-    timestamp: str = ''   # DATETIME_FMT
+    reagent_id: str = ""     # почему не id ?
+    inchikey_standard: str = ""
+    sharing_status: str = ""  # какие есть кроме shared?
+    timestamp: str = ""   # DATETIME_FMT
 
-    contact: str = ''     # у кого, если было заполнено в csv
-    location: str = ''    # где лежит, если было заполнено в csv
+    contact: str = ""     # у кого есть: из 1й строки csv или самого юзера
+    location: str = ""    # из excel столбца comment
 
     user_id:  int = 0     # заполняется только когда ищем реагент по базе
 
-    name: str = ''  # TODO не понятно откуда взялся, а по нему уже поиск есть ))
+    name: str = ""        # из excel столбца name
+    comment: str = ""     # из excel столбца comment
 
-    def __init__(self, cas='', smiles=''):
+    def __init__(self, cas="", smiles=""):
         self.cas = cas
         self.smiles = smiles
+
+    def __eq__(self, other):
+        """
+        Чтобы можно было сравнивать Reagent ы
+        :param other:
+        :return:
+        """
+        if isinstance(other, Reagent):
+            return self.cas == other.cas\
+                   and self.smiles == other.smiles \
+                   and self.location == other.location \
+                   and self.contact == other.contact
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __str__(self):
         if self.smiles:
@@ -39,7 +56,8 @@ class Reagent:
             "timestamp": self.timestamp,
             "contact": self.contact,
             "location": self.location,
-            "name": self.name
+            "name": self.name,
+            "comment": self.comment,
         }
 
     def from_dict(self, d):
@@ -52,6 +70,7 @@ class Reagent:
         self.contact = d.get("contact", "")
         self.location = d.get("location", "")
         self.name = d.get("name", "")
+        self.comment = d.get("comment", "")
 
 
 REAGENT_SHARED = "shared"

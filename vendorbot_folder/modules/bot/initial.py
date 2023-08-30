@@ -123,8 +123,7 @@ class Initial:
                     MessageHandler(Filters.contact, self.get_contact)
                 ],
             },
-            fallbacks=[MessageHandler(Filters.command, self.exit),
-                       MessageHandler(Filters.text, self.exit)],
+            fallbacks=[MessageHandler(Filters.all, self.exit)],
         )
         
         dispatcher.add_handler(self.conversation_handler, CONV_START)

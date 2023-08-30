@@ -1,9 +1,9 @@
-
 from signal import SIGINT, SIGIOT, SIGPIPE
 
 from telegram import Bot
-from telegram.ext import Updater
+from telegram.ext import Updater, MessageHandler, Filters
 from telegram.utils.request import Request
+
 
 import logging
 from modules.bot.initial import Initial
@@ -14,11 +14,20 @@ from modules.bot.append_dialog import Append
 
 logger = logging.getLogger(__name__)
 
-# def error_callback(update, context):
-#    """
-#    Унылый диалог - просто выводит сообщение и строку ошибки без трейслога
-#    """
-#    logger.warning('Update "%s" caused error "%s"', update, context.error)
+
+def error_callback(update, context):
+    """
+    TODO: Если перезагрузится бот, то состояния всех пользователей рухнут
+    решение 1: вызывать /start
+    решение 2: сделать простейшую файловую БД и там хранить состояния
+    """
+    chat_id = update.message.chat_id
+    text = update.message.text
+    user_id = update.message.from_user.id
+    logger.error(f'chat_id {chat_id}, user_id {user_id}\n'
+                 f'text={text}\n'
+                 f'Update "%s" caused error "%s"', update, context.error)
+    Initial.start(update, context)
 
 
 class BotObject:
@@ -49,7 +58,7 @@ class BotObject:
         self.updater.idle(stop_signals=(SIGINT, SIGIOT, SIGPIPE))  # TODO зачем другие сигналы?
 
     def update_dispatcher(self):
-        #self.dispatcher.add_error_handler(error_callback)
+        self.dispatcher.add_error_handler(error_callback)
 
         self.initial.register_handler(self.dispatcher)
         self.admin.register_handler(self.dispatcher)

@@ -1,11 +1,11 @@
 import os
 import pymongo
-import traceback
-import logging
 
 from io import BytesIO
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.ext import CallbackContext, CommandHandler, CallbackQueryHandler
+
+from setup_logger import log_file_path
 
 from modules.db.dbconfig import MONGO_VENDORBOT_DATABASE, root_client, MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD
 
@@ -18,12 +18,13 @@ from modules.db.unique_molecules import *
 from . import run_async
 from .decorators import is_admin
 
+
+# TODO общение с гуглом стоит в отдельный файл вынести modules/backup.py к примеру
 ## DB backup via Google drive
 from google.oauth2 import service_account
-from googleapiclient.http import MediaIoBaseDownload,MediaFileUpload
+from googleapiclient.http import MediaFileUpload
 from googleapiclient.discovery import build
-import pprint
-import io
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,21 @@ class Admin:
             "👩🏻‍🦰 Do you really want to purge the database?",
             reply_markup=reply_markup
         )
+
+    @is_admin
+    def logs_handler(self, update: Update, context: CallbackContext):
+        """
+        Прислать файл bot.log
+        """
+        chat_id = update.message.chat_id
+        logger.info(f"logs_handler ({chat_id})")
+
+        if not os.path.exists(log_file_path):
+            update.message.reply_text(f"Не найден {log_file_path}")
+        else:
+            with open(log_file_path, 'rb') as f:
+                file = InputFile(f)
+                context.bot.send_document(chat_id=chat_id, document=file)
 
     def button_handler(self, update: Update, context: CallbackContext):
 
@@ -103,7 +119,6 @@ class Admin:
         update.message.reply_text("Wait, im calculating...")
         unique_molecules_collection.calculate_hashes()
         update.message.reply_text(f"database is ready for structure search")
-
 
     @is_admin
     def digest(self, update: Update, context: CallbackContext):
@@ -200,10 +215,9 @@ class Admin:
 
     def register_handler(self, dispatcher):
         dispatcher.add_handler(CommandHandler('purge_handler', self.purge_handler))
+        dispatcher.add_handler(CommandHandler('logs', self.logs_handler))
         dispatcher.add_handler(CommandHandler('dump', self.dump, run_async=run_async()))
         dispatcher.add_handler(CommandHandler('blacklist_reload', self.blacklist_reload, run_async=run_async()))
         dispatcher.add_handler(CommandHandler('calculate_hashes', self.calculate_hashes, run_async=run_async()))
         dispatcher.add_handler(CommandHandler('digest', self.digest, run_async=run_async()))
         dispatcher.add_handler(CallbackQueryHandler(self.button_handler))
-
-        

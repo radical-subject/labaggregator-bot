@@ -45,43 +45,23 @@ def find_contacts_and_answer_user(update: Update, user_id: int, reagents: List[R
     :param reagents:
     :return:
     """
-    reagents_my = []
-    reagents_not_my = []
     for r in reagents:
-        if r.contact:
-            reagents_not_my.append(r)  # кто-то добавил в БД со ссылкой на контакт
-        else:
-            if r.user_id == user_id:
-                reagents_my.append(r)
-            else:
-                r.contact = get_contact(users_collection.get_user(user_id))
-                reagents_not_my.append(r)
 
-    for r in reagents_my:
-        # username в contact не учитываем. НЕ проблема, если мы покажем
+        if r.user_id == user_id:
+            contact = 'вас'
+        elif not r.contact:
+            contact = get_contact(users_collection.get_user(user_id))
+        else:
+            contact = r.contact
+
         if r.location:
             update.message.reply_text(f"{str(r)}\n"
-                                      f"Этот реагент есть у вас. "
-                                      f"Попробуйте поискать его тут:\n\n{r.location}")
+                                      f"Этот реагент есть у {contact}.\n"
+                                      f"Попробуйте поискать его тут:\n{r.location}")
         else:
             update.message.reply_text(f"{str(r)}\n"
-                                      f"Этот реагент есть у вас.\n"
-                                      f"No location was specified.\n"
-                                      f"\n"
-                                      f"Seriously, you're on your own, kiddo.")
-
-    if reagents_not_my:
-        cas_smiles = [r.cas for r in reagents_not_my]  # TODO мне не понятно это 1 cas тут будет или возможны несколько
-        cas_smiles.extend([r.smiles for r in reagents_not_my])
-        cas_smiles = list(set(cas_smiles))
-
-        contacts = [r.contact for r in reagents_not_my]
-        contacts = list(set(contacts))
-
-        #TODO добавить печать location
-        update.message.reply_text(f"{', '.join(cas_smiles)}\n"
-                                  f"Реагентом могут поделиться эти контакты:\n"
-                                  f"{', '.join(contacts)}")
+                                      f"Этот реагент есть у {contact}.\n"
+                                      f"No location was specified.")
 
 
 class Search:
@@ -147,9 +127,9 @@ class Search:
 
                 reagents = users_collection.get_reagents_by_cas(cas_list)
 
-                # чтобы не повторялись (TODO не понятно reagent_id или cas сравнивать)
+                # чтобы не повторялись (TODO не понятно reagent_id или cas сравнивать location может быть разным!)
                 for smile_reagent in users_collection.get_reagents_by_smiles(smiles_list):
-                    if not [r for r in reagents if r.cas != smile_reagent.cas]:
+                    if smile_reagent not in reagents:  # __eq__ в Reagent
                         reagents.append(smile_reagent)
 
                 if reagents:

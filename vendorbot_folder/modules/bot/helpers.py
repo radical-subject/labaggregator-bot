@@ -1,5 +1,5 @@
 import io
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 
 import pandas as pd
 from modules.reagent import Reagent
@@ -9,7 +9,8 @@ from telegram.ext import CallbackContext
 # у каждого conversational handler должна быть своя группа
 CONV_START, CONV_MANAGE, CONV_SEARCH, CONV_APPEND = range(4)
 
-# у всех conversational handler состояний должен быть свой номер. кажется проблема с асинхронными хэндлерами
+# TODO у всех conversational handler состояний должен быть свой номер.
+# кажется проблема с асинхронными хэндлерами
 UPLOAD_STATE, REQ_CONTACT_STATE, SEARCH_STATE, APPEND_STATE = range(4)
 
 
@@ -24,6 +25,7 @@ def bot_commands_text(chat_id):
     if is_admin_chat(chat_id):
         text += """\n== Админам ==
 /calculate_hashes - подготовить базу к поиску
+/logs - скачать bot.log
 /append - добавить новые компоненты в список
 /digest - загрузить все shared
 /purge_handler - очистка бд (только админам)
@@ -108,10 +110,37 @@ def get_contact_from_dataframe(df: pd.DataFrame) -> Tuple[Optional[str], pd.Data
         return None, df
 
 
+def parse_cas(df_value: Any) -> str:
+    """
+    При пустой ячейке там может прочитаться float!
+    :param df_value: ячейка excel
+    :return: строка
+    """
+    if isinstance(df_value, str):
+        return df_value.split("\n")[0]
+
+
 def df_to_reagents(df: pd.DataFrame) -> List[Reagent]:
+    """
+    TODO: мы получили из эксель 100 строк
+    но только 90 строк признали хорошими
+    юзеру будет интересно какие строки признаны плохими,
+    кажется стоит вернуть ему эксель файл или написать номер строк что ли..
+    :param df: прочитанный файл
+    :return: список Reagent
+    """
     out = []
-    for row, value in df["CAS"].items():
-        if isinstance(value, str):
-            value = value.split("\n")[0]
-            out.append(Reagent(value))
+    for index, row in df.iterrows():
+        r = Reagent()
+        if 'CAS' in row.index:
+            r.cas = parse_cas(row['CAS'])
+            if not r.cas:
+                continue   # если нет CAS, то не вставляем в БД
+
+        if 'location' in row.index:
+            r.location = str(row['location'])
+        if 'name' in row.index:
+            r.name = str(row['name'])
+
+        out.append(r)
     return out
