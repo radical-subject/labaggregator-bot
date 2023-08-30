@@ -2,7 +2,7 @@ THIS_FILE := $(lastword $(MAKEFILE_LIST))
 MONGOD_STARTED := $(shell systemctl is-active mongod)
 DOCKER_COMPOSE_CMD := docker compose -f docker-compose.yml
 DOCKER_COMPOSE_DEV_CMD := docker compose -f docker-compose.yml -f docker-compose.development.yml
-DOCKER_COMPOSE_TEST_CMD := docker compose -f docker-compose.pytest.yml
+DOCKER_COMPOSE_TEST_CMD := docker compose -f docker-compose.yml -f docker-compose.pytest.yml
 
 #  COLORS
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -86,7 +86,7 @@ prod_remote: mongod_stop goto_app_src stop
 
 #  stops application
 stop: mongod_stop goto_app_src
-	-docker-compose stop
+	-docker compose stop
 
 #  build container
 build:
@@ -101,7 +101,7 @@ up:
 	-$(DOCKER_COMPOSE_CMD) up -d $(c)
 
 #  build and run in detached mode + 
-build&up:
+buildup:
 	-BOT_TOKEN=${DEVELOPMENT_BOT_TOKEN} $(DOCKER_COMPOSE_CMD) up --build 
 	
 #	&& docker image prune -f $(c)
