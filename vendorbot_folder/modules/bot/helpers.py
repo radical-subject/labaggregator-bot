@@ -1,12 +1,10 @@
-
+import io
 from typing import List, Optional, Tuple
 
-import io
 import pandas as pd
-
-from telegram.ext import CallbackContext
-from telegram import Update
 from modules.reagent import Reagent
+from telegram import Update
+from telegram.ext import CallbackContext
 
 # у каждого conversational handler должна быть своя группа
 CONV_START, CONV_MANAGE, CONV_SEARCH, CONV_APPEND = range(4)
@@ -35,14 +33,24 @@ def bot_commands_text(chat_id):
     return text
 
 
-LIST_OF_ADMINS = [336091411, 122267418, 588927967, 47390523, 250291302, 880726373, 490796163]  # tg id's 336091411, 122267418, 588927967, 47390523
+LIST_OF_ADMINS = [
+    336091411,
+    122267418,
+    588927967,
+    47390523,
+    250291302,
+    880726373,
+    490796163,
+]  # tg id's 336091411, 122267418, 588927967, 47390523
 
 
 def is_admin_chat(chat_id):
     return chat_id in LIST_OF_ADMINS
 
 
-def get_file(update: Update, context: CallbackContext) -> [Optional[io.BytesIO], Optional[str]]:
+def get_file(
+    update: Update, context: CallbackContext
+) -> [Optional[io.BytesIO], Optional[str]]:
     """
     Читаем файл, отправленный в бот
     :param update:
@@ -54,7 +62,7 @@ def get_file(update: Update, context: CallbackContext) -> [Optional[io.BytesIO],
         out = io.BytesIO()
         context.bot.get_file(document).download(out=out)
         out.seek(0)
-        return out, document['file_name']
+        return out, document["file_name"]
     return None, None
 
 
@@ -65,16 +73,18 @@ def file_to_dataframe(file: io.BytesIO, name: str) -> Optional[pd.DataFrame]:
     :param name: имя файла
     :return: pd.DataFrame
     """
-    ext = name.split('.')[-1]
-    if ext == 'txt':
-        return pd.read_csv(file,
-                        names=['CAS'], usecols=[0])
-    elif ext == 'csv':
-        return pd.read_csv(file,
-                        delimiter=';|,|\t', usecols=['CAS', 'location', 'name'],
-                        encoding='unicode_escape')
-    elif ext in ['xlsx', 'xls']:
-        return pd.read_excel(file, usecols=['CAS', 'location', 'name'])
+    ext = name.split(".")[-1]
+    if ext == "txt":
+        return pd.read_csv(file, names=["CAS"], usecols=[0])
+    elif ext == "csv":
+        return pd.read_csv(
+            file,
+            delimiter=";|,|\t",
+            usecols=["CAS", "location", "name"],
+            encoding="unicode_escape",
+        )
+    elif ext in ["xlsx", "xls"]:
+        return pd.read_excel(file, usecols=["CAS", "location", "name"])
 
 
 def get_contact_from_dataframe(df: pd.DataFrame) -> Tuple[Optional[str], pd.DataFrame]:
@@ -87,17 +97,21 @@ def get_contact_from_dataframe(df: pd.DataFrame) -> Tuple[Optional[str], pd.Data
     :return:
     """
     try:
-        if 'CAS' in df:
-            contact = df['CAS'][0]
+        if "CAS" in df:
+            contact = df["CAS"][0]
             if contact.startswith("reagents_contact:"):
-                df = df.iloc[1:]  # удаляем 1ю строчку  TODO а надо ли ? мы уже считали же всё
-            return contact.split(':')[1], df
+                df = df.iloc[
+                    1:
+                ]  # удаляем 1ю строчку  TODO а надо ли ? мы уже считали же всё
+            return contact.split(":")[1], df
     except:
         return None, df
 
 
 def df_to_reagents(df: pd.DataFrame) -> List[Reagent]:
     out = []
-    for row, value in df['CAS'].items():
-        out.append(Reagent(value))
+    for row, value in df["CAS"].items():
+        if isinstance(value, str):
+            value = value.split("\n")[0]
+            out.append(Reagent(value))
     return out
