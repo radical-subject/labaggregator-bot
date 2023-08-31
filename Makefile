@@ -17,7 +17,7 @@ HELP_TARGET_MAX_CHAR_NUM=20
 	pull \
 	mongod_stop \
 	help \
-	env_dev \
+	dev \
 	env_prod \
 	env_test \
 	goto_app_src \
@@ -36,6 +36,7 @@ HELP_TARGET_MAX_CHAR_NUM=20
 	db-shell \
 	prod_remote \
 	mongodb_shell \
+	annihilate \
 	bot_shell
 
 #  Stops mongod service if it is running
@@ -66,10 +67,10 @@ help:
 	{ lastLine = $$0 }' $(MAKEFILE_LIST)
 
 goto_app_src:
-	-cd ~/vendor_bot/
+	-cd ~/labaggregator-bot/
 
 #  Run development environment
-env_dev:
+dev:
 	-BOT_TOKEN=${DEVELOPMENT_BOT_TOKEN} $(DOCKER_COMPOSE_DEV_CMD) up --build $(c)
 
 #  Builds docker compose file in this directory with prod token and launches bot
@@ -162,3 +163,7 @@ endif
 cron_install_update:
 	-crontab -l | grep -q update_if_needed || \
 	({ crontab -l; echo "*/15 * * * * cd $(shell pwd -P) && make update_if_needed"; } | crontab -)
+
+#  annihilate all docker images on device
+annihilate: 
+	docker rm -vf $(shell docker ps -aq) && docker rmi -f $(shell docker images -aq)

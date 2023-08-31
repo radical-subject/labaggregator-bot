@@ -45,6 +45,11 @@ def find_contacts_and_answer_user(update: Update, user_id: int, reagents: List[R
     :param reagents:
     :return:
     """
+    logger.info(f"{reagents}")
+
+    response = []
+    contacts = []
+    locations = []
     for r in reagents:
 
         if r.user_id == user_id:
@@ -57,21 +62,52 @@ def find_contacts_and_answer_user(update: Update, user_id: int, reagents: List[R
         if r.user_id == user_id:
             
             if r.location:
-                update.message.reply_text(f"{str(r)}\n"
-                                        f"Этот реагент есть у {contact}.\n"
-                                        f"Попробуйте поискать его тут:\n{r.location}")
-            else:
-                update.message.reply_text(f"{str(r)}\n"
-                                        f"Этот реагент есть у {contact}.\n"
-                                        f"No location was specified.")
+                locations.append(r.location)
+                
         else:
 
             if r.location:
-                update.message.reply_text(f"{str(r)}\n"
-                                        f"Этот реагент есть у {contact}.\n")
-            else:
-                update.message.reply_text(f"{str(r)}\n"
-                                        f"Этот реагент есть у {contact}.\n")
+                contacts.append(r.contact)
+
+
+    
+    if locations != []:
+        message_text = '\n'.join(locations)
+        update.message.reply_text(f"{str(r)}\n"
+                                f"Этот реагент есть у вас.\n"
+                                f"Попробуйте поискать его тут:\n{message_text}")
+    elif contacts != []:
+        message_text = '\n'.join(contacts)
+        update.message.reply_text(f"{str(r)}\n"
+                                f"Этот реагент есть у {'-'.join(message_text)}.\n")
+        # else:
+
+        #     if r.location:
+        #         update.message.reply_text(f"{str(r)}\n"
+        #                                 f"Этот реагент есть у {contact}.\n")
+        #     else:
+        #         update.message.reply_text(f"{str(r)}\n"
+        #                                 f"Этот реагент есть у {contact}.\n")
+
+
+        # if r.user_id == user_id:
+            
+        #     if r.location:
+        #         update.message.reply_text(f"{str(r)}\n"
+        #                                 f"Этот реагент есть у {contact}.\n"
+        #                                 f"Попробуйте поискать его тут:\n{r.location}")
+        #     else:
+        #         update.message.reply_text(f"{str(r)}\n"
+        #                                 f"Этот реагент есть у {contact}.\n"
+        #                                 f"No location was specified.")
+        # else:
+
+        #     if r.location:
+        #         update.message.reply_text(f"{str(r)}\n"
+        #                                 f"Этот реагент есть у {contact}.\n")
+        #     else:
+        #         update.message.reply_text(f"{str(r)}\n"
+        #                                 f"Этот реагент есть у {contact}.\n")
 
 
 class Search:
