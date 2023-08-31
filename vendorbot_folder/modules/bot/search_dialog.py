@@ -54,14 +54,24 @@ def find_contacts_and_answer_user(update: Update, user_id: int, reagents: List[R
         else:
             contact = r.contact
 
-        if r.location:
-            update.message.reply_text(f"{str(r)}\n"
-                                      f"Этот реагент есть у {contact}.\n"
-                                      f"Попробуйте поискать его тут:\n{r.location}")
+        if r.user_id == user_id:
+            
+            if r.location:
+                update.message.reply_text(f"{str(r)}\n"
+                                        f"Этот реагент есть у {contact}.\n"
+                                        f"Попробуйте поискать его тут:\n{r.location}")
+            else:
+                update.message.reply_text(f"{str(r)}\n"
+                                        f"Этот реагент есть у {contact}.\n"
+                                        f"No location was specified.")
         else:
-            update.message.reply_text(f"{str(r)}\n"
-                                      f"Этот реагент есть у {contact}.\n"
-                                      f"No location was specified.")
+
+            if r.location:
+                update.message.reply_text(f"{str(r)}\n"
+                                        f"Этот реагент есть у {contact}.\n")
+            else:
+                update.message.reply_text(f"{str(r)}\n"
+                                        f"Этот реагент есть у {contact}.\n")
 
 
 class Search:
