@@ -37,7 +37,7 @@ def unique_reagents(same_inchikey: str, same_smiles: str) -> List[Reagent]:
     return reagents
 
 
-def find_contacts_and_answer_user(update: Update, user_id: int, reagents: List[Reagent]) -> None:
+def find_contacts_and_locations_and_answer_user(update: Update, user_id: int, reagents: List[Reagent]) -> None:
     """
     Отвечаем где находится реагенты, согласно их местоположению
     :param update:
@@ -67,7 +67,7 @@ def find_contacts_and_answer_user(update: Update, user_id: int, reagents: List[R
         else:
 
             if r.location:
-                contacts.append(r.contact)
+                contacts.append(contact)
 
 
     
@@ -79,35 +79,7 @@ def find_contacts_and_answer_user(update: Update, user_id: int, reagents: List[R
     elif contacts != []:
         message_text = '\n'.join(contacts)
         update.message.reply_text(f"{str(r)}\n"
-                                f"Этот реагент есть у {'-'.join(message_text)}.\n")
-        # else:
-
-        #     if r.location:
-        #         update.message.reply_text(f"{str(r)}\n"
-        #                                 f"Этот реагент есть у {contact}.\n")
-        #     else:
-        #         update.message.reply_text(f"{str(r)}\n"
-        #                                 f"Этот реагент есть у {contact}.\n")
-
-
-        # if r.user_id == user_id:
-            
-        #     if r.location:
-        #         update.message.reply_text(f"{str(r)}\n"
-        #                                 f"Этот реагент есть у {contact}.\n"
-        #                                 f"Попробуйте поискать его тут:\n{r.location}")
-        #     else:
-        #         update.message.reply_text(f"{str(r)}\n"
-        #                                 f"Этот реагент есть у {contact}.\n"
-        #                                 f"No location was specified.")
-        # else:
-
-        #     if r.location:
-        #         update.message.reply_text(f"{str(r)}\n"
-        #                                 f"Этот реагент есть у {contact}.\n")
-        #     else:
-        #         update.message.reply_text(f"{str(r)}\n"
-        #                                 f"Этот реагент есть у {contact}.\n")
+                                f"Этот реагент есть у {message_text}.\n")
 
 
 class Search:
@@ -179,11 +151,11 @@ class Search:
                         reagents.append(smile_reagent)
 
                 if reagents:
-                    find_contacts_and_answer_user(update, user_id, reagents)
+                    find_contacts_and_locations_and_answer_user(update, user_id, reagents)
 
                 else:
-                    # TODO лучше префразировать, т.к. дальше пойдем искать другими путями
-                    update.message.reply_text(f"Именно этим реагентом пока никто не готов поделиться.")
+                    # # TODO лучше префразировать, т.к. дальше пойдем искать другими путями
+                    # update.message.reply_text(f"Именно этим реагентом пока никто не готов поделиться.")
 
                     for smiles in smiles_list:
 
@@ -199,10 +171,11 @@ class Search:
                             if similarity > 0.99:
                                 reagents = unique_reagents(same_inchikey, same_smiles)
                                 if reagents:
+                                    message_text = ', '.join([str(r) for r in reagents if r not in reagents])
                                     update.message.reply_text(f"Наиболее похожий на ваш запрос реагент\n"
-                                                              f"(cхожесть с запросом {similarity*100:.2f}%):"
-                                                              f"{', '.join([str(r) for r in reagents])}")
-                                    find_contacts_and_answer_user(update, user_id, reagents)
+                                                              f"(cхожесть с запросом {similarity*100}%):"
+                                                              f"{message_text}")
+                                    find_contacts_and_locations_and_answer_user(update, user_id, reagents)
 
                                     path = create_smiles_picture(same_smiles)
                                     send_photo(context, chat_id, path)
@@ -213,10 +186,11 @@ class Search:
                                     reagents = unique_reagents(same_inchikey, same_smiles)
                                     if reagents:
                                         pers = f"{similarity*100:.2f}"
+                                        message_text = ', '.join([str(r) for r in reagents if r not in reagents])
                                         update.message.reply_text(f"Похожий на {pers}% на искомый реагент:\n"
-                                                                  f"{', '.join([str(r) for r in reagents])}")
+                                                                  f"{message_text}")
 
-                                        find_contacts_and_answer_user(update, user_id, reagents)
+                                        find_contacts_and_locations_and_answer_user(update, user_id, reagents)
 
                                 path = create_similar_smiles_grid_picture(smiles, molecules)
                                 send_photo(context, chat_id, path)
