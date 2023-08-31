@@ -12,7 +12,8 @@ def main():
     setup_logger()
     bot = BotObject(token)
     bot.start()
+    return bot
 
 
 if __name__ == '__main__':
-    main()
+    bot = main()
