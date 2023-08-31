@@ -30,10 +30,10 @@ def send_photo(context, chat_id, file_path):
 
 def unique_reagents(same_inchikey: str, same_smiles: str) -> List[Reagent]:
     reagents = users_collection.get_reagents_by_inchi(same_inchikey)
-    for smile_reagent in users_collection.get_reagents_by_smiles(same_smiles):
-        # чтобы не повторялись (TODO не понятно reagent_id или inchi_key сравнивать)
-        if not [r for r in reagents if r.inchikey_standard != smile_reagent.inchikey_standard]:
-            reagents.append(smile_reagent)
+    # for smile_reagent in users_collection.get_reagents_by_smiles(same_smiles):
+    #     # чтобы не повторялись (TODO не понятно reagent_id или inchi_key сравнивать)
+    #     if not [r for r in reagents if r.inchikey_standard != smile_reagent.inchikey_standard]:
+    #         reagents.append(smile_reagent)
     return reagents
 
 
@@ -66,10 +66,10 @@ def find_contacts_and_locations_and_answer_user(update: Update, user_id: int, re
                 
         else:
 
-            if r.location:
-                contacts.append(contact)
+            # if r.location:
+            contacts.append(contact)
 
-
+    logger.info(contacts)
     
     if locations != []:
         message_text = '\n'.join(locations)
@@ -203,7 +203,7 @@ class Search:
                                         
                                         update.message.reply_text(f"Похожий на {pers}% на искомый реагент:\n"
                                                                   f"{message_text}")
-
+                                        logger.info((user_id, reagents))
                                         find_contacts_and_locations_and_answer_user(update, user_id, reagents)
 
                                 path = create_similar_smiles_grid_picture(smiles, molecules)
