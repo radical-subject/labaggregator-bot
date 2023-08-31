@@ -171,10 +171,10 @@ class Search:
                             if similarity > 0.99:
                                 reagents = unique_reagents(same_inchikey, same_smiles)
                                 if reagents:
-                                    message_text = ', '.join([str(r) for r in reagents if r not in reagents])
+                                    
                                     update.message.reply_text(f"Наиболее похожий на ваш запрос реагент\n"
                                                               f"(cхожесть с запросом {similarity*100}%):"
-                                                              f"{message_text}")
+                                                              f"{', '.join([str(r) for r in reagents])}")
                                     find_contacts_and_locations_and_answer_user(update, user_id, reagents)
 
                                     path = create_smiles_picture(same_smiles)
@@ -188,7 +188,7 @@ class Search:
                                         pers = f"{similarity*100:.2f}"
                                         message_text = ', '.join([str(r) for r in reagents if r not in reagents])
                                         update.message.reply_text(f"Похожий на {pers}% на искомый реагент:\n"
-                                                                  f"{message_text}")
+                                                                  f"{', '.join([str(r) for r in reagents])}")
 
                                         find_contacts_and_locations_and_answer_user(update, user_id, reagents)
 
