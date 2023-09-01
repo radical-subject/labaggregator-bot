@@ -1,21 +1,25 @@
 
 class Reagent:
-    cas: str = ""
-    smiles: str = ""
-    filter_smiles: str = ""   # для регистрации в unique_molecules DB
+    """
+    Реагент = пробирка. Список Reagent хранится в БД пользователей.
+    """
+    reagent_id: str = ""         #
+    inchikey_standard: str = ""  # Молекула вещества. Может быть 2 reagent с одинаковыми inchikey, разными location.
 
-    reagent_id: str = ""     # почему не id ?
-    inchikey_standard: str = ""
-    sharing_status: str = ""  # какие есть кроме shared?
-    timestamp: str = ""   # DATETIME_FMT
+    name: str = ""        # Название Реагента из XLSX пользователя. Может быть любым. Не обязательно.
+    cas: str = ""         # CAS реагента из XLSX. Реагенты без CAS не добавляются. Обязательно.
+                          # TODO: Сделать CAS не обязательным. могут добавится, если заполнено NAME
+    smiles: str = ""      # TODO: нужно хранить то, что в XLSX пользователя. и делать по нему поиск 1в1
+    filter_smiles: str = ""  # нейтрализованный SMILES. вдруг по ним тоже будут искать.
 
-    contact: str = ""     # у кого есть: из 1й строки csv или самого юзера
-    location: str = ""    # из excel столбца comment
+    contact: str = ""     # если указан в 1й строке. Если нет, то пустое поле.
+    location: str = ""    # из excel столбца
+    comment: str = ""     # из excel столбца comment
+
+    sharing_status: str = ""  # какие есть кроме shared? TODO убрать, если не нужен.
+    timestamp: str = ""   # DATETIME_FMT TODO убрать, если не нужен.
 
     user_id:  int = 0     # заполняется только когда ищем реагент по базе
-
-    name: str = ""        # из excel столбца name
-    comment: str = ""     # из excel столбца comment
 
     def __init__(self, cas="", smiles=""):
         self.cas = cas
@@ -23,6 +27,7 @@ class Reagent:
 
     def __eq__(self, other):
         """
+        TODO: кажется нужно переписать или дополнить. Может кстати только reagent_id сравнивать и всё.
         Чтобы можно было сравнивать Reagent ы
         :param other:
         :return:

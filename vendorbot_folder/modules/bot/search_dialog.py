@@ -72,19 +72,19 @@ def find_contacts_and_locations(update: Update, user_id: int, reagents: List[Rea
 
     contacts = set(contacts)
     
-    return (locations, contacts)
+    return locations, contacts
 
-def answer_user(update: Update, locations:list, contacts:list, message_text):
 
-    if locations != []:
+def answer_user(update: Update, locations: list, contacts: list, message_text):
+
+    if locations:
         locations_text = '\n'.join(locations)
         return update.message.reply_text(f"{message_text}\n"
-                                f"Попробуйте поискать его тут:\n{locations_text}")
-    elif contacts != []:
+                                         f"Попробуйте поискать его тут:\n{locations_text}")
+    elif contacts:
         contacts_text = '\n'.join(contacts)
-        return update.message.reply_text(
-                                f"{contacts_text}\n"
-                                f"Этот реагент есть у {message_text}.\n")
+        return update.message.reply_text(f"{contacts_text}\n"
+                                         f"Этот реагент есть у {message_text}.\n")
 
 
 class Search:
