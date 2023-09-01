@@ -1,8 +1,9 @@
 import os
 import traceback
 import logging
+from time import sleep
 
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, error
 from telegram.ext import CallbackContext, CommandHandler, ConversationHandler, \
     MessageHandler, Filters
 
@@ -196,11 +197,13 @@ class Search:
                                     path = create_smiles_picture(same_smiles)
                                     send_photo(context, chat_id, path)
                             else:
-                                
+                                update.message.reply_text(f"Точного совпадения нет.")
+                                total_hit_reagents_count = []
                                 for index, molecule in enumerate(molecules):
                                     same_inchikey, same_smiles, similarity = molecule
-
+                                    
                                     reagents = unique_reagents(same_inchikey, same_smiles)
+                                    total_hit_reagents_count += reagents
                                     logger.info((same_inchikey, same_smiles))
                                     if reagents:
                                         
@@ -211,21 +214,26 @@ class Search:
                                         for item in non_unique_reagents_list:
                                             if item not in unique_reagents_list:
                                                 unique_reagents_list.append(item) 
-                                        message_text = f"Точного совпадения нет.\nПохожий на {pers}% на искомый реагент есть у вас:\n" + ', '.join(unique_reagents_list)
+                                        message_text = f"Похожий на {pers}% на искомый реагент:\n" + ', '.join(unique_reagents_list)
                                         
                                         
                                         (locations, contacts) = find_contacts_and_locations(update, user_id, reagents)
                                         answer_user(update, locations, contacts, message_text)
 
-                                        path = create_similar_smiles_grid_picture(smiles, molecules)
-                                        send_photo(context, chat_id, path)
-                                    
-                                    else:
-                                        context.bot.edit_message_text(
-                                            text=f'Ничегошеньки не найдено! too bad, so sad!',
-                                            chat_id=sent_message.chat_id,
-                                            message_id=sent_message.message_id
+
+                                logger.info(total_hit_reagents_count)
+                                if total_hit_reagents_count == []:
+                                    try: 
+                                        sleep(1)
+                                        sent_message.edit_text(
+                                            text='Ничего не найдено! too bad, so sad!'
                                         )
+                                        sleep(1)
+                                    except error.BadRequest:
+                                        logger.info("do not be afraid, it is a harmles telegram API bug wrapped in try/except")
+                                    
+                                    path = create_similar_smiles_grid_picture(smiles, molecules)
+                                    send_photo(context, chat_id, path)
 
         except Exception as err:
             logger.error(traceback.format_exc())
