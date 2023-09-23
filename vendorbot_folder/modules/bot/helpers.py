@@ -136,11 +136,12 @@ def df_to_reagents(df: pd.DataFrame) -> List[Reagent]:
             r.cas = parse_cas(row['CAS'])
             if not r.cas:
                 continue   # если нет CAS, то не вставляем в БД
-
         if 'location' in row.index:
             r.location = str(row['location'])
         if 'name' in row.index:
             r.name = str(row['name'])
+        if 'contact' in row.index:
+            r.contact = str(row['contact'])
 
         out.append(r)
     return out

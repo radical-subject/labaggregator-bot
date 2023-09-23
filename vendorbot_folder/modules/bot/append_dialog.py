@@ -32,8 +32,14 @@ class Append:
         chat_id = update.message.chat_id
         logger.info(f"append({chat_id})")
         update.message.reply_text("Отправьте мне .txt файл со списком CAS-номеров столбиком, "
-                                  "следующего формата:\n\n<b>12411-12-3</b>\n<b>45646-23-2</b>\netc.\n\n"
-                                  "Send cas list in .txt format.",
+                                  "следующего формата:\n"
+                                  "\n"
+                                  "<b>12411-12-3</b>\n"
+                                  "<b>45646-23-2</b>\n"
+                                  "etc.\n"
+                                  "\n"
+                                  "Либо таблицу Excel формата:\n"
+                                  "<b>[ CAS | location | name | contact]</b>\n",
                                   parse_mode=ParseMode.HTML)
 
         return APPEND_STATE

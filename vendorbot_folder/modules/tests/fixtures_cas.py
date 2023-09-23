@@ -1,5 +1,6 @@
 import pytest
 from unittest import mock
+from unittest.mock import MagicMock
 
 
 @pytest.fixture(autouse=True)
@@ -8,10 +9,25 @@ def mock_batch_reagent_cas_to_smiles() -> None:
         yield mocker
 
 
+# тестовая БД для функции cirpy.resolve
+cirpy_db = {
+    "2749-11-3": "C[C@H]([NH3+])CO",
+    "120-46-7": "O=C(CC(=O)c1ccccc1)c2ccccc2",
+    "13896-65-6": "[Ru+3].[I-].[I-].[I-]",
+    "15243-33-1": "C",
+    "917-64-6": "CC",
+    "94-02-0": "CCC"
+}
+
+
 @pytest.fixture(autouse=True)
 def mock_cirpy_resolve() -> None:
     with mock.patch("cirpy.resolve") as mocker:
-        yield mocker
+        def _mocked_function(cas):
+            if cas in cirpy_db:
+                return cirpy_db[cas]
+            return None
+        yield MagicMock(side_effect=_mocked_function)
 
 
 @pytest.fixture(autouse=True)

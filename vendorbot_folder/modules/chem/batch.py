@@ -12,6 +12,6 @@ def batch_reagent_cas_to_smiles(reagents: List[Reagent]) -> List[Reagent]:
     :return: list of reagents with filled SMILES if possible
             [Reagent(cas='1-2-1', smiles='COC'), Reagent(cas='14-1-5', smiles=None)]
     """
-    with Pool(processes=50) as pool:
+    with Pool(processes=min(50, len(reagents))) as pool:
         out = pool.map(get_reagent_cas_smiles, reagents)
     return out

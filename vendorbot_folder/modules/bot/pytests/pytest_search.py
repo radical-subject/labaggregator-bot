@@ -87,8 +87,6 @@ def test_search_cas(purge_users_collection: None,  # очищаем БД
                     mock_cirpy_resolve,
                     mock_pubchempy_get_compounds):
 
-    mock_cirpy_resolve.side_effect = ["C[C@H]([NH3+])CO"]
-
     dbuser = create_user_with_reagents(user, reagents1)
     dbadmin = create_user_with_reagents(admin, reagents2)
 
@@ -108,8 +106,6 @@ def test_search_cas(purge_users_collection: None,  # очищаем БД
     assert f"Этот реагент есть у вас." in text, text
 
     # у двоих есть
-
-    mock_cirpy_resolve.side_effect = ["O=C(CC(=O)c1ccccc1)c2ccccc2"]
 
     user.send_message("120-46-7")
 

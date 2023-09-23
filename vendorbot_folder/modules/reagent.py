@@ -3,14 +3,16 @@ class Reagent:
     """
     Реагент = пробирка. Список Reagent хранится в БД пользователей.
     """
-    reagent_id: str = ""         #
+    reagent_id: str = ""         # Уникальный в БД
     inchikey_standard: str = ""  # Молекула вещества. Может быть 2 reagent с одинаковыми inchikey, разными location.
 
+    # поля для поиска
     name: str = ""        # Название Реагента из XLSX пользователя. Может быть любым. Не обязательно.
     cas: str = ""         # CAS реагента из XLSX. Реагенты без CAS не добавляются. Обязательно.
                           # TODO: Сделать CAS не обязательным. могут добавится, если заполнено NAME
-    smiles: str = ""      # TODO: нужно хранить то, что в XLSX пользователя. и делать по нему поиск 1в1
+    smiles: str = ""      # из XLSX пользователя
     filter_smiles: str = ""  # нейтрализованный SMILES. вдруг по ним тоже будут искать.
+    #
 
     contact: str = ""     # если указан в 1й строке. Если нет, то пустое поле.
     location: str = ""    # из excel столбца
@@ -33,10 +35,7 @@ class Reagent:
         :return:
         """
         if isinstance(other, Reagent):
-            return self.cas == other.cas\
-                   and self.smiles == other.smiles \
-                   and self.location == other.location \
-                   and self.contact == other.contact
+            return self.reagent_id == other.reagent_id
         return False
 
     def __ne__(self, other):
@@ -57,6 +56,7 @@ class Reagent:
             "inchikey_standard": self.inchikey_standard,
             "CAS": self.cas,
             "SMILES": self.smiles,
+            "SMILES_filtered": self.filter_smiles,
             "sharing_status": self.sharing_status,
             "timestamp": self.timestamp,
             "contact": self.contact,

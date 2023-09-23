@@ -38,53 +38,49 @@ def unique_reagents(same_inchikey: str, same_smiles: str) -> List[Reagent]:
     return reagents
 
 
-def find_contacts_and_locations(update: Update, user_id: int, reagents: List[Reagent]) -> None:
+def answer_user(user_id: int, reagents: List[Reagent]) -> str:
     """
-    Отвечаем где находится реагенты, согласно их местоположению
-    :param update:
+    Отвечаем где находится реагенты:
+    1. Если реагент у этого же пользователя, то вернем location (если есть)
+    2. Если реагент у этого же пользователя, но заполнено поле contact, вернём его.
+    3. Если реагент у другого пользователя, то вернём его контакт.
     :param user_id:
     :param reagents:
     :return:
     """
     logger.info([(r.contact, r.cas) for r in reagents])
 
-    response = []
     contacts = []
     locations = []
     for r in reagents:
-
         if r.user_id == user_id:
-            contact = 'вас'
-        elif not r.contact:
-            contact = get_contact(users_collection.get_user(user_id))
+            if r.contact:
+                contacts.append(r.contact)
+            else:
+                if r.location:
+                    locations.append(r.location)
+                else:
+                    contacts.append('вас')
         else:
-            contact = r.contact
-
-        if r.user_id == user_id:
-            
-            if r.location:
-                locations.append(r.location)
-                
-        else:
-
-            # if r.location:
+            contact = get_contact(users_collection.get_user(r.user_id))
             contacts.append(contact)
 
-    contacts = set(contacts)
-    
-    return locations, contacts
+    locations = list(set(locations))
+    contacts = list(set(contacts))
 
-
-def answer_user(update: Update, locations: list, contacts: list, message_text):
-
+    reply_text = ''
     if locations:
-        locations_text = '\n'.join(locations)
-        return update.message.reply_text(f"{message_text}\n"
-                                         f"Попробуйте поискать его тут:\n{locations_text}")
-    elif contacts:
-        contacts_text = '\n'.join(contacts)
-        return update.message.reply_text(f"{contacts_text}\n"
-                                         f"Этот реагент есть у {message_text}.\n")
+        reply_text += f"Этот реагент есть у вас.\n" \
+                      f"Попробуйте поискать его тут:\n{', '.join(locations)}."
+        contacts.remove('вас')
+
+    if contacts:
+        if locations:
+            reply_text += f"\nТакже этот реагент есть у {', '.join(contacts)}."
+        else:
+            reply_text += f"Этот реагент есть у {', '.join(contacts)}.\n"
+
+    return reply_text
 
 
 class Search:
@@ -126,114 +122,76 @@ class Search:
         logger.info(f"search_cas({chat_id}): {text}")
 
         try:
-            reagents = []
-
-            # TODO кажется в what_reagent сюда нужно добавить поиск по названию компонента
-            cas_list, smiles_list = what_reagent(text)
-
-            if not cas_list and not smiles_list:
-                update.message.reply_text(f"Ищем по пользователям\n"
-                                          f"название: {text}")
-
-                reagents = users_collection.get_reagents_by_name(text)
-                if not reagents:
-                    update.message.reply_text("Реагент не определён (ошибка в CAS?)")
-
+            # ищем точное совпадение
+            reagents = users_collection.get_reagents_by_text(text)
+            if reagents:
+                update.message.reply_text(answer_user(user_id, reagents))
             else:
-                ret = "Ищем по пользователям\n"
-                if cas_list:
-                    ret += f"CAS: {', '.join(cas_list)}\n"
-                if smiles_list:
-                    ret += f"SMILES: {', '.join(smiles_list)}"
-
-                sent_message = update.message.reply_text(ret)
-
-                reagents = users_collection.get_reagents_by_cas(cas_list)
-
-                # чтобы не повторялись (TODO не понятно reagent_id или cas сравнивать location может быть разным!)
-                for smile_reagent in users_collection.get_reagents_by_smiles(smiles_list):
-                    if smile_reagent not in reagents:  # __eq__ в Reagent
-                        reagents.append(smile_reagent)
-
-                if reagents:
-                    (locations, contacts) = find_contacts_and_locations(update, user_id, reagents)
-
-                    logger.info("ЗДЕСЬ??")
-                    answer_user(update, locations, contacts, "")
-
-
+                cas_list, smiles_list = what_reagent(text)
+                if not cas_list and not smiles_list:
+                    update.message.reply_text("Реагент не определён (ошибка в CAS?)")
                 else:
-                    # # TODO лучше префразировать, т.к. дальше пойдем искать другими путями
-                    # update.message.reply_text(f"Именно этим реагентом пока никто не готов поделиться.")
+                    ret = "Ищем по пользователям\n"
+                    if cas_list:
+                        ret += f"CAS: {', '.join(cas_list)}\n"
+                    if smiles_list:
+                        ret += f"SMILES: {', '.join(smiles_list)}"
 
-                    for smiles in smiles_list:
+                    update.message.reply_text(ret)
 
-                        filter_smiles = helpers.filter_smiles_by_neutralize_atoms(smiles)  # TODO добавил. правильно?
+                    reagents_cas = users_collection.get_reagents_by_cas(cas_list)
+                    reagents_smiles = users_collection.get_reagents_by_smiles(smiles_list)
 
-                        molecules = unique_molecules_collection.get_similar_molecules(filter_smiles, 5)
+                    reagents = list(set(reagents_cas + reagents_smiles))
 
-                        if not molecules:
-                            update.message.reply_text(f"Похожие на {smiles} не найдены")
-                        else:  # что-то нашли
-                            # similarity 0-1.0 схожесть где 1.0=100%
-                            logger.info("я здесь")
-                            same_inchikey, same_smiles, similarity = molecules[0]
-                            if similarity > 0.99:
-                                reagents = unique_reagents(same_inchikey, same_smiles)
-                                if reagents:
-                                    
-                                    non_unique_reagents_list = [str(r) for r in reagents]
-                                    unique_reagents_list =[]
-                                    for item in non_unique_reagents_list:
-                                        if item not in unique_reagents_list:
-                                            unique_reagents_list.append(item) 
-                                    message_text = f"Скорее всего вы ищете \n" + ', '.join(unique_reagents_list) + f"(cхожесть с запросом {similarity*100}%):"
-                                    
-                                    (locations, contacts) = find_contacts_and_locations(update, user_id, reagents)
+                    if reagents:
+                        update.message.reply_text(answer_user(user_id, reagents))
+                    else:
+                        for smiles in smiles_list:
+                            filter_smile = helpers.filter_smiles_by_neutralize_atoms(smiles)
+                            molecules = unique_molecules_collection.get_similar_molecules(filter_smile, 5)
 
-                                    
-                                    answer_user(update, locations, contacts, message_text)
+                            if not molecules:
+                                update.message.reply_text(f"Похожие на {smiles} не найдены")
+                            else:  # что-то нашли
+                                # similarity 0-1.0 схожесть где 1.0=100%
+                                same_inchikey, same_smiles, similarity = molecules[0]
+                                if similarity > 0.99:
+                                    reagents_smiles = users_collection.get_reagents_by_smiles(same_smiles)
+                                    reagents_inchikey = users_collection.get_reagents_by_inchi(same_inchikey)
+                                    reagents = list(set(reagents_smiles + reagents_inchikey))
 
-                                    path = create_smiles_picture(same_smiles)
-                                    send_photo(context, chat_id, path)
-                            else:
-                                update.message.reply_text(f"Точного совпадения нет.")
-                                total_hit_reagents_count = []
-                                for index, molecule in enumerate(molecules):
-                                    same_inchikey, same_smiles, similarity = molecule
-                                    
-                                    reagents = unique_reagents(same_inchikey, same_smiles)
-                                    total_hit_reagents_count += reagents
-                                    logger.info((same_inchikey, same_smiles))
                                     if reagents:
-                                        
-                                        pers = f"{similarity*100:.2f}"
-                                        
-                                        non_unique_reagents_list = [str(r) for r in reagents]
-                                        unique_reagents_list =[]
-                                        for item in non_unique_reagents_list:
-                                            if item not in unique_reagents_list:
-                                                unique_reagents_list.append(item) 
-                                        message_text = f"Похожий на {pers}% на искомый реагент:\n" + ', '.join(unique_reagents_list)
-                                        
-                                        
-                                        (locations, contacts) = find_contacts_and_locations(update, user_id, reagents)
-                                        answer_user(update, locations, contacts, message_text)
+                                        update.message.reply_text(f"Скорее всего вы ищете\n" \
+                                                                  f"{reagents}" \
+                                                                  f"(cхожесть с запросом {similarity*100}%):")
+                                        update.message.reply_text(answer_user(user_id, reagents))
 
+                                        path = create_smiles_picture(same_smiles)
+                                        send_photo(context, chat_id, path)
+                                    else:
+                                        logger.error('Должны были найти, но не нашли: {same_smiles}')
+                                        update.message.reply_text(f"Похожие на {same_smiles} не найдены")
+                                else:
+                                    update.message.reply_text(f"Точного совпадения нет.")
 
-                                logger.info(total_hit_reagents_count)
-                                if total_hit_reagents_count == []:
-                                    try: 
-                                        sleep(1)
-                                        sent_message.edit_text(
-                                            text='Ничего не найдено! too bad, so sad!'
-                                        )
-                                        sleep(1)
-                                    except error.BadRequest:
-                                        logger.info("do not be afraid, it is a harmles telegram API bug wrapped in try/except")
-                                    
-                                    path = create_similar_smiles_grid_picture(smiles, molecules)
-                                    send_photo(context, chat_id, path)
+                                    for index, molecule in enumerate(molecules):
+                                        same_inchikey, same_smiles, similarity = molecule
+
+                                        reagents_smiles = users_collection.get_reagents_by_smiles(same_smiles)
+                                        reagents_inchikey = users_collection.get_reagents_by_inchi(same_inchikey)
+                                        reagents = list(set(reagents_smiles + reagents_inchikey))
+
+                                        if reagents:
+                                            update.message.reply_text(
+                                                f"Совпадение с искомым реагентом "
+                                                f"{similarity*100:.2f}% у:\n" \
+                                                f"{', '.join([r.smiles for r in reagents])}")
+
+                                            update.message.reply_text(answer_user(user_id, reagents))
+
+                                        path = create_similar_smiles_grid_picture(smiles, molecules)
+                                        send_photo(context, chat_id, path)
 
         except Exception as err:
             logger.error(traceback.format_exc())

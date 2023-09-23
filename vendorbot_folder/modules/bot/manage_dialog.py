@@ -44,11 +44,7 @@ class Manage:
                                   "etc.\n"
                                   "\n"
                                   "Либо таблицу Excel формата:\n"
-                                  "<b>[ CAS | location | name ]</b>\n"
-                                  "\n"
-                                  "Send cas list in .txt format.\n"
-                                  "or Excel sheet with headers \n"
-                                  "<b>[ CAS | location | name ]</b>",
+                                  "<b>[ CAS | location | name | contact]</b>\n",
                                   parse_mode=ParseMode.HTML)
         return UPLOAD_STATE
 

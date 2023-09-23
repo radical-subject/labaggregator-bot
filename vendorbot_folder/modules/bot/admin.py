@@ -1,5 +1,6 @@
 import os
 import pymongo
+import xlsxwriter
 
 from io import BytesIO
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
@@ -13,6 +14,7 @@ from modules.db.users import users_collection
 from modules.db import dbschema
 from modules.db.blacklist import blacklist_engine
 from modules.db.mongodb import dump_database
+from modules.db.dbschema import get_contact
 from modules.db.unique_molecules import *
 
 from . import run_async
@@ -24,6 +26,37 @@ from .decorators import is_admin
 from google.oauth2 import service_account
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.discovery import build
+
+
+def reagents_to_xls(users, output):
+    """
+    Создает xlsx файл со всеми реактивами всех пользователей
+    :param users:
+    :return:
+    """
+    workbook = xlsxwriter.Workbook(output)
+
+    worksheet = workbook.add_worksheet("Реагенты")
+
+    headers = ["CAS", "SMILES", "SMILES_filtered", "name", "inchikey_standard",
+               "reagent_id", "user_contact", "contact",
+               "location", "comment", "timestamp", "sharing_status"]
+
+    for col, h in enumerate(headers):
+        worksheet.write(0, col, h)
+
+    row = 1
+    for user in users:
+        contact = get_contact(user)
+        for reagent_obj in dbschema.get_shared_reagents(user):
+            for col, h in enumerate(headers):
+                if h in reagent_obj:
+                    worksheet.write(row, col, reagent_obj[h])
+                if h == "user_contact":
+                    worksheet.write(row, col, contact)
+            row += 1
+
+    workbook.close()
 
 
 logger = logging.getLogger(__name__)
@@ -169,6 +202,12 @@ class Admin:
                 f.seek(0)
 
                 context.bot.send_document(chat_id, f)
+
+                output = BytesIO()
+                output.name = "digest.xlsx"
+                reagents_to_xls(users, output)
+                output.seek(0)
+                context.bot.send_document(chat_id, output)
 
         except Exception as err:
             logger.error(traceback.format_exc())

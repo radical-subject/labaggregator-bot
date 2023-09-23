@@ -91,19 +91,6 @@ class UsersCollection:
     def get_users_by_smiles(self, smiles: str):
         return self.get_users_by_reagent_field('SMILES', smiles)
 
-    def get_user_by_inchi_key(self, inchi_key: str):
-        return self.get_users_by_reagent_field('inchikey_standard', inchi_key)
-
-    def get_location_by_user_id_and_cas(self, update, cas):
-        user_id = update.message.from_user.id
-        result = self.collection.find_one({"user_id": user_id})['user_reagents']
-        locations = []
-        for each in result:
-            if each['CAS'] in cas:
-                if 'location' in each.keys():
-                    locations.append(each['location'])
-        return '\n'.join(set(locations))
-
     def get_reagents_by_field(self, field, value_list: Union[str, List[str]]) -> List[Reagent]:
         if isinstance(value_list, str):  # можно и список и 1
             value_list = [value_list, ]
@@ -157,6 +144,16 @@ class UsersCollection:
                     r.from_dict(reagent)
                     reagents.append(r)
 
+        return reagents
+
+    def get_reagents_by_text(self, text: str) -> List[Reagent]:
+        reagents = users_collection.get_reagents_by_cas(text)
+        if not reagents:
+            reagents = users_collection.get_reagents_by_smiles(text)
+        if not reagents:
+            reagents = users_collection.get_reagents_by_inchi(text)
+        if not reagents:
+            reagents = users_collection.get_reagents_by_name(text)
         return reagents
 
 
